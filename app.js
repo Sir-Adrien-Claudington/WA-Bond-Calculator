@@ -7,6 +7,13 @@
 (function () {
   "use strict";
 
+  // Frame-busting: redirect to top if this page is embedded in an iframe.
+  // GitHub Pages cannot send X-Frame-Options headers, so this JS fallback
+  // is the only available clickjacking defence for a static host.
+  if (window.self !== window.top) {
+    window.top.location.replace(window.self.location.href);
+  }
+
   // ---------------------------------------------------------------------------
   // STATUTORY RULES (frozen so they cannot be mutated at runtime via console)
   // Source: Residential Tenancies Act 1987 (WA) as amended by the
@@ -178,10 +185,6 @@
 
   // ---------------------------------------------------------------------------
   // EMAIL CAPTURE ENDPOINT
-  // VERIFY: replace this placeholder with your actual backend URL before deploying.
-  // Your backend should accept POST { email: string } and return HTTP 200 on success.
-  // Also update connect-src in the CSP meta tag in index.html to match this domain.
-  // ---------------------------------------------------------------------------
   const EMAIL_ENDPOINT = "https://web-production-52326.up.railway.app/collect-email";
 
   // ---------------------------------------------------------------------------
