@@ -182,7 +182,7 @@
   // Your backend should accept POST { email: string } and return HTTP 200 on success.
   // Also update connect-src in the CSP meta tag in index.html to match this domain.
   // ---------------------------------------------------------------------------
-  const EMAIL_ENDPOINT = "https://YOUR-BACKEND-URL/collect-email";
+  const EMAIL_ENDPOINT = "https://web-production-52326.up.railway.app/collect-email";
 
   // ---------------------------------------------------------------------------
   // CURRENCY FORMATTING
