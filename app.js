@@ -919,12 +919,33 @@
   // ---------------------------------------------------------------------------
 
   // Watches the disclaimer and output for style/attribute tampering and
-  // restores visibility if someone hides them via DevTools.
+  // text-node manipulation. Restores visibility and, for the disclaimer,
+  // reverts any direct text edits made via DevTools.
   function guardElementVisibility(element, enforcedDisplay) {
-    const observer = new MutationObserver(function () {
+    const observeConfig = {
+      attributes: true,
+      attributeFilter: ["style", "class", "hidden"],
+      subtree: true,
+      childList: true,
+      characterData: true,
+      characterDataOldValue: true
+    };
+
+    const observer = new MutationObserver(function (mutations) {
+      // Restore directly edited text nodes in the disclaimer.
+      if (element.id === "wabcc-disclaimer") {
+        mutations.forEach(function (record) {
+          if (record.type === "characterData" && typeof record.oldValue === "string") {
+            observer.disconnect();
+            record.target.textContent = record.oldValue;
+            observer.observe(element, observeConfig);
+          }
+        });
+      }
+
       const computed = window.getComputedStyle(element);
       if (computed.visibility === "hidden" || computed.opacity === "0" || computed.display === "none") {
-        // Only re-show the output if it currently holds results.
+        // Only re-show the output section if it currently holds results.
         if (element.id === "wabcc-output" && !element.firstChild) {
           return;
         }
@@ -933,10 +954,8 @@
         element.style.setProperty("display", enforcedDisplay, "important");
       }
     });
-    observer.observe(element, {
-      attributes: true,
-      attributeFilter: ["style", "class", "hidden"]
-    });
+
+    observer.observe(element, observeConfig);
   }
 
   const disclaimerElement = document.getElementById("wabcc-disclaimer");
