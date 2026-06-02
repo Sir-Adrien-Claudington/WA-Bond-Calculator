@@ -1,0 +1,293 @@
+/* WA Rental Bond Claim Calculator - styling
+   Structural and legal-text properties are locked with !important so the
+   layout and disclaimers cannot be trivially restyled via DevTools. */
+
+* {
+  box-sizing: border-box !important;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #f1f4f8;
+  color: #1c2530;
+  line-height: 1.5;
+  padding: 24px 12px;
+}
+
+.wabcc-container {
+  max-width: 760px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 18px rgba(20, 35, 60, 0.10);
+  padding: 28px;
+}
+
+.wabcc-header {
+  border-bottom: 3px solid #1f5fa8;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
+.wabcc-title {
+  font-size: 26px !important;
+  color: #143a6b;
+  margin-bottom: 6px;
+}
+
+.wabcc-subtitle {
+  font-size: 14px !important;
+  color: #41506a;
+}
+
+.wabcc-privacy {
+  background: #e6f3ea;
+  border-left: 4px solid #2e8b57;
+  color: #1d5234;
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin-bottom: 18px;
+}
+
+.wabcc-info-box {
+  background: #fff7e6;
+  border: 1px solid #e0b75a;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 22px;
+}
+
+.wabcc-info-title {
+  font-size: 17px !important;
+  color: #8a5a00;
+  margin-bottom: 8px;
+}
+
+.wabcc-info-text {
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.wabcc-info-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 14px !important;
+}
+
+.wabcc-info-col {
+  font-size: 13px;
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.wabcc-info-col ul {
+  margin-top: 6px;
+  padding-left: 18px;
+}
+
+.wabcc-info-not-claimable {
+  border-left: 4px solid #c0392b;
+}
+
+.wabcc-info-claimable {
+  border-left: 4px solid #2e8b57;
+}
+
+.wabcc-form {
+  display: block !important;
+}
+
+.wabcc-fieldset {
+  border: 1px solid #d4dbe6 !important;
+  border-radius: 8px;
+  padding: 16px !important;
+  margin-bottom: 18px;
+}
+
+.wabcc-legend {
+  font-size: 16px !important;
+  font-weight: 700;
+  color: #143a6b;
+  padding: 0 8px;
+}
+
+.wabcc-field {
+  margin-bottom: 14px;
+}
+
+.wabcc-field:last-child {
+  margin-bottom: 0;
+}
+
+.wabcc-label {
+  display: block !important;
+  font-size: 14px !important;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #243349;
+}
+
+.wabcc-sublabel {
+  display: block !important;
+  font-size: 12px !important;
+  color: #4a5a72;
+  margin: 6px 0 4px;
+}
+
+.wabcc-radio-label {
+  display: inline-block !important;
+  font-size: 15px !important;
+  margin-right: 22px;
+  cursor: pointer;
+}
+
+.wabcc-input {
+  display: block !important;
+  width: 100% !important;
+  font-size: 15px !important;
+  padding: 9px 11px;
+  border: 1px solid #b9c4d4;
+  border-radius: 6px;
+  background: #fdfefe;
+}
+
+.wabcc-input:focus {
+  outline: 2px solid #1f5fa8;
+  border-color: #1f5fa8;
+}
+
+.wabcc-input-small {
+  width: 110px !important;
+}
+
+.wabcc-inline-group {
+  display: flex !important;
+  gap: 18px !important;
+  flex-wrap: wrap !important;
+}
+
+.wabcc-inline-item {
+  display: inline-block !important;
+}
+
+.wabcc-hint {
+  font-size: 12px !important;
+  color: #5a6a82;
+  margin-top: 5px;
+}
+
+.wabcc-warning {
+  font-size: 13px !important;
+  color: #b23b1e;
+  font-weight: 600;
+  margin-top: 6px;
+  min-height: 0;
+}
+
+.wabcc-submit {
+  display: block !important;
+  width: 100% !important;
+  font-size: 16px !important;
+  font-weight: 700;
+  color: #ffffff;
+  background: #1f5fa8;
+  border: none;
+  border-radius: 8px;
+  padding: 13px;
+  cursor: pointer;
+}
+
+.wabcc-submit:hover {
+  background: #18497f;
+}
+
+.wabcc-output {
+  display: none;
+  margin-top: 24px;
+  padding: 18px;
+  border: 1px solid #cdd7e4;
+  border-radius: 8px;
+  background: #f8fafd;
+}
+
+.wabcc-result-heading {
+  font-size: 17px !important;
+  color: #143a6b;
+  margin: 14px 0 8px;
+}
+
+.wabcc-result-heading:first-child {
+  margin-top: 0;
+}
+
+.wabcc-result-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 16px;
+  padding: 6px 0;
+  border-bottom: 1px dashed #d7dfea;
+  font-size: 14px;
+}
+
+.wabcc-result-label {
+  color: #2a3a52;
+  word-break: break-word;
+}
+
+.wabcc-result-value {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.wabcc-result-surplus .wabcc-result-value {
+  color: #1d7a45;
+}
+
+.wabcc-result-shortfall .wabcc-result-value {
+  color: #c0392b;
+}
+
+.wabcc-result-paragraph {
+  font-size: 14px;
+  margin: 10px 0;
+  color: #2a3a52;
+}
+
+.wabcc-next-steps {
+  margin-top: 16px;
+  padding: 14px;
+  background: #eef4fb;
+  border-radius: 6px;
+}
+
+.wabcc-error-list {
+  color: #b23b1e;
+  font-size: 14px;
+  padding-left: 20px;
+}
+
+.wabcc-error-list li {
+  margin: 4px 0;
+}
+
+.wabcc-disclaimer {
+  margin-top: 24px;
+  padding: 14px;
+  border-top: 2px solid #c0392b;
+  color: #4a3030;
+  background: #fcf2f2;
+  border-radius: 4px;
+}
+
+@media (max-width: 560px) {
+  .wabcc-info-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .wabcc-container {
+    padding: 18px;
+  }
+}

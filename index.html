@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
+  <title>WA Rental Bond Claim Calculator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="wabcc-container">
+    <header class="wabcc-header">
+      <h1 class="wabcc-title">WA Rental Bond Claim Calculator</h1>
+      <p class="wabcc-subtitle">
+        For residential tenancies in Western Australia under the
+        Residential Tenancies Act 1987 (WA), as amended by the
+        Residential Tenancies Amendment Act 2024 (WA).
+      </p>
+    </header>
+
+    <!-- Privacy notice: this app stores and transmits nothing -->
+    <p class="wabcc-privacy" style="font-size:14px !important; font-weight:600 !important;">
+      This calculator runs entirely in your browser. No data you enter is
+      stored, transmitted, or shared.
+    </p>
+
+    <!-- Persistent fair wear and tear info box -->
+    <section class="wabcc-info-box" aria-label="Fair wear and tear guidance">
+      <h2 class="wabcc-info-title">Fair wear and tear is NOT claimable</h2>
+      <p class="wabcc-info-text">
+        Under the Residential Tenancies Act 1987 (WA), a landlord cannot claim
+        for fair wear and tear &mdash; the natural deterioration that happens
+        through ordinary, reasonable use over time.
+      </p>
+      <div class="wabcc-info-grid">
+        <div class="wabcc-info-col wabcc-info-not-claimable">
+          <strong>Not claimable (fair wear and tear):</strong>
+          <ul>
+            <li>Carpet worn thin in high-traffic areas</li>
+            <li>Minor scuffs and marks on walls</li>
+            <li>Paint faded by sunlight</li>
+            <li>Loose hinges or taps from normal use</li>
+          </ul>
+        </div>
+        <div class="wabcc-info-col wabcc-info-claimable">
+          <strong>Claimable (damage / neglect):</strong>
+          <ul>
+            <li>Burns, large stains, or tears in carpet</li>
+            <li>Holes punched in walls or doors</li>
+            <li>Broken fixtures from misuse</li>
+            <li>Deliberate or negligent damage</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <form id="wabcc-form" class="wabcc-form" novalidate>
+
+      <fieldset class="wabcc-fieldset">
+        <legend class="wabcc-legend">I am a&hellip;</legend>
+        <label class="wabcc-radio-label">
+          <input type="radio" name="wabcc-user-type" value="landlord" checked>
+          Landlord
+        </label>
+        <label class="wabcc-radio-label">
+          <input type="radio" name="wabcc-user-type" value="tenant">
+          Tenant
+        </label>
+      </fieldset>
+
+      <fieldset class="wabcc-fieldset">
+        <legend class="wabcc-legend">Rent &amp; bond</legend>
+
+        <div class="wabcc-field">
+          <label class="wabcc-label" for="wabcc-weekly-rent">Weekly rent ($)</label>
+          <input class="wabcc-input" type="number" id="wabcc-weekly-rent"
+                 min="0" step="0.01" inputmode="decimal" placeholder="e.g. 450.00">
+        </div>
+
+        <div class="wabcc-field">
+          <label class="wabcc-label" for="wabcc-bond-held">Bond amount held ($)</label>
+          <input class="wabcc-input" type="number" id="wabcc-bond-held"
+                 min="0" step="0.01" inputmode="decimal" placeholder="e.g. 1800.00">
+          <p class="wabcc-warning" id="wabcc-bond-warning" role="alert"></p>
+        </div>
+      </fieldset>
+
+      <fieldset class="wabcc-fieldset">
+        <legend class="wabcc-legend">Itemised deductions</legend>
+
+        <div class="wabcc-field">
+          <label class="wabcc-label">Unpaid rent</label>
+          <div class="wabcc-inline-group">
+            <span class="wabcc-inline-item">
+              <label class="wabcc-sublabel" for="wabcc-unpaid-weeks">Weeks</label>
+              <input class="wabcc-input wabcc-input-small" type="number"
+                     id="wabcc-unpaid-weeks" min="0" step="1" value="0">
+            </span>
+            <span class="wabcc-inline-item">
+              <label class="wabcc-sublabel" for="wabcc-unpaid-days">Days (0&ndash;6)</label>
+              <input class="wabcc-input wabcc-input-small" type="number"
+                     id="wabcc-unpaid-days" min="0" max="6" step="1" value="0">
+            </span>
+          </div>
+          <p class="wabcc-hint">Converted to dollars automatically using the daily rate (weekly rent &divide; 7).</p>
+        </div>
+
+        <div class="wabcc-field">
+          <label class="wabcc-label" for="wabcc-cleaning">Cleaning ($)</label>
+          <input class="wabcc-input" type="number" id="wabcc-cleaning"
+                 min="0" step="0.01" inputmode="decimal" value="0">
+        </div>
+
+        <div class="wabcc-field">
+          <label class="wabcc-label" for="wabcc-damage">Damage ($)</label>
+          <input class="wabcc-input" type="number" id="wabcc-damage"
+                 min="0" step="0.01" inputmode="decimal" value="0">
+          <p class="wabcc-hint">Damage beyond fair wear and tear only (see box above). Separate from cleaning.</p>
+        </div>
+
+        <div class="wabcc-field">
+          <label class="wabcc-label" for="wabcc-keys">Replacement of keys, remotes, or access devices ($)</label>
+          <input class="wabcc-input" type="number" id="wabcc-keys"
+                 min="0" step="0.01" inputmode="decimal" value="0">
+        </div>
+
+        <div class="wabcc-field">
+          <label class="wabcc-label" for="wabcc-other">Other ($)</label>
+          <input class="wabcc-input" type="number" id="wabcc-other"
+                 min="0" step="0.01" inputmode="decimal" value="0">
+          <label class="wabcc-sublabel" for="wabcc-other-description">Description (required if amount entered)</label>
+          <input class="wabcc-input" type="text" id="wabcc-other-description"
+                 maxlength="120" placeholder="Describe the other deduction">
+        </div>
+
+        <div class="wabcc-field">
+          <label class="wabcc-label" for="wabcc-pet-bond">Pet bond &mdash; fumigation or pet-related damage ($)</label>
+          <input class="wabcc-input" type="number" id="wabcc-pet-bond"
+                 min="0" step="0.01" inputmode="decimal" value="0">
+          <p class="wabcc-hint">Capped at $350 total under WA law, regardless of the number of pets. Applies to fumigation or pet-related damage only.</p>
+          <p class="wabcc-warning" id="wabcc-pet-warning" role="alert"></p>
+        </div>
+      </fieldset>
+
+      <button class="wabcc-submit" type="submit">Calculate bond claim</button>
+    </form>
+
+    <section id="wabcc-output" class="wabcc-output" aria-live="polite"></section>
+
+    <!-- Legal disclaimer: locked with inline !important styles -->
+    <footer id="wabcc-disclaimer" class="wabcc-disclaimer"
+            style="display:block !important; visibility:visible !important; opacity:1 !important; font-size:13px !important; line-height:1.5 !important;">
+      <p style="font-weight:700 !important; font-size:13px !important;">
+        This tool provides a general estimate only and does not constitute
+        legal advice. For disputes, contact Consumer Protection WA or the
+        State Administrative Tribunal.
+      </p>
+      <p style="font-size:13px !important;">
+        Rules are based on the Residential Tenancies Act 1987 (WA) and the
+        Residential Tenancies Amendment Act 2024 (WA). The bond must have been
+        lodged with the WA Bond Administrator within 14 days of receipt.
+        Claims against the bond are made on Form 6 (Application for Disposal of
+        Security Bond). Disputes are resolved by the State Administrative
+        Tribunal of Western Australia (SAT).
+      </p>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
