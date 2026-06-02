@@ -98,6 +98,28 @@
     return !/[<>{}$`\\]|script|javascript:/i.test(text);
   }
 
+  // Validates email format. Rejects anything that doesn't look like a real address.
+  function isValidEmail(raw) {
+    if (typeof raw !== "string") {
+      return false;
+    }
+    const trimmed = raw.trim();
+    return (
+      trimmed.length >= 5 &&
+      trimmed.length <= 254 &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)
+    );
+  }
+
+  // Trims and lowercases an email. Returns null if the result fails validation.
+  function sanitizeEmail(raw) {
+    if (typeof raw !== "string") {
+      return null;
+    }
+    const cleaned = raw.trim().toLowerCase();
+    return isValidEmail(cleaned) ? cleaned : null;
+  }
+
   // ---------------------------------------------------------------------------
   // CALCULATION FUNCTIONS (pure, no side effects)
   // ---------------------------------------------------------------------------
@@ -152,6 +174,15 @@
   let exportCount = 0;
   let lastExportTime = 0;
   let lastCalculatedData = null;
+  let emailCaptured = false;
+
+  // ---------------------------------------------------------------------------
+  // EMAIL CAPTURE ENDPOINT
+  // VERIFY: replace this placeholder with your actual backend URL before deploying.
+  // Your backend should accept POST { email: string } and return HTTP 200 on success.
+  // Also update connect-src in the CSP meta tag in index.html to match this domain.
+  // ---------------------------------------------------------------------------
+  const EMAIL_ENDPOINT = "https://YOUR-BACKEND-URL/collect-email";
 
   // ---------------------------------------------------------------------------
   // CURRENCY FORMATTING
@@ -456,6 +487,144 @@
   }
 
   // ---------------------------------------------------------------------------
+  // EMAIL CAPTURE MODAL
+  // Modal is built entirely in JS — no HTML in index.html — to keep CSP clean
+  // and ensure all DOM manipulation follows the textContent-only pattern.
+  // ---------------------------------------------------------------------------
+
+  // Builds the email capture modal on first call and appends it to document.body.
+  function buildEmailModal() {
+    const overlay = document.createElement("div");
+    overlay.id = "wabcc-email-modal";
+    overlay.className = "wabcc-modal-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-labelledby", "wabcc-modal-heading");
+
+    const card = document.createElement("div");
+    card.className = "wabcc-modal-card";
+
+    const heading = document.createElement("h2");
+    heading.id = "wabcc-modal-heading";
+    heading.className = "wabcc-modal-title";
+    heading.textContent = "Enter your email to download the PDF";
+
+    const note = document.createElement("p");
+    note.className = "wabcc-modal-note";
+    note.textContent =
+      "Your email will only be used to send relevant WA tenancy law updates. " +
+      "No spam — unsubscribe any time.";
+
+    const emailLabel = document.createElement("label");
+    emailLabel.className = "wabcc-label";
+    emailLabel.setAttribute("for", "wabcc-email-input");
+    emailLabel.textContent = "Email address";
+
+    const emailInput = document.createElement("input");
+    emailInput.id = "wabcc-email-input";
+    emailInput.className = "wabcc-input";
+    emailInput.type = "email";
+    emailInput.autocomplete = "email";
+    emailInput.setAttribute("inputmode", "email");
+    emailInput.maxLength = 254;
+    emailInput.placeholder = "you@example.com";
+    emailInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        handleEmailSubmit();
+      }
+    });
+
+    const errorMsg = document.createElement("p");
+    errorMsg.id = "wabcc-email-error";
+    errorMsg.className = "wabcc-warning";
+    errorMsg.setAttribute("role", "alert");
+
+    const submitBtn = document.createElement("button");
+    submitBtn.id = "wabcc-email-submit";
+    submitBtn.className = "wabcc-submit";
+    submitBtn.type = "button";
+    submitBtn.textContent = "Get my PDF";
+    submitBtn.addEventListener("click", handleEmailSubmit);
+
+    card.appendChild(heading);
+    card.appendChild(note);
+    card.appendChild(emailLabel);
+    card.appendChild(emailInput);
+    card.appendChild(errorMsg);
+    card.appendChild(submitBtn);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+  }
+
+  function showEmailModal() {
+    if (!document.getElementById("wabcc-email-modal")) {
+      buildEmailModal();
+    }
+    const modal = document.getElementById("wabcc-email-modal");
+    modal.style.removeProperty("display");
+    const input = document.getElementById("wabcc-email-input");
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
+    const errorMsg = document.getElementById("wabcc-email-error");
+    if (errorMsg) {
+      errorMsg.textContent = "";
+    }
+  }
+
+  function hideEmailModal() {
+    const modal = document.getElementById("wabcc-email-modal");
+    if (modal) {
+      modal.style.display = "none";
+    }
+  }
+
+  // Validates the input, then POSTs the email to the backend.
+  // Only triggers PDF generation after a successful 200 response.
+  function handleEmailSubmit() {
+    const input = document.getElementById("wabcc-email-input");
+    const errorEl = document.getElementById("wabcc-email-error");
+    const submitBtn = document.getElementById("wabcc-email-submit");
+
+    const sanitized = sanitizeEmail(input ? input.value : "");
+    if (!sanitized) {
+      errorEl.textContent = "Please enter a valid email address.";
+      if (input) {
+        input.focus();
+      }
+      return;
+    }
+
+    errorEl.textContent = "";
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Sending…";
+
+    fetch(EMAIL_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: sanitized })
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("status " + response.status);
+        }
+        return response;
+      })
+      .then(function () {
+        emailCaptured = true;
+        hideEmailModal();
+        generatePdf();
+      })
+      .catch(function () {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Get my PDF";
+        errorEl.textContent =
+          "Something went wrong. Please check your connection and try again.";
+      });
+  }
+
+  // ---------------------------------------------------------------------------
   // PDF EXPORT — session limiter, button management, generation
   // ---------------------------------------------------------------------------
 
@@ -714,8 +883,14 @@
     updateExportButtonState();
   }
 
+  // Shows the email modal on first export; skips it for subsequent exports in
+  // the same session once the email has been successfully submitted.
   function handleExportClick() {
-    generatePdf();
+    if (!emailCaptured) {
+      showEmailModal();
+    } else {
+      generatePdf();
+    }
   }
 
   // ---------------------------------------------------------------------------
