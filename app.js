@@ -217,7 +217,7 @@
     }
   }
 
-  // Warns inline if pet bond exceeds the $260 statutory cap.
+  // Warns inline if pet bond exceeds the statutory cap.
   function updatePetWarning() {
     const petBond = parseDollarInput(document.getElementById("wabcc-pet-bond").value);
     if (petBond === null) {
@@ -450,7 +450,10 @@
     }
 
     if (outcome.type === "surplus") {
-      const surplusRow = buildLine("Surplus returned to tenant", formatCurrency(outcome.amount));
+      const surplusLabel = outcome.amount === 0
+        ? "Bond fully claimed — no surplus or shortfall"
+        : "Surplus returned to tenant";
+      const surplusRow = buildLine(surplusLabel, formatCurrency(outcome.amount));
       surplusRow.classList.add("wabcc-result-surplus");
       outputSection.appendChild(surplusRow);
     } else {
@@ -796,8 +799,11 @@
     cy += 2;
 
     if (outcome.type === "surplus") {
+      const pdfSurplusLabel = outcome.amount === 0
+        ? "Bond fully claimed — no surplus or shortfall"
+        : "Surplus returned to tenant";
       doc.setTextColor(30, 100, 50);
-      addRow("Surplus returned to tenant", formatCurrency(outcome.amount), true);
+      addRow(pdfSurplusLabel, formatCurrency(outcome.amount), true);
       doc.setTextColor(0, 0, 0);
     } else {
       doc.setTextColor(180, 40, 30);

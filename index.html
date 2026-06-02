@@ -7,7 +7,7 @@
   <!-- Primary SEO -->
   <title>WA Rental Bond Claim Calculator | Free Tool for WA Landlords &amp; Tenants</title>
   <meta name="description"
-        content="Free Western Australia rental bond calculator for landlords and tenants. Calculates deductions, refunds and shortfalls under the Residential Tenancies Act 1987 (WA). Runs entirely in your browser — no data stored.">
+        content="Free Western Australia rental bond calculator for landlords and tenants. Calculates deductions, refunds and shortfalls under the Residential Tenancies Act 1987 (WA). Runs entirely in your browser.">
   <meta name="keywords"
         content="WA rental bond calculator, Western Australia bond claim, rental bond refund WA, security bond calculator WA, residential tenancy bond WA, bond deductions calculator, Form 6 WA, SAT bond dispute WA">
   <meta name="author" content="WA Bond Calculator">
@@ -22,14 +22,14 @@
   <meta property="og:site_name" content="WA Rental Bond Claim Calculator">
   <meta property="og:title" content="WA Rental Bond Claim Calculator | Free Tool for WA Landlords &amp; Tenants">
   <meta property="og:description"
-        content="Calculate rental bond deductions, refunds and shortfalls instantly. Built for Western Australia under the Residential Tenancies Act 1987 (WA). No sign-up, no data stored.">
+        content="Calculate rental bond deductions, refunds and shortfalls instantly. Built for Western Australia under the Residential Tenancies Act 1987 (WA). Free, no sign-up required.">
   <meta property="og:url" content="https://wabond.today/">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="WA Rental Bond Claim Calculator">
   <meta name="twitter:description"
-        content="Free calculator for WA rental bond claims. Instant deduction breakdown for landlords and tenants under WA tenancy law. No data stored.">
+        content="Free calculator for WA rental bond claims. Instant deduction breakdown for landlords and tenants under WA tenancy law.">
 
   <!-- Structured data: WebApplication schema (JSON-LD is a data block — not governed by script-src CSP) -->
   <script type="application/ld+json">
@@ -61,14 +61,21 @@
   }
   </script>
 
+  <!-- Referrer policy as meta tag (defence-in-depth alongside HTTP header) -->
+  <meta name="referrer" content="no-referrer">
+
   <!-- Content Security Policy -->
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src 'self' https://web-production-52326.up.railway.app https://wabond.today; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
->
 
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <noscript>
+    <div style="background:#c0392b !important;color:#ffffff !important;padding:16px !important;text-align:center !important;font-family:sans-serif !important;font-size:15px !important;">
+      This calculator requires JavaScript. Please enable JavaScript in your browser settings to continue.
+    </div>
+  </noscript>
   <main class="wabcc-container">
     <header class="wabcc-header">
       <h1 class="wabcc-title">WA Rental Bond Claim Calculator</h1>
@@ -156,12 +163,12 @@
             <span class="wabcc-inline-item">
               <label class="wabcc-sublabel" for="wabcc-unpaid-weeks">Weeks</label>
               <input class="wabcc-input wabcc-input-small" type="number"
-                     id="wabcc-unpaid-weeks" min="0" step="1" value="0">
+                     id="wabcc-unpaid-weeks" min="0" step="1" value="0" inputmode="numeric">
             </span>
             <span class="wabcc-inline-item">
               <label class="wabcc-sublabel" for="wabcc-unpaid-days">Days (0&ndash;6)</label>
               <input class="wabcc-input wabcc-input-small" type="number"
-                     id="wabcc-unpaid-days" min="0" max="6" step="1" value="0">
+                     id="wabcc-unpaid-days" min="0" max="6" step="1" value="0" inputmode="numeric">
             </span>
           </div>
           <p class="wabcc-hint">Converted to dollars automatically using the daily rate (weekly rent &divide; 7).</p>
