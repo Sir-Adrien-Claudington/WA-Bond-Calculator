@@ -274,6 +274,29 @@ body {
   margin: 4px 0;
 }
 
+.wabcc-export-btn {
+  display: block !important;
+  width: 100% !important;
+  font-size: 15px !important;
+  font-weight: 600;
+  color: #143a6b;
+  background: #e8f0fb;
+  border: 2px solid #1f5fa8;
+  border-radius: 8px;
+  padding: 11px;
+  margin-top: 18px;
+  cursor: pointer;
+}
+
+.wabcc-export-btn:hover:not(:disabled) {
+  background: #d0e2f7;
+}
+
+.wabcc-export-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .wabcc-disclaimer {
   margin-top: 24px;
   padding: 14px;

@@ -3,9 +3,70 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Primary SEO -->
+  <title>WA Rental Bond Claim Calculator | Free Tool for WA Landlords &amp; Tenants</title>
+  <meta name="description"
+        content="Free Western Australia rental bond calculator for landlords and tenants. Calculates deductions, refunds and shortfalls under the Residential Tenancies Act 1987 (WA). Runs entirely in your browser — no data stored.">
+  <meta name="keywords"
+        content="WA rental bond calculator, Western Australia bond claim, rental bond refund WA, security bond calculator WA, residential tenancy bond WA, bond deductions calculator, Form 6 WA, SAT bond dispute WA">
+  <meta name="author" content="WA Bond Calculator">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#1f5fa8">
+
+  <!-- Canonical URL — update this to your live deployment URL before publishing -->
+  <!-- <link rel="canonical" href="https://your-domain.com/wa-bond-calculator/"> -->
+
+  <!-- Open Graph (Facebook, LinkedIn, general social sharing) -->
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_AU">
+  <meta property="og:site_name" content="WA Rental Bond Claim Calculator">
+  <meta property="og:title" content="WA Rental Bond Claim Calculator | Free Tool for WA Landlords &amp; Tenants">
+  <meta property="og:description"
+        content="Calculate rental bond deductions, refunds and shortfalls instantly. Built for Western Australia under the Residential Tenancies Act 1987 (WA). No sign-up, no data stored.">
+  <!-- og:url — update to your live deployment URL before publishing -->
+  <!-- <meta property="og:url" content="https://your-domain.com/wa-bond-calculator/"> -->
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="WA Rental Bond Claim Calculator">
+  <meta name="twitter:description"
+        content="Free calculator for WA rental bond claims. Instant deduction breakdown for landlords and tenants under WA tenancy law. No data stored.">
+
+  <!-- Structured data: WebApplication schema (JSON-LD is a data block — not governed by script-src CSP) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "WA Rental Bond Claim Calculator",
+    "description": "Free online calculator for Western Australian rental bond claims. Calculates deductions, refunds and shortfalls for landlords and tenants under the Residential Tenancies Act 1987 (WA).",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Any",
+    "browserRequirements": "Requires JavaScript",
+    "inLanguage": "en-AU",
+    "isAccessibleForFree": true,
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "AUD"
+    },
+    "about": {
+      "@type": "Thing",
+      "name": "Residential Tenancy Bond Claims",
+      "description": "Security bond deduction and refund calculations under the Residential Tenancies Act 1987 (WA)"
+    },
+    "spatialCoverage": {
+      "@type": "AdministrativeArea",
+      "name": "Western Australia",
+      "alternateName": "WA"
+    }
+  }
+  </script>
+
+  <!-- Content Security Policy -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
-  <title>WA Rental Bond Claim Calculator</title>
+        content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -167,6 +228,10 @@
     </footer>
   </main>
 
+  <!-- jsPDF 2.5.1 — pinned version, SRI-verified. Do not change version or remove integrity attribute. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+          integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk"
+          crossorigin="anonymous"></script>
   <script src="app.js"></script>
 </body>
 </html>

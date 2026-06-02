@@ -37,6 +37,12 @@
     DISPUTE_BODY: "State Administrative Tribunal of Western Australia (SAT)"
   });
 
+  // Session export limits — frozen so they cannot be relaxed via the console.
+  const EXPORT_LIMITS = Object.freeze({
+    MAX_PER_SESSION: 10,
+    COOLDOWN_MS: 8000
+  });
+
   // ---------------------------------------------------------------------------
   // VALIDATION HELPERS (pure functions)
   // ---------------------------------------------------------------------------
@@ -139,6 +145,13 @@
   const bondWarning = document.getElementById("wabcc-bond-warning");
   const petWarning = document.getElementById("wabcc-pet-warning");
   const otherDescriptionField = document.getElementById("wabcc-other-description");
+
+  // ---------------------------------------------------------------------------
+  // SESSION STATE (all in closure — not accessible from the global scope)
+  // ---------------------------------------------------------------------------
+  let exportCount = 0;
+  let lastExportTime = 0;
+  let lastCalculatedData = null;
 
   // ---------------------------------------------------------------------------
   // CURRENCY FORMATTING
@@ -418,11 +431,15 @@
     }
 
     outputSection.appendChild(buildNextSteps(data.userType, outcome));
+    lastCalculatedData = { userData: data, totalClaim: totalClaim, outcome: outcome };
+    showExportButton();
     outputSection.style.setProperty("display", "block", "important");
   }
 
   // Renders a validation error list safely.
   function renderErrors(errors) {
+    lastCalculatedData = null;
+    hideExportButton();
     while (outputSection.firstChild) {
       outputSection.removeChild(outputSection.firstChild);
     }
@@ -436,6 +453,269 @@
     });
     outputSection.appendChild(list);
     outputSection.style.setProperty("display", "block", "important");
+  }
+
+  // ---------------------------------------------------------------------------
+  // PDF EXPORT — session limiter, button management, generation
+  // ---------------------------------------------------------------------------
+
+  // Updates the export button label and enabled state based on session counters.
+  function updateExportButtonState() {
+    const btn = document.getElementById("wabcc-export-btn");
+    if (!btn) {
+      return;
+    }
+    const remaining = EXPORT_LIMITS.MAX_PER_SESSION - exportCount;
+    const msSinceLast = Date.now() - lastExportTime;
+
+    if (exportCount >= EXPORT_LIMITS.MAX_PER_SESSION) {
+      btn.disabled = true;
+      btn.textContent = "Export limit reached for this session";
+      return;
+    }
+    if (msSinceLast < EXPORT_LIMITS.COOLDOWN_MS) {
+      const secondsLeft = Math.ceil((EXPORT_LIMITS.COOLDOWN_MS - msSinceLast) / 1000);
+      btn.disabled = true;
+      btn.textContent = "Please wait " + secondsLeft + "s before exporting again…";
+      setTimeout(updateExportButtonState, 1000);
+      return;
+    }
+    btn.disabled = false;
+    btn.textContent = "Export as PDF (" + remaining + " remaining this session)";
+  }
+
+  // Creates the export button on first call, re-uses it on subsequent renders.
+  function showExportButton() {
+    let btn = document.getElementById("wabcc-export-btn");
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.id = "wabcc-export-btn";
+      btn.className = "wabcc-export-btn";
+      btn.type = "button";
+      btn.addEventListener("click", handleExportClick);
+      outputSection.appendChild(btn);
+    }
+    btn.style.removeProperty("display");
+    updateExportButtonState();
+  }
+
+  // Hides the export button without removing it from the DOM.
+  function hideExportButton() {
+    const btn = document.getElementById("wabcc-export-btn");
+    if (btn) {
+      btn.style.display = "none";
+    }
+  }
+
+  // Builds and downloads a PDF of the calculation result entirely in the browser.
+  // No data is sent anywhere — jsPDF triggers a direct client-side download.
+  // Enforces session export limit and per-export cooldown before generating.
+  function generatePdf() {
+    if (!lastCalculatedData) {
+      return;
+    }
+    if (exportCount >= EXPORT_LIMITS.MAX_PER_SESSION) {
+      updateExportButtonState();
+      return;
+    }
+    if (Date.now() - lastExportTime < EXPORT_LIMITS.COOLDOWN_MS) {
+      updateExportButtonState();
+      return;
+    }
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      return;
+    }
+
+    const { userData, totalClaim, outcome } = lastCalculatedData;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const pageWidth = 210;
+    const margin = 15;
+    const contentWidth = pageWidth - margin * 2;
+    let cy = 20;
+
+    const exportDate = new Date().toLocaleDateString("en-AU", {
+      day: "2-digit", month: "long", year: "numeric"
+    });
+
+    function breakPage(spaceNeeded) {
+      if (cy + spaceNeeded > 275) {
+        doc.addPage();
+        cy = 20;
+      }
+    }
+
+    function addHeading(text) {
+      breakPage(12);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(20, 58, 107);
+      doc.text(text, margin, cy);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "normal");
+      cy += 7;
+    }
+
+    function addRow(labelText, valueText, bold) {
+      const labelLines = doc.splitTextToSize(labelText, contentWidth - 35);
+      breakPage(labelLines.length * 5 + 4);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.text(labelLines, margin, cy);
+      doc.text(valueText, pageWidth - margin, cy, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      cy += labelLines.length * 5 + 2;
+    }
+
+    function addNote(text) {
+      const lines = doc.splitTextToSize(text, contentWidth);
+      breakPage(lines.length * 4.5 + 3);
+      doc.setFontSize(9);
+      doc.setTextColor(70, 70, 70);
+      doc.text(lines, margin, cy);
+      doc.setTextColor(0, 0, 0);
+      cy += lines.length * 4.5 + 2;
+    }
+
+    // Title block
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(20, 58, 107);
+    doc.text("WA Rental Bond Claim Calculator", margin, cy);
+    doc.setTextColor(0, 0, 0);
+    cy += 8;
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(WA_BOND_RULES.LEGISLATION + " · " + WA_BOND_RULES.AMENDMENT, margin, cy);
+    cy += 5;
+    doc.text(
+      "Generated: " + exportDate + "  |  Role: " + (userData.userType === "landlord" ? "Landlord" : "Tenant"),
+      margin, cy
+    );
+    cy += 5;
+    doc.setFontSize(8);
+    doc.setTextColor(30, 100, 50);
+    doc.text(
+      "This document was generated entirely in your browser. No data was stored or transmitted.",
+      margin, cy, { maxWidth: contentWidth }
+    );
+    doc.setTextColor(0, 0, 0);
+    cy += 9;
+
+    // Itemised deductions
+    addHeading("Itemised Deduction Breakdown");
+    addRow("Unpaid rent", formatCurrency(userData.deductions.unpaidRent));
+    addRow("Cleaning", formatCurrency(userData.deductions.cleaning));
+    addRow("Damage (excl. fair wear and tear)", formatCurrency(userData.deductions.damage));
+    addRow("Keys / remotes / access devices", formatCurrency(userData.deductions.keys));
+    const otherPdfLabel = userData.deductions.other > 0 && userData.otherDescription
+      ? "Other: " + userData.otherDescription
+      : "Other";
+    addRow(otherPdfLabel, formatCurrency(userData.deductions.other));
+    addRow("Pet bond (fumigation / pet-related damage)", formatCurrency(userData.deductions.petBond));
+    cy += 3;
+
+    // Summary
+    addHeading("Summary");
+    addRow("Total claimed", formatCurrency(totalClaim));
+    addRow("Bond held", formatCurrency(userData.bondHeld));
+    addRow("Maximum lawful bond (4 weeks’ rent)", formatCurrency(calculateMaximumBond(userData.weeklyRent)));
+    cy += 2;
+
+    if (outcome.type === "surplus") {
+      doc.setTextColor(30, 100, 50);
+      addRow("Surplus returned to tenant", formatCurrency(outcome.amount), true);
+      doc.setTextColor(0, 0, 0);
+    } else {
+      doc.setTextColor(180, 40, 30);
+      addRow("Shortfall owed by tenant", formatCurrency(outcome.amount), true);
+      doc.setTextColor(0, 0, 0);
+      addNote(
+        "The total claim exceeds the bond held. The landlord may retain up to the bond amount only. " +
+        "The shortfall of " + formatCurrency(outcome.amount) + " must be pursued through the " +
+        WA_BOND_RULES.DISPUTE_BODY + "."
+      );
+    }
+
+    if (userData.bondHeld > calculateMaximumBond(userData.weeklyRent)) {
+      cy += 2;
+      addNote(
+        "Note: the bond held exceeds the maximum of 4 weeks’ rent under " +
+        WA_BOND_RULES.LEGISLATION + " s 29."
+      );
+    }
+    cy += 4;
+
+    // What happens next
+    addHeading("What Happens Next");
+    if (userData.userType === "landlord") {
+      addNote(
+        "To claim against the bond, lodge " + WA_BOND_RULES.DISPOSAL_FORM +
+        " (Application for Disposal of Security Bond) with the Bond Administrator. " +
+        "All deductions must be supported by evidence (receipts, condition reports, photos)."
+      );
+      if (outcome.type === "shortfall") {
+        addNote(
+          "Your claim exceeds the bond held. To recover the shortfall of " +
+          formatCurrency(outcome.amount) + ", apply to the " + WA_BOND_RULES.DISPUTE_BODY + "."
+        );
+      } else {
+        addNote(
+          "After your deductions, " + formatCurrency(outcome.amount) + " must be returned to the tenant. " +
+          "If the tenant disputes your claim, the matter is decided by the " + WA_BOND_RULES.DISPUTE_BODY + "."
+        );
+      }
+    } else {
+      addNote(
+        "The landlord must lodge " + WA_BOND_RULES.DISPOSAL_FORM +
+        " to dispose of the bond. You may agree to the proposed deductions or dispute them."
+      );
+      if (outcome.type === "shortfall") {
+        addNote(
+          "The landlord can only retain up to the bond amount. The remaining shortfall must be pursued through the " +
+          WA_BOND_RULES.DISPUTE_BODY + ". You are entitled to dispute any part of the claim there."
+        );
+      } else {
+        addNote(
+          "Based on these figures you should receive " + formatCurrency(outcome.amount) + " back. " +
+          "If you disagree with any deduction, dispute it through the " + WA_BOND_RULES.DISPUTE_BODY + "."
+        );
+      }
+    }
+    cy += 4;
+
+    // Disclaimer
+    breakPage(22);
+    doc.setDrawColor(180, 50, 50);
+    doc.setLineWidth(0.4);
+    doc.line(margin, cy, pageWidth - margin, cy);
+    cy += 4;
+
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 40, 40);
+    const disclaimerText =
+      "DISCLAIMER: This tool provides a general estimate only and does not constitute legal advice. " +
+      "For disputes, contact Consumer Protection WA or the " + WA_BOND_RULES.DISPUTE_BODY + ". " +
+      "Rules are based on the " + WA_BOND_RULES.LEGISLATION + " and the " + WA_BOND_RULES.AMENDMENT + ". " +
+      "The bond must have been lodged with the WA Bond Administrator within " +
+      WA_BOND_RULES.BOND_LODGEMENT_DEADLINE_DAYS + " days of receipt. " +
+      "Generated " + exportDate + ". Verify current legislation before relying on this document.";
+    const disclaimerLines = doc.splitTextToSize(disclaimerText, contentWidth);
+    breakPage(disclaimerLines.length * 4 + 4);
+    doc.text(disclaimerLines, margin, cy);
+    doc.setTextColor(0, 0, 0);
+
+    const fileName = "WA-Bond-Claim-" + exportDate.replace(/ /g, "-").replace(/,/g, "") + ".pdf";
+    doc.save(fileName);
+
+    exportCount++;
+    lastExportTime = Date.now();
+    updateExportButtonState();
+  }
+
+  function handleExportClick() {
+    generatePdf();
   }
 
   // ---------------------------------------------------------------------------
