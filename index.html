@@ -141,13 +141,13 @@
 
   <!-- Content Security Policy -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src 'self' https://web-production-52326.up.railway.app https://wabond.today; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
+        content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self' https://web-production-52326.up.railway.app https://wabond.today; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
 
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <noscript>
-    <div style="background:#c0392b !important;color:#ffffff !important;padding:16px !important;text-align:center !important;font-family:sans-serif !important;font-size:15px !important;">
+    <div class="wabcc-noscript-banner">
       This calculator requires JavaScript. Please enable JavaScript in your browser settings to continue.
     </div>
   </noscript>
@@ -170,7 +170,7 @@
     </header>
 
     <!-- Privacy notice: this app stores and transmits nothing -->
-    <p class="wabcc-privacy" style="font-size:14px !important; font-weight:600 !important;">
+    <p class="wabcc-privacy">
       This calculator runs entirely in your browser. Calculation data is never stored or transmitted.
       To export a PDF you will be asked for your email address. Your email is stored securely and
       used only to send relevant WA tenancy law updates. You can unsubscribe at any time.
@@ -424,14 +424,13 @@
     </section>
 
     <!-- Legal disclaimer: locked with inline !important styles -->
-    <footer id="wabcc-disclaimer" class="wabcc-disclaimer"
-            style="display:block !important; visibility:visible !important; opacity:1 !important; font-size:13px !important; line-height:1.5 !important;">
-      <p style="font-weight:700 !important; font-size:13px !important;">
+    <footer id="wabcc-disclaimer" class="wabcc-disclaimer">
+      <p class="wabcc-disclaimer-strong">
         This tool provides a general estimate only and does not constitute
         legal advice. For disputes, contact Consumer Protection WA or the
         State Administrative Tribunal.
       </p>
-      <p style="font-size:13px !important;">
+      <p class="wabcc-disclaimer-text">
         Rules are based on the Residential Tenancies Act 1987 (WA) and the
         Residential Tenancies Amendment Act 2024 (WA). The bond must have been
         lodged with the WA Bond Administrator within 14 days of receipt.

@@ -612,3 +612,59 @@ body {
     padding: 18px;
   }
 }
+
+/* ----------------------------------------------------------------------------
+   Styles migrated out of inline style="..." attributes so the CSP can drop
+   'unsafe-inline' from style-src. These reproduce the previous inline rules
+   exactly, including the !important flags that lock the disclaimer/privacy text.
+   ---------------------------------------------------------------------------- */
+
+/* noscript fallback banner (index.html) */
+.wabcc-noscript-banner {
+  background: #c0392b !important;
+  color: #ffffff !important;
+  padding: 16px !important;
+  text-align: center !important;
+  font-family: sans-serif !important;
+  font-size: 15px !important;
+}
+
+/* Privacy notice — inline font overrides folded in (index.html) */
+.wabcc-privacy {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+/* Disclaimer footer — was locked with inline !important styles on all pages */
+.wabcc-disclaimer {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+.wabcc-disclaimer-strong {
+  font-weight: 700 !important;
+  font-size: 13px !important;
+}
+
+.wabcc-disclaimer-text {
+  font-size: 13px !important;
+}
+
+/* Call-to-action button link on the guide pages */
+.wabcc-cta-button {
+  display: inline-block;
+  background: #1f5fa8;
+  color: #fff;
+  padding: 12px 22px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.wabcc-cta-button:hover {
+  background: #18497f;
+}
