@@ -333,6 +333,74 @@ body {
   cursor: not-allowed;
 }
 
+.wabcc-content {
+  margin-top: 32px;
+  padding: 22px;
+  background: #f4f7fb;
+  border-radius: 8px;
+  border-left: 4px solid #1f5fa8;
+}
+
+.wabcc-content-heading {
+  font-size: 20px !important;
+  color: #143a6b;
+  margin-bottom: 14px;
+}
+
+.wabcc-content-subheading {
+  font-size: 15px !important;
+  color: #1f5fa8;
+  font-weight: 700;
+  margin: 16px 0 6px;
+}
+
+.wabcc-content-text {
+  font-size: 14px !important;
+  color: #2a3a52;
+  line-height: 1.65 !important;
+  margin-bottom: 8px;
+}
+
+.wabcc-content-list {
+  font-size: 14px !important;
+  color: #2a3a52;
+  padding-left: 22px;
+  margin: 6px 0 10px;
+  line-height: 1.7 !important;
+}
+
+.wabcc-faq {
+  margin-top: 28px;
+}
+
+.wabcc-faq-heading {
+  font-size: 20px !important;
+  color: #143a6b;
+  margin-bottom: 16px;
+}
+
+.wabcc-faq-item {
+  border-bottom: 1px solid #dce5f0;
+  padding: 14px 0;
+}
+
+.wabcc-faq-item:last-child {
+  border-bottom: none;
+}
+
+.wabcc-faq-question {
+  font-size: 15px !important;
+  font-weight: 700;
+  color: #1c2e48;
+  margin-bottom: 6px;
+}
+
+.wabcc-faq-answer {
+  font-size: 14px !important;
+  color: #2a3a52;
+  line-height: 1.65 !important;
+}
+
 .wabcc-disclaimer {
   margin-top: 24px;
   padding: 14px;
