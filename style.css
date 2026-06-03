@@ -1,4 +1,20 @@
 /* WA Rental Bond Claim Calculator - styling
+   Gauge colour tokens are in :root below. */
+
+:root {
+  --wabcc-ring-track:      #E8ECF2;
+  --wabcc-success-bg:      #EAF7F0;
+  --wabcc-success-border:  #34A96B;
+  --wabcc-success-text:    #1A6B43;
+  --wabcc-danger-bg:       #FEF0EF;
+  --wabcc-danger-border:   #E24B4A;
+  --wabcc-danger-text:     #B02B2A;
+  --wabcc-warning-bg:      #FEF7EC;
+  --wabcc-warning-border:  #EF9F27;
+  --wabcc-warning-text:    #8A5A00;
+}
+
+/* WA Rental Bond Claim Calculator - styling
    Structural and legal-text properties are locked with !important so the
    layout and disclaimers cannot be trivially restyled via DevTools. */
 
@@ -333,6 +349,137 @@ body {
   cursor: not-allowed;
 }
 
+/* ---- Ring gauge ---- */
+
+.wabcc-gauge-wrapper {
+  margin-bottom: 22px;
+}
+
+.wabcc-gauge-row {
+  display: grid !important;
+  grid-template-columns: 180px 1fr !important;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.wabcc-ring-wrap {
+  width: 180px !important;
+  height: 180px !important;
+  flex-shrink: 0;
+}
+
+.wabcc-ring-track {
+  stroke: var(--wabcc-ring-track);
+}
+
+.wabcc-ring-segment {
+  transition: stroke-dasharray 0.35s ease, stroke-dashoffset 0.35s ease;
+}
+
+.wabcc-ring-pct-text {
+  font-size: 22px;
+  font-weight: 500;
+  fill: #1c2530;
+}
+
+.wabcc-ring-sub-text {
+  font-size: 12px;
+  fill: #5a6a82;
+}
+
+.wabcc-metrics-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px;
+}
+
+.wabcc-metric-card {
+  background: #ffffff;
+  border: 1px solid #dce5f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.wabcc-metric-label {
+  font-size: 11px !important;
+  color: #5a6a82;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wabcc-metric-value {
+  font-size: 16px !important;
+  font-weight: 700;
+  color: #1c2530;
+}
+
+.wabcc-ring-legend {
+  display: flex !important;
+  gap: 16px;
+  flex-wrap: wrap !important;
+  margin-bottom: 16px;
+}
+
+.wabcc-legend-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px;
+}
+
+.wabcc-legend-dot {
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0;
+  display: inline-block !important;
+}
+
+.wabcc-legend-text {
+  font-size: 12px !important;
+  color: #5a6a82;
+}
+
+.wabcc-hero-card {
+  border-radius: 10px;
+  border: 0.5px solid transparent;
+  padding: 18px 20px;
+  text-align: center !important;
+  margin-bottom: 18px;
+  transition: background-color 0.35s ease, border-color 0.35s ease;
+}
+
+.wabcc-hero-refund   { background-color: var(--wabcc-success-bg);  border-color: var(--wabcc-success-border); }
+.wabcc-hero-shortfall{ background-color: var(--wabcc-danger-bg);   border-color: var(--wabcc-danger-border); }
+.wabcc-hero-exact    { background-color: var(--wabcc-warning-bg);  border-color: var(--wabcc-warning-border); }
+
+.wabcc-hero-label {
+  font-size: 13px !important;
+  margin-bottom: 6px;
+}
+
+.wabcc-hero-refund    .wabcc-hero-label { color: var(--wabcc-success-text); }
+.wabcc-hero-shortfall .wabcc-hero-label { color: var(--wabcc-danger-text); }
+.wabcc-hero-exact     .wabcc-hero-label { color: var(--wabcc-warning-text); }
+
+.wabcc-hero-amount {
+  font-size: 28px !important;
+  font-weight: 500;
+}
+
+.wabcc-hero-refund    .wabcc-hero-amount { color: var(--wabcc-success-text); }
+.wabcc-hero-shortfall .wabcc-hero-amount { color: var(--wabcc-danger-text); }
+.wabcc-hero-exact     .wabcc-hero-amount { color: var(--wabcc-warning-text); }
+
+@media (max-width: 480px) {
+  .wabcc-gauge-row {
+    grid-template-columns: 1fr !important;
+    justify-items: center;
+  }
+}
+
+/* ---- Content section ---- */
 .wabcc-content {
   margin-top: 32px;
   padding: 22px;

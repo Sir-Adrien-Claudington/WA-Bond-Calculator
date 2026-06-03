@@ -50,6 +50,9 @@
     COOLDOWN_MS: 8000
   });
 
+  // Circumference of the gauge ring at r=72, used for all segment calculations.
+  var RING_CIRC = 2 * Math.PI * 72;
+
   // ---------------------------------------------------------------------------
   // VALIDATION HELPERS (pure functions)
   // ---------------------------------------------------------------------------
@@ -414,6 +417,208 @@
     return wrapper;
   }
 
+  // ---------------------------------------------------------------------------
+  // RING GAUGE — bond usage visualisation
+  // Pure SVG + HTML built via createElement/createElementNS. No innerHTML.
+  // Reads from the calculation engine output only — no logic duplicated here.
+  // ---------------------------------------------------------------------------
+
+  // Creates one SVG circle segment positioned on the ring using
+  // stroke-dasharray and stroke-dashoffset.
+  // arcStart: arc-length distance from 12 o'clock where this segment begins.
+  // segmentLen: arc-length of this segment.
+  function createRingSegment(strokeColor, segmentLen, arcStart) {
+    var svgNS = "http://www.w3.org/2000/svg";
+    var circle = document.createElementNS(svgNS, "circle");
+    circle.setAttribute("cx", "90");
+    circle.setAttribute("cy", "90");
+    circle.setAttribute("r", "72");
+    circle.setAttribute("fill", "none");
+    circle.setAttribute("stroke", strokeColor);
+    circle.setAttribute("stroke-width", "22");
+    circle.setAttribute("stroke-linecap", "butt");
+    circle.setAttribute("transform", "rotate(-90 90 90)");
+    circle.className.baseVal = "wabcc-ring-segment";
+    circle.style.strokeDasharray = segmentLen + " " + RING_CIRC;
+    circle.style.strokeDashoffset = String(-arcStart);
+    return circle;
+  }
+
+  // Builds and returns the full gauge block: ring SVG + metrics grid +
+  // segment legend + result hero card.
+  function buildGauge(data, totalClaim, outcome) {
+    var svgNS = "http://www.w3.org/2000/svg";
+    var bondHeld = data.bondHeld;
+
+    // Arc scale: converts a dollar amount to an arc-length on the ring.
+    var scale = bondHeld > 0 ? RING_CIRC / bondHeld : 0;
+
+    // Segment boundary dollar values, each capped at bondHeld.
+    var rentEnd   = Math.min(data.deductions.unpaidRent, bondHeld);
+    var cleanEnd  = Math.min(data.deductions.unpaidRent + data.deductions.cleaning, bondHeld);
+    var damageEnd = Math.min(data.deductions.unpaidRent + data.deductions.cleaning + data.deductions.damage, bondHeld);
+    var otherEnd  = Math.min(totalClaim, bondHeld);
+
+    // Arc boundaries.
+    var rentArc   = rentEnd   * scale;
+    var cleanArc  = cleanEnd  * scale;
+    var damageArc = damageEnd * scale;
+    var otherArc  = otherEnd  * scale;
+
+    // Segment arc lengths.
+    var rentLen   = rentArc;
+    var cleanLen  = cleanArc  - rentArc;
+    var damageLen = damageArc - cleanArc;
+    var otherLen  = otherArc  - damageArc;
+
+    // Percentage of bond consumed (capped at 100).
+    var pctUsed = bondHeld > 0 ? Math.round(Math.min(totalClaim, bondHeld) / bondHeld * 100) : 0;
+
+    // ---- Outer wrapper ----
+    var wrapper = document.createElement("div");
+    wrapper.className = "wabcc-gauge-wrapper";
+
+    // ---- Ring + metrics row ----
+    var ringRow = document.createElement("div");
+    ringRow.className = "wabcc-gauge-row";
+
+    // SVG ring
+    var svgWrap = document.createElement("div");
+    svgWrap.className = "wabcc-ring-wrap";
+
+    var svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", "0 0 180 180");
+    svg.setAttribute("width", "180");
+    svg.setAttribute("height", "180");
+    svg.setAttribute("aria-hidden", "true");
+
+    // Track
+    var track = document.createElementNS(svgNS, "circle");
+    track.setAttribute("cx", "90");
+    track.setAttribute("cy", "90");
+    track.setAttribute("r", "72");
+    track.setAttribute("fill", "none");
+    track.setAttribute("stroke-width", "22");
+    track.className.baseVal = "wabcc-ring-track";
+    svg.appendChild(track);
+
+    // Segments — only append if non-zero length.
+    if (rentLen   > 0) { svg.appendChild(createRingSegment("#E24B4A", rentLen,   0));         }
+    if (cleanLen  > 0) { svg.appendChild(createRingSegment("#EF9F27", cleanLen,  rentArc));   }
+    if (damageLen > 0) { svg.appendChild(createRingSegment("#378ADD", damageLen, cleanArc));  }
+    if (otherLen  > 0) { svg.appendChild(createRingSegment("#888780", otherLen,  damageArc)); }
+
+    // Centre text group.
+    var pctText = document.createElementNS(svgNS, "text");
+    pctText.setAttribute("x", "90");
+    pctText.setAttribute("y", "85");
+    pctText.setAttribute("text-anchor", "middle");
+    pctText.setAttribute("dominant-baseline", "middle");
+    pctText.className.baseVal = "wabcc-ring-pct-text";
+    pctText.textContent = pctUsed + "%";
+
+    var subText = document.createElementNS(svgNS, "text");
+    subText.setAttribute("x", "90");
+    subText.setAttribute("y", "103");
+    subText.setAttribute("text-anchor", "middle");
+    subText.className.baseVal = "wabcc-ring-sub-text";
+    subText.textContent = "of bond used";
+
+    svg.appendChild(pctText);
+    svg.appendChild(subText);
+    svgWrap.appendChild(svg);
+
+    // ---- Metrics 2×2 grid ----
+    var metricsGrid = document.createElement("div");
+    metricsGrid.className = "wabcc-metrics-grid";
+
+    function buildMetricCard(labelStr, valueStr) {
+      var card = document.createElement("div");
+      card.className = "wabcc-metric-card";
+      var lbl = document.createElement("p");
+      lbl.className = "wabcc-metric-label";
+      lbl.textContent = labelStr;
+      var val = document.createElement("p");
+      val.className = "wabcc-metric-value";
+      val.textContent = valueStr;
+      card.appendChild(lbl);
+      card.appendChild(val);
+      return card;
+    }
+
+    var outcomeLabel = outcome.type === "shortfall"
+      ? "Shortfall owed"
+      : (outcome.amount === 0 ? "Fully consumed" : "Returned to tenant");
+
+    metricsGrid.appendChild(buildMetricCard("Bond held",       formatCurrency(bondHeld)));
+    metricsGrid.appendChild(buildMetricCard("Total claimed",   formatCurrency(totalClaim)));
+    metricsGrid.appendChild(buildMetricCard("Bond used",       pctUsed + "%"));
+    metricsGrid.appendChild(buildMetricCard(outcomeLabel,      formatCurrency(outcome.amount)));
+
+    ringRow.appendChild(svgWrap);
+    ringRow.appendChild(metricsGrid);
+    wrapper.appendChild(ringRow);
+
+    // ---- Segment legend ----
+    var legend = document.createElement("div");
+    legend.className = "wabcc-ring-legend";
+
+    [
+      { color: "#E24B4A", label: "Unpaid rent" },
+      { color: "#EF9F27", label: "Cleaning" },
+      { color: "#378ADD", label: "Damage" },
+      { color: "#888780", label: "Other" }
+    ].forEach(function (item) {
+      var li = document.createElement("div");
+      li.className = "wabcc-legend-item";
+      var dot = document.createElement("span");
+      dot.className = "wabcc-legend-dot";
+      dot.style.backgroundColor = item.color;
+      var txt = document.createElement("span");
+      txt.className = "wabcc-legend-text";
+      txt.textContent = item.label;
+      li.appendChild(dot);
+      li.appendChild(txt);
+      legend.appendChild(li);
+    });
+
+    wrapper.appendChild(legend);
+
+    // ---- Result hero card ----
+    var heroCard = document.createElement("div");
+    var heroState, heroLabel, heroAmount;
+
+    if (outcome.type === "shortfall") {
+      heroState  = "wabcc-hero-shortfall";
+      heroLabel  = "Shortfall — pursue via SAT";
+      heroAmount = formatCurrency(outcome.amount);
+    } else if (outcome.amount === 0) {
+      heroState  = "wabcc-hero-exact";
+      heroLabel  = "Bond fully consumed";
+      heroAmount = "$0.00 returned";
+    } else {
+      heroState  = "wabcc-hero-refund";
+      heroLabel  = "Tenant receives back";
+      heroAmount = formatCurrency(outcome.amount);
+    }
+
+    heroCard.className = "wabcc-hero-card " + heroState;
+
+    var heroLabelEl = document.createElement("p");
+    heroLabelEl.className = "wabcc-hero-label";
+    heroLabelEl.textContent = heroLabel;
+
+    var heroAmountEl = document.createElement("p");
+    heroAmountEl.className = "wabcc-hero-amount";
+    heroAmountEl.textContent = heroAmount;
+
+    heroCard.appendChild(heroLabelEl);
+    heroCard.appendChild(heroAmountEl);
+    wrapper.appendChild(heroCard);
+
+    return wrapper;
+  }
+
   // Renders the full output section from validated data. Clears prior output
   // first, then appends freshly built, safe elements.
   function renderOutput(data) {
@@ -425,6 +630,9 @@
     while (outputSection.firstChild) {
       outputSection.removeChild(outputSection.firstChild);
     }
+
+    // Ring gauge + result hero card (reads from calculation engine values above).
+    outputSection.appendChild(buildGauge(data, totalClaim, outcome));
 
     outputSection.appendChild(buildHeading("Itemised deduction breakdown"));
     outputSection.appendChild(buildLine("Unpaid rent", formatCurrency(data.deductions.unpaidRent)));
