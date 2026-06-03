@@ -18,6 +18,53 @@
    Structural and legal-text properties are locked with !important so the
    layout and disclaimers cannot be trivially restyled via DevTools. */
 
+/* ---- Site navigation ---- */
+.wabcc-nav {
+  background: #143a6b !important;
+  padding: 12px 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: -28px -28px 24px -28px;
+  border-radius: 10px 10px 0 0;
+}
+
+.wabcc-nav-brand {
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 16px !important;
+  text-decoration: none;
+}
+
+.wabcc-nav-links {
+  display: flex !important;
+  list-style: none !important;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.wabcc-nav-links a {
+  color: #b8d4f8;
+  font-size: 14px !important;
+  text-decoration: none;
+}
+
+.wabcc-nav-links a:hover { color: #ffffff; }
+
+.wabcc-nav-cta {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  background: #1f5fa8;
+  padding: 5px 12px;
+  border-radius: 6px;
+}
+
+.wabcc-nav-cta:hover { background: #18497f; }
+
 * {
   box-sizing: border-box !important;
   margin: 0;
