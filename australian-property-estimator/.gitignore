@@ -1,0 +1,20 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Logs
+*.log
+
+# Environment / secrets (none used in this static app, but guard anyway)
+.env
+.env.*
+
+# Dependency dirs (none used, but guard anyway)
+node_modules/

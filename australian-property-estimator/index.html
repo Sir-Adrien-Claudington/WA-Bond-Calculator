@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Australian Property Investment Estimator — Negative Gearing, Stamp Duty &amp; Land Tax</title>
+  <meta name="description" content="Estimate stamp duty, annual land tax, and negative gearing benefits for investment properties in any Australian state or territory.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="site-header">
+    <div class="container">
+      <h1>Australian Property Investment Estimator</h1>
+      <p>Estimate stamp duty, land tax, and negative gearing benefits for any Australian state or territory.</p>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container" style="padding-bottom:40px;">
+
+    <!-- ----- FORM ----- -->
+    <form id="estimator-form">
+
+      <!-- Property Details -->
+      <div class="card">
+        <h2>Property Details</h2>
+        <div class="field">
+          <label for="ape-state">State / Territory</label>
+          <select id="ape-state" name="state" required>
+            <option value="">Select a state or territory…</option>
+            <option value="NSW">New South Wales (NSW)</option>
+            <option value="VIC">Victoria (VIC)</option>
+            <option value="QLD">Queensland (QLD)</option>
+            <option value="WA">Western Australia (WA)</option>
+            <option value="SA">South Australia (SA)</option>
+            <option value="TAS">Tasmania (TAS)</option>
+            <option value="ACT">Australian Capital Territory (ACT)</option>
+            <option value="NT">Northern Territory (NT)</option>
+          </select>
+        </div>
+
+        <div class="fields-2col">
+          <div class="field">
+            <label for="ape-purchase-price">Purchase Price</label>
+            <div class="input-wrap">
+              <span class="prefix">$</span>
+              <input type="number" id="ape-purchase-price" name="purchase-price"
+                     min="0" step="1000" placeholder="650,000">
+            </div>
+          </div>
+          <div class="field">
+            <label for="ape-land-value">
+              Land Value (unimproved)
+            </label>
+            <div class="input-wrap">
+              <span class="prefix">$</span>
+              <input type="number" id="ape-land-value" name="land-value"
+                     min="0" step="1000" placeholder="Auto (35% of price)">
+            </div>
+            <p class="field-hint">Used for land tax. Typically 30–40% of purchase price. Check your council rates notice.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loan -->
+      <div class="card">
+        <h2>Loan</h2>
+        <div class="fields-2col">
+          <div class="field">
+            <label for="ape-loan-amount">
+              Loan Amount
+              <span id="lvr-badge" class="lvr-badge" hidden></span>
+            </label>
+            <div class="input-wrap">
+              <span class="prefix">$</span>
+              <input type="number" id="ape-loan-amount" name="loan-amount"
+                     min="0" step="1000" placeholder="520,000">
+            </div>
+          </div>
+          <div class="field">
+            <label for="ape-interest-rate">Interest Rate (% p.a.)</label>
+            <div class="input-wrap has-suffix">
+              <input type="number" id="ape-interest-rate" name="interest-rate"
+                     min="0" max="30" step="0.05" placeholder="6.50" value="6.50">
+              <span class="suffix">%</span>
+            </div>
+            <p class="field-hint">Interest-only basis. Principal repayments are not tax-deductible.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rental Income -->
+      <div class="card">
+        <h2>Rental Income</h2>
+        <div class="fields-2col">
+          <div class="field">
+            <label for="ape-weekly-rent">Weekly Rent</label>
+            <div class="input-wrap">
+              <span class="prefix">$</span>
+              <input type="number" id="ape-weekly-rent" name="weekly-rent"
+                     min="0" step="10" placeholder="550">
+            </div>
+          </div>
+          <div class="field">
+            <label for="ape-management-fee">Property Management Fee</label>
+            <div class="input-wrap has-suffix">
+              <input type="number" id="ape-management-fee" name="management-fee"
+                     min="0" max="30" step="0.5" placeholder="8.5" value="8.5">
+              <span class="suffix">%</span>
+            </div>
+            <p class="field-hint">Of rent collected. Typically 7–10% depending on state.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Annual Expenses -->
+      <div class="card">
+        <h2>Annual Expenses</h2>
+        <div class="fields-2col">
+          <div class="field">
+            <label for="ape-council-rates">Council Rates</label>
+            <div class="input-wrap">
+              <span class="prefix">$</span>
+              <input type="number" id="ape-council-rates" name="council-rates"
+                     min="0" step="100" placeholder="1,500" value="1500">
+            </div>
+          </div>
+          <div class="field">
+            <label for="ape-insurance">Landlord Insurance</label>
+            <div class="input-wrap">
+              <span class="prefix">$</span>
+              <input type="number" id="ape-insurance" name="insurance"
+                     min="0" step="100" placeholder="1,200" value="1200">
+            </div>
+          </div>
+          <div class="field">
+            <label for="ape-maintenance">Maintenance &amp; Repairs</label>
+            <div class="input-wrap">
+              <span class="prefix">$</span>
+              <input type="number" id="ape-maintenance" name="maintenance"
+                     min="0" step="100" placeholder="1,500" value="1500">
+            </div>
+          </div>
+          <div class="field">
+            <label for="ape-depreciation">Depreciation Allowance</label>
+            <div class="input-wrap">
+              <span class="prefix">$</span>
+              <input type="number" id="ape-depreciation" name="depreciation"
+                     min="0" step="100" placeholder="0" value="0">
+            </div>
+            <p class="field-hint">From a quantity surveyor report. Leave 0 if unknown.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tax Rate -->
+      <div class="card">
+        <h2>Your Marginal Tax Rate</h2>
+        <div class="field">
+          <label for="ape-marginal-tax-rate">Income tax bracket (incl. 2% Medicare levy)</label>
+          <select id="ape-marginal-tax-rate" name="marginal-tax-rate">
+            <option value="0">0% — Income below $18,201</option>
+            <option value="0.21">21% — $18,201 to $45,000</option>
+            <option value="0.345" selected>34.5% — $45,001 to $120,000</option>
+            <option value="0.39">39% — $120,001 to $180,000</option>
+            <option value="0.47">47% — $180,001 and above</option>
+          </select>
+          <p class="field-hint">Based on 2024-25 ATO rates. Select the bracket that includes your taxable income.</p>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-calculate">Calculate</button>
+
+    </form>
+
+    <!-- ----- RESULTS ----- -->
+    <section id="results" hidden aria-live="polite"></section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="site-footer">
+    <div class="container">
+      <p>Australian Property Investment Estimator &mdash; estimates only, not financial advice. Always consult a licensed adviser.</p>
+    </div>
+  </footer>
+
+  <!-- Data tables (order matters — modules depend on these globals) -->
+  <script src="data/stamp-duty-rates.js"></script>
+  <script src="data/land-tax-rates.js"></script>
+
+  <!-- Calculation modules -->
+  <script src="modules/stamp-duty.js"></script>
+  <script src="modules/land-tax.js"></script>
+  <script src="modules/negative-gearing.js"></script>
+
+  <!-- UI glue -->
+  <script src="app.js"></script>
+
+</body>
+</html>
