@@ -291,32 +291,40 @@
   function updateFhbInfoBox(state) {
     var isFhb = $('ape-fhb').checked;
     var box = $('fhb-info-box');
-    if (!isFhb || !state) {
-      box.hidden = true;
-      return;
-    }
+    if (!isFhb || !state) { box.hidden = true; return; }
     var c = fhbConcessions[state];
-    if (!c) {
-      box.hidden = true;
-      return;
+    if (!c) { box.hidden = true; return; }
+
+    while (box.firstChild) box.removeChild(box.firstChild);
+
+    function addLine(boldText, restText) {
+      var p = document.createElement('p');
+      p.style.margin = '2px 0';
+      if (boldText) {
+        var strong = document.createElement('strong');
+        strong.textContent = boldText;
+        p.appendChild(strong);
+      }
+      p.appendChild(document.createTextNode(restText));
+      box.appendChild(p);
     }
-    var lines = [];
+
     if (c.grantAmount > 0) {
-      lines.push('<strong>First Home Owner Grant (FHOG):</strong> ' + fmt(c.grantAmount) + ' (eligibility criteria apply).');
+      addLine('First Home Owner Grant (FHOG): ', fmt(c.grantAmount) + ' (eligibility criteria apply).');
     }
     if (c.fullyExemptThreshold !== null) {
-      lines.push('<strong>Full stamp duty exemption</strong> for purchase prices up to ' + fmt(c.fullyExemptThreshold) + '.');
+      addLine('Full stamp duty exemption ', 'for purchase prices up to ' + fmt(c.fullyExemptThreshold) + '.');
     }
     if (c.stampDutyThreshold !== null && c.fullyExemptThreshold !== null) {
-      lines.push('<strong>Partial concession</strong> for purchase prices between ' + fmt(c.fullyExemptThreshold) + ' and ' + fmt(c.stampDutyThreshold) + '.');
+      addLine('Partial concession ', 'for purchase prices between ' + fmt(c.fullyExemptThreshold) + ' and ' + fmt(c.stampDutyThreshold) + '.');
     } else if (c.stampDutyThreshold !== null) {
-      lines.push('<strong>Stamp duty concession</strong> available up to ' + fmt(c.stampDutyThreshold) + '.');
+      addLine('Stamp duty concession ', 'available up to ' + fmt(c.stampDutyThreshold) + '.');
     }
-    if (lines.length === 0) {
-      lines.push('No specific stamp duty concession available in this state, but a FHOG may apply. Check eligibility with your state revenue office.');
+    if (!box.firstChild) {
+      addLine('', 'No specific stamp duty concession in this state, but a FHOG may apply. Check with your state revenue office.');
     }
-    lines.push('Eligibility criteria apply. Always confirm with your state revenue office.');
-    box.innerHTML = lines.join('<br>');
+    addLine('', 'Eligibility criteria apply. Always confirm with your state revenue office.');
+
     box.hidden = false;
   }
 
@@ -383,8 +391,10 @@
     });
     if (q.has('loan-type')) {
       var ltVal = q.get('loan-type');
-      var ltEl = document.querySelector('input[name="loan-type"][value="' + ltVal + '"]');
-      if (ltEl) ltEl.checked = true;
+      if (ltVal === 'io' || ltVal === 'pi') {
+        var ltEl = document.querySelector('input[name="loan-type"][value="' + ltVal + '"]');
+        if (ltEl) ltEl.checked = true;
+      }
       toggleLoanType();
     }
     if (q.has('ape-fhb') && q.get('ape-fhb') === '1') {
