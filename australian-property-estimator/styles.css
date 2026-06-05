@@ -40,6 +40,7 @@ body {
   max-width: 860px;
   margin: 0 auto;
   padding: 0 20px;
+  overflow-x: hidden;
 }
 
 /* ---- Header ---- */
@@ -68,6 +69,7 @@ body {
   box-shadow: var(--shadow);
   padding: 28px;
   margin-top: 24px;
+  overflow-x: hidden;
 }
 .card h2 {
   font-size: 0.8rem;
@@ -134,6 +136,7 @@ input[type="number"],
 input[type="text"],
 select {
   width: 100%;
+  max-width: 100%;
   padding: 9px 12px;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -143,6 +146,7 @@ select {
   appearance: none;
   -webkit-appearance: none;
   transition: border-color .15s, box-shadow .15s;
+  box-sizing: border-box;
 }
 input[type="number"]:focus,
 input[type="text"]:focus,
@@ -187,8 +191,14 @@ select {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  width: 100%;
 }
-@media (max-width: 500px) {
+.fields-2col > .field {
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+@media (max-width: 600px) {
   .fields-2col { grid-template-columns: 1fr; }
 }
 
@@ -472,11 +482,15 @@ select {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0 20px;
+  width: 100%;
 }
 .results-grid .card { margin-top: 0; }
 .results-row { display: contents; }
 @media (max-width: 600px) {
   .results-grid { grid-template-columns: 1fr; }
+  .results-grid > div[style] { border-left: none !important; border-top: 1px solid #e2e8f0; }
+  .verdict-card { padding: 20px 16px; }
+  .chart-card, .breakeven-card, .cgt-result-card { padding: 16px; }
 }
 
 /* ---- Bar chart ---- */

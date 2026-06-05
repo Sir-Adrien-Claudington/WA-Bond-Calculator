@@ -430,6 +430,7 @@
     var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 ' + chartW + ' ' + chartH);
     svg.setAttribute('class', 'bar-chart-svg');
+    svg.setAttribute('style', 'max-width:100%');
     svg.setAttribute('aria-hidden', 'true');
 
     items.forEach(function (item, i) {
@@ -615,6 +616,7 @@
     var wrapper = el('div', { class: 'cgt-result-card card' });
     wrapper.appendChild(el('h2', {}, ['CGT Projection (' + cgt.years + ' years)']));
 
+    var tableWrap = el('div', { style: 'overflow-x:auto' });
     var table = el('table', { class: 'result-table' });
     var rows = [
       ['Projected sale price', fmt(cgt.salePrice)],
@@ -633,7 +635,8 @@
       table.appendChild(el('tr', { class: cls }, [td(r[0]), td(r[1])]));
     });
 
-    wrapper.appendChild(table);
+    tableWrap.appendChild(table);
+    wrapper.appendChild(tableWrap);
     wrapper.appendChild(el('p', { class: 'cgt-disclaimer' }, [
       'CGT estimate is indicative only. Actual liability depends on your complete tax position, any cost base adjustments, and other CGT events. Consult a registered tax agent.'
     ]));
