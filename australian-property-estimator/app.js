@@ -864,6 +864,22 @@
   }
 
   // ================================================================
+  // LIGHTWEIGHT TAX CARD UPDATE (runs before first full calculation)
+  // ================================================================
+
+  function updateTaxCards() {
+    var state = getStr('ape-state');
+    if (!state) return;
+    var purchasePrice = getNum('ape-purchase-price');
+    var landValue     = getNum('ape-land-value');
+    var isFhb         = $('ape-fhb') ? $('ape-fhb').checked : false;
+    var sd = APE_StampDuty.calculate(state, purchasePrice, isFhb);
+    var lt = APE_LandTax.calculate(state, landValue);
+    renderStampDuty(sd, { state: state, purchasePrice: purchasePrice, landValue: landValue, isFirstHomeBuyer: isFhb });
+    renderLandTax(lt,  { state: state, purchasePrice: purchasePrice, landValue: landValue, isFirstHomeBuyer: isFhb });
+  }
+
+  // ================================================================
   // DEBOUNCED RECALC
   // ================================================================
 
@@ -989,11 +1005,17 @@
           var price = getNum('ape-purchase-price');
           lvEl.value = price > 0 ? Math.round(price * 0.35).toLocaleString('en-AU') : '';
         }
+        updateTaxCards();
       });
     }
 
     var lvEl = $('ape-land-value');
-    if (lvEl) lvEl.addEventListener('input', function () { lvEl.dataset.userEdited = '1'; });
+    if (lvEl) {
+      lvEl.addEventListener('input', function () {
+        lvEl.dataset.userEdited = '1';
+        updateTaxCards();
+      });
+    }
 
     // State change
     var stateEl = $('ape-state');
@@ -1003,6 +1025,7 @@
         applyStateDefaults(state);
         updateFhbInfoBox(state);
         validateField('ape-state');
+        updateTaxCards();
         triggerDebounce();
       });
     }
