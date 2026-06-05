@@ -8,7 +8,7 @@
  *
  * No DOM access. No persistence. Pure function of its inputs.
  *
- * Australian income tax rates used (2024-25, incl. Medicare levy):
+ * Australian income tax rates used (2025-26, incl. Medicare levy):
  *   0%    — $0 to $18,200
  *   21%   — $18,201 to $45,000   (19% + 2% ML)
  *   34.5% — $45,001 to $120,000  (32.5% + 2% ML)
@@ -41,32 +41,63 @@ var APE_NegativeGearing = (function () {
    *   loanAmount:        number  — loan principal in $
    *   interestRate:      number  — annual rate as decimal (0.065 = 6.5%)
    *   weeklyRent:        number  — expected gross weekly rent in $
+   *   vacancyWeeks:      number  — vacancy weeks per year (default 0)
    *   managementFeeRate: number  — property mgmt fee as decimal (0.085 = 8.5%)
    *   councilRates:      number  — annual council rates in $
    *   insurance:         number  — annual landlord insurance in $
    *   maintenance:       number  — annual maintenance & repairs in $
    *   depreciation:      number  — annual depreciation allowance in $ (0 if unknown)
    *   marginalTaxRate:   number  — investor's marginal rate incl. Medicare as decimal
+   *   loanType:          string  — 'io' (interest-only, default) or 'pi' (P&I)
+   *   loanTermYears:     number  — loan term for P&I (default 30)
    * }
    *
    * Returns a result object with all annual figures plus a breakdown array.
    */
   function calculate(params) {
-    var loan        = round2(Number(params.loanAmount)        || 0);
-    var rate        = Number(params.interestRate)             || 0;
-    var wkRent      = round2(Number(params.weeklyRent)        || 0);
-    var mgmtRate    = Number(params.managementFeeRate)        || 0;
-    var council     = round2(Number(params.councilRates)      || 0);
-    var insurance   = round2(Number(params.insurance)         || 0);
-    var maintenance = round2(Number(params.maintenance)       || 0);
-    var depreciation = round2(Number(params.depreciation)     || 0);
-    var taxRate     = Number(params.marginalTaxRate)          || 0;
+    var loan         = round2(Number(params.loanAmount)        || 0);
+    var rate         = Number(params.interestRate)             || 0;
+    var wkRent       = round2(Number(params.weeklyRent)        || 0);
+    var vacancyWeeks = Math.max(0, Math.min(52, Number(params.vacancyWeeks) || 0));
+    var mgmtRate     = Number(params.managementFeeRate)        || 0;
+    var council      = round2(Number(params.councilRates)      || 0);
+    var insurance    = round2(Number(params.insurance)         || 0);
+    var maintenance  = round2(Number(params.maintenance)       || 0);
+    var depreciation = round2(Number(params.depreciation)      || 0);
+    var taxRate      = Number(params.marginalTaxRate)          || 0;
+    var loanType     = params.loanType === 'pi' ? 'pi' : 'io';
+    var loanTermYears = Math.max(5, Math.min(40, Number(params.loanTermYears) || 30));
 
-    // --- Income ---
-    var annualRent = round2(wkRent * 52);
+    // --- Income (adjusted for vacancy) ---
+    var rentWeeks  = 52 - vacancyWeeks;
+    var annualRent = round2(wkRent * rentWeeks);
 
-    // --- Deductions ---
-    var interestCost    = round2(loan * rate);
+    // --- Interest / repayment calculation ---
+    var interestCost;
+    var annualPrincipal = 0;
+    var monthlyRepayment = 0;
+
+    if (loanType === 'pi' && loan > 0 && rate > 0) {
+      var monthlyRate = rate / 12;
+      var numPayments = loanTermYears * 12;
+      monthlyRepayment = round2(loan * monthlyRate * Math.pow(1 + monthlyRate, numPayments) /
+        (Math.pow(1 + monthlyRate, numPayments) - 1));
+      var annualRepayment = round2(monthlyRepayment * 12);
+      // First-year interest approximation (actual first-year interest on amortising loan)
+      var balance = loan;
+      var firstYearInterest = 0;
+      for (var m = 0; m < 12; m++) {
+        var monthInterest = round2(balance * monthlyRate);
+        firstYearInterest = round2(firstYearInterest + monthInterest);
+        balance = round2(balance - (monthlyRepayment - monthInterest));
+      }
+      interestCost = firstYearInterest;
+      annualPrincipal = round2(annualRepayment - firstYearInterest);
+    } else {
+      interestCost = round2(loan * rate);
+    }
+
+    // --- Deductions (only interest is deductible for P&I) ---
     var managementFees  = round2(annualRent * mgmtRate);
     var otherExpenses   = round2(council + insurance + maintenance);
     var totalDeductions = round2(interestCost + managementFees + otherExpenses + depreciation);
@@ -81,15 +112,23 @@ var APE_NegativeGearing = (function () {
     var taxBenefit        = round2(taxableRentalLoss * taxRate);
 
     // --- After-tax cash flow ---
-    var netCashFlow  = round2(netRentalIncome + taxBenefit);
+    var netCashFlow   = round2(netRentalIncome + taxBenefit);
     var weeklyNetCost = round2(-netCashFlow / 52); // positive = out of pocket
 
     var gearingStatus = isNegative ? 'negative' : (isNeutral ? 'neutral' : 'positive');
 
     // --- Breakdown lines ---
     var bd = [];
-    bd.push('Annual rental income: ' + fmtMoney(annualRent) + ' (' + fmtMoney(wkRent) + '/wk \xd7 52 weeks).');
-    bd.push('Interest cost: ' + fmtMoney(interestCost) + ' (' + fmtPct(rate) + ' p.a. on ' + fmtMoney(loan) + ' loan, interest-only basis).');
+    if (vacancyWeeks > 0) {
+      bd.push('Annual rental income: ' + fmtMoney(annualRent) + ' (' + fmtMoney(wkRent) + '/wk \xd7 ' + rentWeeks + ' weeks; ' + vacancyWeeks + ' vacancy week' + (vacancyWeeks !== 1 ? 's' : '') + ' deducted).');
+    } else {
+      bd.push('Annual rental income: ' + fmtMoney(annualRent) + ' (' + fmtMoney(wkRent) + '/wk \xd7 52 weeks).');
+    }
+    if (loanType === 'pi') {
+      bd.push('Monthly P&I repayment: ' + fmtMoney(monthlyRepayment) + ' (interest-only portion deductible: ' + fmtMoney(interestCost) + '; principal not deductible: ' + fmtMoney(annualPrincipal) + ').');
+    } else {
+      bd.push('Interest cost: ' + fmtMoney(interestCost) + ' (' + fmtPct(rate) + ' p.a. on ' + fmtMoney(loan) + ' loan, interest-only basis).');
+    }
     bd.push('Property management fees: ' + fmtMoney(managementFees) + ' (' + fmtPct(mgmtRate) + ' of rent).');
     bd.push('Council rates, insurance & maintenance: ' + fmtMoney(otherExpenses) + '.');
     if (depreciation > 0) {
@@ -117,28 +156,34 @@ var APE_NegativeGearing = (function () {
     }
 
     var assumptions = [
-      'Interest calculated on full loan (interest-only) — principal repayments are not tax-deductible.',
+      loanType === 'pi'
+        ? 'P&I repayment shown — only the interest component is tax-deductible. Principal repayments are not deductible.'
+        : 'Interest calculated on full loan (interest-only) — principal repayments are not tax-deductible.',
       'Tax benefit assumes the rental loss is fully offset against other income at the stated marginal rate.',
-      'No vacancy periods have been applied to rental income.',
+      vacancyWeeks > 0
+        ? 'Vacancy of ' + vacancyWeeks + ' week' + (vacancyWeeks !== 1 ? 's' : '') + ' per year applied to rental income.'
+        : 'No vacancy periods have been applied to rental income.',
       'Depreciation (if entered) assumes a quantity surveyor has confirmed the eligible amount.',
       'This is a simplified estimate only. Seek qualified tax advice for your specific situation.'
     ];
 
     return Object.freeze({
-      type:            'negative-gearing',
-      gearingStatus:   gearingStatus,
-      annualRent:      annualRent,
-      interestCost:    interestCost,
-      managementFees:  managementFees,
-      otherExpenses:   otherExpenses,
-      depreciation:    depreciation,
-      totalDeductions: totalDeductions,
-      netRentalIncome: netRentalIncome,
-      taxBenefit:      taxBenefit,
-      netCashFlow:     netCashFlow,
-      weeklyNetCost:   weeklyNetCost,
-      breakdown:       Object.freeze(bd),
-      assumptions:     Object.freeze(assumptions)
+      type:             'negative-gearing',
+      gearingStatus:    gearingStatus,
+      annualRent:       annualRent,
+      interestCost:     interestCost,
+      managementFees:   managementFees,
+      otherExpenses:    otherExpenses,
+      depreciation:     depreciation,
+      totalDeductions:  totalDeductions,
+      netRentalIncome:  netRentalIncome,
+      taxBenefit:       taxBenefit,
+      netCashFlow:      netCashFlow,
+      weeklyNetCost:    weeklyNetCost,
+      monthlyRepayment: monthlyRepayment,
+      loanType:         loanType,
+      breakdown:        Object.freeze(bd),
+      assumptions:      Object.freeze(assumptions)
     });
   }
 
