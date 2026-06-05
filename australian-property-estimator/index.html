@@ -256,7 +256,7 @@
 
     <!-- 1. Status banner -->
     <div class="status-banner neutral" id="statusBanner">
-      <div style="display:flex;align-items:center">
+      <div class="status-inner">
         <span class="status-icon">📊</span>
         <span class="status-label" id="statusLabel">Enter your details and calculate</span>
       </div>
@@ -292,25 +292,25 @@
       <div class="dash-card">
         <div class="dash-card-title">Expense Breakdown</div>
         <div class="dash-card-sub">Annual deductible expenses</div>
-        <div style="position:relative;height:150px"><canvas id="donutChart"></canvas></div>
+        <div class="chart-wrap-sm"><canvas id="donutChart"></canvas></div>
         <div class="chart-total" id="donutTotal"></div>
       </div>
       <div class="dash-card">
         <div class="dash-card-title">Annual Cash Flow</div>
         <div class="dash-card-sub">Income vs. costs vs. benefit</div>
-        <div style="position:relative;height:150px"><canvas id="barChart"></canvas></div>
+        <div class="chart-wrap-sm"><canvas id="barChart"></canvas></div>
       </div>
     </div>
 
     <!-- 4. 10-year projection -->
     <div class="dash-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="projection-header">
         <div>
           <div class="dash-card-title">10-Year Cash Position Projection</div>
           <div class="dash-card-sub" id="projectionSub">Assuming 3% annual rent growth</div>
         </div>
       </div>
-      <div style="position:relative;height:160px"><canvas id="lineChart"></canvas></div>
+      <div class="chart-wrap-md"><canvas id="lineChart"></canvas></div>
     </div>
 
     <!-- 5. Stamp duty + land tax -->
@@ -332,7 +332,7 @@
         <span class="chevron" id="cgtChevron">▾</span>
       </button>
       <div class="collapsible-body" id="cgtBody" hidden>
-        <div class="field-row-3" style="margin-bottom:10px">
+        <div class="field-row-3">
           <div class="field-group">
             <label class="field-label" for="cgt-growth">Growth rate %</label>
             <input class="field-input" id="cgt-growth" type="text" inputmode="decimal" value="5" autocomplete="off">

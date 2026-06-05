@@ -715,6 +715,12 @@ body {
   padding: 8px 0;
 }
 
+/* ---- Chart canvas wrappers (replaces blocked inline styles) ---- */
+.chart-wrap-sm { position: relative; height: 150px; }
+.chart-wrap-md { position: relative; height: 160px; }
+.projection-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.status-inner { display: flex; align-items: center; }
+
 /* ---- Print Styles ---- */
 @media print {
   .app-header,
