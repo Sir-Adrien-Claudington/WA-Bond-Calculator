@@ -1,256 +1,15 @@
 /*
- * app.js — UI wiring for the Australian Property Investment Estimator.
- *
- * Reads the form, calls the three calculation modules, and renders results
- * into the DOM. No external requests. No persistence.
+ * app.js — UI layer for the Australian Property Investment Estimator.
+ * Full two-panel dashboard redesign with Chart.js charts, dark mode,
+ * URL sharing, real-time debounced updates, and CGT projection.
  */
 
 (function () {
   'use strict';
 
-  // ---- Helpers -------------------------------------------------------
-
-  function $(id) { return document.getElementById(id); }
-
-  function stripCommas(s) {
-    return String(s).replace(/,/g, '');
-  }
-
-  function numVal(id) {
-    var el = $(id.indexOf('ape-') === 0 ? id : 'ape-' + id);
-    if (!el) return 0;
-    var v = parseFloat(stripCommas(el.value));
-    return isFinite(v) ? v : 0;
-  }
-
-  function rawVal(id) {
-    var el = $(id.indexOf('ape-') === 0 ? id : 'ape-' + id);
-    return el ? stripCommas(el.value).trim() : '';
-  }
-
-  function strVal(id) {
-    var el = $(id.indexOf('ape-') === 0 ? id : 'ape-' + id);
-    return el ? el.value : '';
-  }
-
-  function fmt(n) {
-    return '$' + Math.abs(Math.round((n + Number.EPSILON) * 100) / 100)
-      .toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-
-  function fmtSigned(n) {
-    return (n < 0 ? '−' : '+') + fmt(n);
-  }
-
-  function fmtNum(n) {
-    return Math.round(n).toLocaleString('en-AU');
-  }
-
-  function el(tag, props, children) {
-    var node = document.createElement(tag);
-    if (props) {
-      Object.keys(props).forEach(function (k) {
-        if (k === 'class') node.className = props[k];
-        else if (k === 'html') node.innerHTML = props[k];
-        else node.setAttribute(k, props[k]);
-      });
-    }
-    if (children) {
-      children.forEach(function (c) {
-        if (c) node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
-      });
-    }
-    return node;
-  }
-
-  function td(text, cls) {
-    return el('td', cls ? { class: cls } : null, [text]);
-  }
-
-  // ---- Thousands-separator formatting for text inputs ----------------
-
-  function formatCurrencyInput(inputEl) {
-    var raw = stripCommas(inputEl.value);
-    if (raw === '' || raw === '-') return;
-    var n = parseFloat(raw);
-    if (!isFinite(n)) return;
-    var formatted = Math.abs(n).toLocaleString('en-AU', { maximumFractionDigits: 2 });
-    if (inputEl.value !== formatted) inputEl.value = formatted;
-  }
-
-  var currencyInputIds = [
-    'ape-purchase-price', 'ape-land-value', 'ape-loan-amount',
-    'ape-weekly-rent', 'ape-council-rates', 'ape-insurance',
-    'ape-maintenance', 'ape-depreciation'
-  ];
-
-  // ---- Validation ----------------------------------------------------
-
-  var validationRules = {
-    'ape-state': function (v) {
-      if (!v || v === '') return 'Please select a state or territory.';
-      return null;
-    },
-    'ape-purchase-price': function (v) {
-      var n = parseFloat(stripCommas(v));
-      if (!v || isNaN(n)) return 'Purchase price is required.';
-      if (n <= 0) return 'Purchase price must be greater than zero.';
-      if (n < 50000) return 'Purchase price must be at least $50,000.';
-      return null;
-    },
-    'ape-land-value': function (v, allVals) {
-      var n = parseFloat(stripCommas(v));
-      if (v === '' || v === null || v === undefined) return null; // optional
-      if (!isNaN(n) && n < 0) return 'Land value must be zero or more.';
-      var price = parseFloat(stripCommas(allVals['ape-purchase-price']));
-      if (!isNaN(n) && !isNaN(price) && price > 0 && n >= price) {
-        return 'Land value must be less than the purchase price.';
-      }
-      return null;
-    },
-    'ape-loan-amount': function (v, allVals) {
-      var n = parseFloat(stripCommas(v));
-      if (!v || isNaN(n)) return 'Loan amount is required.';
-      if (n <= 0) return 'Loan amount must be greater than zero.';
-      var price = parseFloat(stripCommas(allVals['ape-purchase-price']));
-      if (!isNaN(price) && price > 0 && n > price) {
-        return 'Loan amount cannot exceed the purchase price.';
-      }
-      return null;
-    },
-    'ape-interest-rate': function (v) {
-      var n = parseFloat(stripCommas(v));
-      if (!v || isNaN(n)) return 'Interest rate is required.';
-      if (n < 0.1 || n > 20) return 'Interest rate must be between 0.1% and 20%.';
-      return null;
-    },
-    'ape-weekly-rent': function (v) {
-      var n = parseFloat(stripCommas(v));
-      if (!v || isNaN(n)) return 'Weekly rent is required.';
-      if (n <= 0) return 'Weekly rent must be greater than zero.';
-      return null;
-    },
-    'ape-management-fee': function (v) {
-      var n = parseFloat(stripCommas(v));
-      if (!v || isNaN(n)) return 'Management fee is required.';
-      if (n < 0 || n > 20) return 'Management fee must be between 0% and 20%.';
-      return null;
-    },
-    'ape-council-rates': function (v) {
-      var n = parseFloat(stripCommas(v));
-      if (isNaN(n)) return null; // optional, but if present must be >= 0
-      if (n < 0) return 'Council rates must be zero or more.';
-      return null;
-    },
-    'ape-insurance': function (v) {
-      var n = parseFloat(stripCommas(v));
-      if (isNaN(n)) return null;
-      if (n < 0) return 'Insurance must be zero or more.';
-      return null;
-    },
-    'ape-maintenance': function (v) {
-      var n = parseFloat(stripCommas(v));
-      if (isNaN(n)) return null;
-      if (n < 0) return 'Maintenance must be zero or more.';
-      return null;
-    },
-    'ape-depreciation': function (v) {
-      var n = parseFloat(stripCommas(v));
-      if (isNaN(n)) return null;
-      if (n < 0) return 'Depreciation must be zero or more.';
-      return null;
-    }
-  };
-
-  function getFieldValue(id) {
-    var el = $(id);
-    return el ? el.value : '';
-  }
-
-  function getAllFieldValues() {
-    var vals = {};
-    Object.keys(validationRules).forEach(function (id) {
-      vals[id] = getFieldValue(id);
-    });
-    return vals;
-  }
-
-  function showError(fieldId, msg) {
-    var errId = 'err-' + fieldId.replace('ape-', '');
-    var errEl = $(errId);
-    var inputEl = $(fieldId);
-    if (errEl) {
-      errEl.textContent = msg;
-      errEl.hidden = false;
-    }
-    if (inputEl) inputEl.classList.add('input-error');
-  }
-
-  function clearError(fieldId) {
-    var errId = 'err-' + fieldId.replace('ape-', '');
-    var errEl = $(errId);
-    var inputEl = $(fieldId);
-    if (errEl) {
-      errEl.textContent = '';
-      errEl.hidden = true;
-    }
-    if (inputEl) inputEl.classList.remove('input-error');
-  }
-
-  function validateForm() {
-    var allVals = getAllFieldValues();
-    var valid = true;
-    Object.keys(validationRules).forEach(function (id) {
-      var msg = validationRules[id](allVals[id], allVals);
-      if (msg) {
-        showError(id, msg);
-        valid = false;
-      } else {
-        clearError(id);
-      }
-    });
-    return valid;
-  }
-
-  function validateField(fieldId) {
-    var rule = validationRules[fieldId];
-    if (!rule) return;
-    var allVals = getAllFieldValues();
-    var msg = rule(allVals[fieldId], allVals);
-    if (msg) {
-      showError(fieldId, msg);
-    } else {
-      clearError(fieldId);
-    }
-  }
-
-  // ---- LVR live label ------------------------------------------------
-
-  function updateLvr() {
-    var price = numVal('ape-purchase-price');
-    var loan  = numVal('ape-loan-amount');
-    var badge = $('lvr-badge');
-    if (price > 0 && loan > 0) {
-      var lvr = Math.round((loan / price) * 1000) / 10;
-      badge.textContent = lvr.toFixed(1) + '% LVR';
-      badge.hidden = false;
-    } else {
-      badge.hidden = true;
-    }
-  }
-
-  // ---- State defaults ------------------------------------------------
-
-  var stateDefaults = {
-    NSW: { managementFee: 8,  councilRates: 1800, insurance: 1400, landValuePct: '40–60%' },
-    VIC: { managementFee: 7,  councilRates: 1600, insurance: 1300, landValuePct: '35–55%' },
-    QLD: { managementFee: 9,  councilRates: 1400, insurance: 1500, landValuePct: '30–50%' },
-    WA:  { managementFee: 9,  councilRates: 1200, insurance: 1200, landValuePct: '25–45%' },
-    SA:  { managementFee: 9,  councilRates: 1100, insurance: 1100, landValuePct: '25–40%' },
-    TAS: { managementFee: 9,  councilRates: 1000, insurance: 1000, landValuePct: '20–35%' },
-    ACT: { managementFee: 8,  councilRates: 2200, insurance: 1300, landValuePct: '35–50%' },
-    NT:  { managementFee: 10, councilRates: 1000, insurance: 1200, landValuePct: '20–35%' }
-  };
+  // ================================================================
+  // CONSTANTS & DATA
+  // ================================================================
 
   var fhbConcessions = {
     NSW: { grantAmount: 10000, stampDutyThreshold: 800000, fullyExemptThreshold: 650000 },
@@ -263,119 +22,230 @@
     NT:  { grantAmount: 10000, stampDutyThreshold: null,   fullyExemptThreshold: null   }
   };
 
-  function updateStateDefaults(state) {
-    var d = stateDefaults[state];
-    if (!d) return;
+  var stateDefaults = {
+    NSW: { managementFee: 8,  councilRates: 1800, insurance: 1400, landValuePct: '40–60%' },
+    VIC: { managementFee: 7,  councilRates: 1600, insurance: 1300, landValuePct: '35–55%' },
+    QLD: { managementFee: 9,  councilRates: 1400, insurance: 1500, landValuePct: '30–50%' },
+    WA:  { managementFee: 9,  councilRates: 1200, insurance: 1200, landValuePct: '25–45%' },
+    SA:  { managementFee: 9,  councilRates: 1100, insurance: 1100, landValuePct: '25–40%' },
+    TAS: { managementFee: 9,  councilRates: 1000, insurance: 1000, landValuePct: '20–35%' },
+    ACT: { managementFee: 8,  councilRates: 2200, insurance: 1300, landValuePct: '35–50%' },
+    NT:  { managementFee: 10, councilRates: 1000, insurance: 1200, landValuePct: '20–35%' }
+  };
 
-    var mgmtEl = $('ape-management-fee');
-    var councilEl = $('ape-council-rates');
-    var insuranceEl = $('ape-insurance');
-    var landHint = $('land-value-hint');
+  var DONUT_COLORS = ['#1e5fad', '#0f9e76', '#d97706', '#9333ea', '#ef4444', '#6b7280'];
 
-    if (mgmtEl && !mgmtEl.dataset.userEdited) {
-      mgmtEl.placeholder = d.managementFee.toString();
-    }
-    if (councilEl && !councilEl.dataset.userEdited) {
-      councilEl.placeholder = d.councilRates.toLocaleString('en-AU');
-    }
-    if (insuranceEl && !insuranceEl.dataset.userEdited) {
-      insuranceEl.placeholder = d.insurance.toLocaleString('en-AU');
-    }
-    if (landHint) {
-      landHint.textContent = 'Used for land tax. Typically ' + d.landValuePct + ' of purchase price in ' + state + '. ' +
-        'Varies widely by location — inner-city land can be 60–80% of purchase price; regional properties are often 20–30%. ' +
-        'The most accurate source is your council rates notice or a registered valuer.';
-    }
+  // ================================================================
+  // HELPERS
+  // ================================================================
+
+  function $(id) { return document.getElementById(id); }
+
+  function stripCommas(s) { return String(s).replace(/,/g, ''); }
+
+  function getNum(id) {
+    var el = $(id);
+    if (!el) return 0;
+    var v = parseFloat(stripCommas(el.value));
+    return isFinite(v) ? v : 0;
   }
 
-  function updateFhbInfoBox(state) {
-    var isFhb = $('ape-fhb').checked;
-    var box = $('fhb-info-box');
-    if (!isFhb || !state) { box.hidden = true; return; }
-    var c = fhbConcessions[state];
-    if (!c) { box.hidden = true; return; }
-
-    while (box.firstChild) box.removeChild(box.firstChild);
-
-    function addLine(boldText, restText) {
-      var p = document.createElement('p');
-      p.style.margin = '2px 0';
-      if (boldText) {
-        var strong = document.createElement('strong');
-        strong.textContent = boldText;
-        p.appendChild(strong);
-      }
-      p.appendChild(document.createTextNode(restText));
-      box.appendChild(p);
-    }
-
-    if (c.grantAmount > 0) {
-      addLine('First Home Owner Grant (FHOG): ', fmt(c.grantAmount) + ' (eligibility criteria apply).');
-    }
-    if (c.fullyExemptThreshold !== null) {
-      addLine('Full stamp duty exemption ', 'for purchase prices up to ' + fmt(c.fullyExemptThreshold) + '.');
-    }
-    if (c.stampDutyThreshold !== null && c.fullyExemptThreshold !== null) {
-      addLine('Partial concession ', 'for purchase prices between ' + fmt(c.fullyExemptThreshold) + ' and ' + fmt(c.stampDutyThreshold) + '.');
-    } else if (c.stampDutyThreshold !== null) {
-      addLine('Stamp duty concession ', 'available up to ' + fmt(c.stampDutyThreshold) + '.');
-    }
-    if (!box.firstChild) {
-      addLine('', 'No specific stamp duty concession in this state, but a FHOG may apply. Check with your state revenue office.');
-    }
-    addLine('', 'Eligibility criteria apply. Always confirm with your state revenue office.');
-
-    box.hidden = false;
+  function getStr(id) {
+    var el = $(id);
+    return el ? el.value : '';
   }
 
-  // ---- Read form -----------------------------------------------------
+  function fmtMoney(n) {
+    return (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-AU');
+  }
+
+  function fmtMoneyShort(n) {
+    var abs = Math.abs(Math.round(n));
+    if (abs >= 1000) return (n < 0 ? '−$' : '$') + (abs / 1000).toFixed(1) + 'k';
+    return (n < 0 ? '−$' : '$') + abs;
+  }
+
+  function fmtPct(n, dec) {
+    return (n * 100).toFixed(dec !== undefined ? dec : 1) + '%';
+  }
+
+  function isDark() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  function chartTextColor() {
+    return isDark() ? '#8b949e' : '#6b7280';
+  }
+
+  function chartGridColor() {
+    return isDark() ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+  }
+
+  // ================================================================
+  // CURRENCY INPUT FORMATTING
+  // ================================================================
+
+  var currencyInputIds = [
+    'ape-purchase-price', 'ape-land-value', 'ape-loan-amount',
+    'ape-weekly-rent', 'ape-council-rates', 'ape-insurance',
+    'ape-maintenance', 'ape-depreciation'
+  ];
+
+  function formatCurrencyInput(inputEl) {
+    var raw = stripCommas(inputEl.value);
+    if (raw === '' || raw === '-') return;
+    var n = parseFloat(raw);
+    if (!isFinite(n)) return;
+    var formatted = Math.abs(n).toLocaleString('en-AU', { maximumFractionDigits: 0 });
+    if (inputEl.value !== formatted) inputEl.value = formatted;
+  }
+
+  // ================================================================
+  // VALIDATION
+  // ================================================================
+
+  var validationRules = {
+    'ape-state': function (v) {
+      if (!v) return 'Please select a state or territory.';
+      return null;
+    },
+    'ape-purchase-price': function (v) {
+      var n = parseFloat(stripCommas(v));
+      if (!v || isNaN(n)) return 'Purchase price is required.';
+      if (n <= 0) return 'Must be greater than zero.';
+      if (n < 50000) return 'Must be at least $50,000.';
+      return null;
+    },
+    'ape-land-value': function (v, all) {
+      if (!v) return null;
+      var n = parseFloat(stripCommas(v));
+      if (isNaN(n)) return null;
+      if (n < 0) return 'Must be zero or more.';
+      var price = parseFloat(stripCommas(all['ape-purchase-price'] || ''));
+      if (!isNaN(price) && price > 0 && n >= price) return 'Must be less than purchase price.';
+      return null;
+    },
+    'ape-loan-amount': function (v, all) {
+      var n = parseFloat(stripCommas(v));
+      if (!v || isNaN(n)) return 'Loan amount is required.';
+      if (n <= 0) return 'Must be greater than zero.';
+      var price = parseFloat(stripCommas(all['ape-purchase-price'] || ''));
+      if (!isNaN(price) && price > 0 && n > price) return 'Cannot exceed purchase price.';
+      return null;
+    },
+    'ape-interest-rate': function (v) {
+      var n = parseFloat(v);
+      if (!v || isNaN(n)) return 'Interest rate is required.';
+      if (n < 0.1 || n > 20) return 'Must be between 0.1% and 20%.';
+      return null;
+    },
+    'ape-weekly-rent': function (v) {
+      var n = parseFloat(stripCommas(v));
+      if (!v || isNaN(n)) return 'Weekly rent is required.';
+      if (n <= 0) return 'Must be greater than zero.';
+      return null;
+    },
+    'ape-management-fee': function (v) {
+      var n = parseFloat(v);
+      if (!v || isNaN(n)) return 'Management fee is required.';
+      if (n < 0 || n > 20) return 'Must be between 0% and 20%.';
+      return null;
+    }
+  };
+
+  function getAllFieldValues() {
+    var vals = {};
+    Object.keys(validationRules).forEach(function (id) {
+      var el = $(id);
+      vals[id] = el ? el.value : '';
+    });
+    return vals;
+  }
+
+  function showError(fieldId, msg) {
+    var errId = 'err-' + fieldId.replace('ape-', '');
+    var errEl = $(errId);
+    var inputEl = $(fieldId);
+    if (errEl) { errEl.textContent = msg; errEl.hidden = false; }
+    if (inputEl) inputEl.classList.add('input-error');
+  }
+
+  function clearError(fieldId) {
+    var errId = 'err-' + fieldId.replace('ape-', '');
+    var errEl = $(errId);
+    var inputEl = $(fieldId);
+    if (errEl) { errEl.textContent = ''; errEl.hidden = true; }
+    if (inputEl) inputEl.classList.remove('input-error');
+  }
+
+  function validateForm() {
+    var all = getAllFieldValues();
+    var valid = true;
+    Object.keys(validationRules).forEach(function (id) {
+      var msg = validationRules[id](all[id], all);
+      if (msg) { showError(id, msg); valid = false; }
+      else { clearError(id); }
+    });
+    return valid;
+  }
+
+  function validateField(id) {
+    var rule = validationRules[id];
+    if (!rule) return;
+    var all = getAllFieldValues();
+    var msg = rule(all[id], all);
+    if (msg) showError(id, msg);
+    else clearError(id);
+  }
+
+  // ================================================================
+  // READ FORM
+  // ================================================================
 
   function readParams() {
-    var loanTypeEl = document.querySelector('input[name="loan-type"]:checked');
-    var loanType = loanTypeEl ? loanTypeEl.value : 'io';
+    var loanType = getStr('ape-loan-type') || 'io';
     return {
-      state:             strVal('ape-state'),
-      purchasePrice:     numVal('ape-purchase-price'),
-      landValue:         numVal('ape-land-value'),
-      loanAmount:        numVal('ape-loan-amount'),
-      interestRate:      numVal('ape-interest-rate') / 100,
-      weeklyRent:        numVal('ape-weekly-rent'),
-      vacancyWeeks:      numVal('ape-vacancy'),
-      managementFeeRate: numVal('ape-management-fee') / 100,
-      councilRates:      numVal('ape-council-rates'),
-      insurance:         numVal('ape-insurance'),
-      maintenance:       numVal('ape-maintenance'),
-      depreciation:      numVal('ape-depreciation'),
-      marginalTaxRate:   parseFloat(strVal('ape-marginal-tax-rate')) || 0,
+      state:             getStr('ape-state'),
+      purchasePrice:     getNum('ape-purchase-price'),
+      landValue:         getNum('ape-land-value'),
+      loanAmount:        getNum('ape-loan-amount'),
+      interestRate:      getNum('ape-interest-rate') / 100,
+      weeklyRent:        getNum('ape-weekly-rent'),
+      vacancyWeeks:      getNum('ape-vacancy'),
+      managementFeeRate: getNum('ape-management-fee') / 100,
+      councilRates:      getNum('ape-council-rates'),
+      insurance:         getNum('ape-insurance'),
+      maintenance:       getNum('ape-maintenance'),
+      depreciation:      getNum('ape-depreciation'),
+      marginalTaxRate:   parseFloat(getStr('ape-marginal-tax-rate')) || 0,
       loanType:          loanType,
-      loanTermYears:     numVal('ape-loan-term') || 30,
-      isFirstHomeBuyer:  $('ape-fhb').checked,
-      cgtGrowthRate:     numVal('ape-cgt-growth') / 100,
-      cgtYears:          numVal('ape-cgt-years') || 10,
-      cgtSaleCostsPct:   numVal('ape-cgt-sale-costs') / 100
+      loanTermYears:     getNum('ape-loan-term') || 30,
+      isFirstHomeBuyer:  $('ape-fhb') ? $('ape-fhb').checked : false,
+      cgtGrowthRate:     getNum('cgt-growth') / 100,
+      cgtYears:          getNum('cgt-years') || 10,
+      cgtSaleCostsPct:   getNum('cgt-sale-costs') / 100
     };
   }
 
-  // ---- URL sharing ---------------------------------------------------
+  // ================================================================
+  // URL SHARING
+  // ================================================================
 
   var urlParamFields = [
     'ape-state', 'ape-purchase-price', 'ape-land-value', 'ape-loan-amount',
     'ape-interest-rate', 'ape-weekly-rent', 'ape-vacancy', 'ape-management-fee',
     'ape-council-rates', 'ape-insurance', 'ape-maintenance', 'ape-depreciation',
-    'ape-marginal-tax-rate', 'ape-loan-term', 'ape-cgt-growth', 'ape-cgt-years',
-    'ape-cgt-sale-costs'
+    'ape-marginal-tax-rate', 'ape-loan-term', 'ape-loan-type',
+    'cgt-growth', 'cgt-years', 'cgt-sale-costs'
   ];
 
-  function encodeToUrl(params) {
+  function encodeToUrl() {
     var q = new URLSearchParams();
     urlParamFields.forEach(function (id) {
-      var e = $(id);
-      if (e && e.value) q.set(id, e.value);
+      var el = $(id);
+      if (el && el.value) q.set(id, el.value);
     });
-    // Include loan-type and fhb
-    var ltEl = document.querySelector('input[name="loan-type"]:checked');
-    if (ltEl) q.set('loan-type', ltEl.value);
-    if ($('ape-fhb').checked) q.set('ape-fhb', '1');
+    if ($('ape-fhb') && $('ape-fhb').checked) q.set('ape-fhb', '1');
     window.history.pushState(null, '', '?' + q.toString());
   }
 
@@ -385,642 +255,837 @@
     var hasAny = false;
     urlParamFields.forEach(function (id) {
       if (q.has(id)) {
-        var e = $(id);
-        if (e) { e.value = q.get(id); hasAny = true; }
+        var el = $(id);
+        if (el) { el.value = q.get(id); hasAny = true; }
       }
     });
-    if (q.has('loan-type')) {
-      var ltVal = q.get('loan-type');
-      if (ltVal === 'io' || ltVal === 'pi') {
-        var ltEl = document.querySelector('input[name="loan-type"][value="' + ltVal + '"]');
-        if (ltEl) ltEl.checked = true;
-      }
-      toggleLoanType();
-    }
     if (q.has('ape-fhb') && q.get('ape-fhb') === '1') {
-      $('ape-fhb').checked = true;
+      if ($('ape-fhb')) $('ape-fhb').checked = true;
+    }
+    if (q.has('ape-loan-type')) {
+      setLoanType(q.get('ape-loan-type') === 'pi' ? 'pi' : 'io');
     }
     return hasAny;
   }
 
-  // ---- SVG bar chart -------------------------------------------------
+  // ================================================================
+  // LOAN TYPE TOGGLE
+  // ================================================================
 
-  function buildBarChart(ng, isFhb) {
-    var items = [
-      { label: 'Gross Rent',      value: ng.annualRent,      color: '#0d9488' },
-      { label: 'Loan Interest',   value: ng.interestCost,    color: '#dc2626' },
-      { label: 'Mgmt Fees',       value: ng.managementFees,  color: '#d97706' },
-      { label: 'Rates/Ins/Maint', value: ng.otherExpenses,   color: '#ea580c' },
-      { label: 'Depreciation',    value: ng.depreciation,    color: '#94a3b8' },
-      { label: 'Net Position',    value: Math.abs(ng.netRentalIncome), color: '#7c3aed', signed: ng.netRentalIncome },
-      { label: 'Tax Benefit',     value: ng.taxBenefit,      color: '#16a34a' }
-    ].filter(function (item) { return item.value > 0; });
-
-    if (!items.length) return null;
-
-    var maxVal = Math.max.apply(null, items.map(function (i) { return i.value; }));
-    var barH = 22;
-    var gap = 8;
-    var labelW = 110;
-    var valueW = 90;
-    var barMaxW = 320;
-    var chartW = labelW + barMaxW + valueW + 20;
-    var chartH = items.length * (barH + gap) + 10;
-
-    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 ' + chartW + ' ' + chartH);
-    svg.setAttribute('class', 'bar-chart-svg');
-    svg.setAttribute('style', 'max-width:100%');
-    svg.setAttribute('aria-hidden', 'true');
-
-    items.forEach(function (item, i) {
-      var y = i * (barH + gap);
-      var barW = maxVal > 0 ? Math.max(2, (item.value / maxVal) * barMaxW) : 2;
-
-      var labelEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      labelEl.setAttribute('x', labelW - 6);
-      labelEl.setAttribute('y', y + barH / 2 + 5);
-      labelEl.setAttribute('text-anchor', 'end');
-      labelEl.setAttribute('font-size', '11');
-      labelEl.setAttribute('fill', '#64748b');
-      labelEl.textContent = item.label;
-      svg.appendChild(labelEl);
-
-      var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      rect.setAttribute('x', labelW);
-      rect.setAttribute('y', y);
-      rect.setAttribute('width', barW);
-      rect.setAttribute('height', barH);
-      rect.setAttribute('fill', item.color);
-      rect.setAttribute('rx', '3');
-      svg.appendChild(rect);
-
-      var valEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      valEl.setAttribute('x', labelW + barW + 6);
-      valEl.setAttribute('y', y + barH / 2 + 5);
-      valEl.setAttribute('font-size', '11');
-      valEl.setAttribute('fill', '#1e293b');
-      var displayVal = item.signed !== undefined
-        ? (item.signed < 0 ? '−' : '+') + fmt(Math.abs(item.signed))
-        : fmt(item.value);
-      valEl.textContent = displayVal;
-      svg.appendChild(valEl);
-    });
-
-    return svg;
+  function setLoanType(type) {
+    var hiddenInput = $('ape-loan-type');
+    var btnIo = $('btn-io');
+    var btnPi = $('btn-pi');
+    var termField = $('pi-loan-term-field');
+    if (hiddenInput) hiddenInput.value = type;
+    if (btnIo) btnIo.classList.toggle('active', type === 'io');
+    if (btnPi) btnPi.classList.toggle('active', type === 'pi');
+    if (termField) termField.hidden = (type !== 'pi');
   }
 
-  // ---- Break-even projection -----------------------------------------
+  // ================================================================
+  // LVR BADGE
+  // ================================================================
 
-  function buildBreakevenTable(params, ng) {
-    var weeklyRent = params.weeklyRent;
-    var vacancyWeeks = params.vacancyWeeks || 0;
-    var initialAnnualRent = weeklyRent * (52 - vacancyWeeks);
-
-    // Growth rate input
-    var growthInputId = 'ape-breakeven-growth';
-
-    var wrapper = el('div', { class: 'breakeven-card card' });
-    var title = el('h2', {}, ['Break-Even Projection']);
-
-    var rentInputRow = el('div', { class: 'breakeven-rent-input' });
-    rentInputRow.appendChild(document.createTextNode('Assumed annual rent growth: '));
-    var growthInput = el('input', {
-      type: 'text',
-      id: growthInputId,
-      value: '3',
-      inputmode: 'decimal',
-      autocomplete: 'off'
-    });
-    rentInputRow.appendChild(growthInput);
-    rentInputRow.appendChild(document.createTextNode(' %'));
-
-    var tableContainer = el('div', { class: 'breakeven-table-wrap' });
-
-    function rebuildTable() {
-      tableContainer.innerHTML = '';
-      var growthRate = parseFloat(growthInput.value) / 100;
-      if (!isFinite(growthRate)) growthRate = 0.03;
-
-      // Annual fixed costs (non-interest expenses that don't change with rent)
-      var fixedCosts = ng.interestCost + ng.otherExpenses;
-      var mgmtRate = params.managementFeeRate;
-
-      var beYear = null;
-      var rows = [];
-      var cumTaxBenefit = 0;
-
-      for (var yr = 1; yr <= 15; yr++) {
-        var annualRent = initialAnnualRent * Math.pow(1 + growthRate, yr - 1);
-        var mgmtFees = annualRent * mgmtRate;
-        var totalCosts = fixedCosts + mgmtFees + ng.depreciation;
-        var netPos = annualRent - totalCosts;
-        var isPositive = netPos >= 0;
-        var taxBen = isPositive ? 0 : (-netPos) * params.marginalTaxRate;
-        cumTaxBenefit += taxBen;
-
-        if (beYear === null && isPositive) beYear = yr;
-
-        rows.push({
-          yr: yr,
-          annualRent: annualRent,
-          totalCosts: totalCosts,
-          netPos: netPos,
-          cumTaxBenefit: cumTaxBenefit,
-          isPositive: isPositive
-        });
-      }
-
-      var statusEl = el('p', { class: 'breakeven-status' + (ng.gearingStatus === 'positive' ? ' positive-status' : '') });
-      if (ng.gearingStatus === 'positive') {
-        statusEl.textContent = 'Currently positively geared.';
-      } else if (beYear !== null) {
-        statusEl.textContent = 'Estimated break-even: Year ' + beYear + ' (at ' + (growthRate * 100).toFixed(1) + '% annual rent growth).';
-      } else {
-        statusEl.textContent = '> 15 years to positive gearing at ' + (growthRate * 100).toFixed(1) + '% rent growth.';
-      }
-
-      var table = el('table', { class: 'breakeven-table' });
-      var thead = el('tr', {}, [
-        el('th', {}, ['Year']),
-        el('th', {}, ['Annual Rent']),
-        el('th', {}, ['Annual Costs']),
-        el('th', {}, ['Net Position']),
-        el('th', {}, ['Cum. Tax Benefit'])
-      ]);
-      table.appendChild(thead);
-
-      rows.forEach(function (r) {
-        var cls = '';
-        if (r.yr === beYear) cls = 'be-breakeven';
-        else if (r.isPositive) cls = 'be-positive';
-        else cls = 'be-negative';
-        var row = el('tr', { class: cls }, [
-          td(String(r.yr)),
-          td(fmt(r.annualRent)),
-          td(fmt(r.totalCosts)),
-          td((r.netPos >= 0 ? '+' : '−') + fmt(Math.abs(r.netPos))),
-          td(fmt(r.cumTaxBenefit))
-        ]);
-        table.appendChild(row);
-      });
-
-      tableContainer.appendChild(statusEl);
-      tableContainer.appendChild(table);
-    }
-
-    rebuildTable();
-    growthInput.addEventListener('input', rebuildTable);
-
-    wrapper.appendChild(title);
-    wrapper.appendChild(rentInputRow);
-    wrapper.appendChild(tableContainer);
-    return wrapper;
-  }
-
-  // ---- CGT calculation -----------------------------------------------
-
-  function calcCgt(params) {
-    var price = params.purchasePrice;
-    var growthRate = params.cgtGrowthRate || 0.05;
-    var years = params.cgtYears || 10;
-    var saleCostsPct = params.cgtSaleCostsPct || 0.025;
-    var taxRate = params.marginalTaxRate || 0;
-
-    var salePrice = price * Math.pow(1 + growthRate, years);
-    var saleCosts = salePrice * saleCostsPct;
-    var netSaleProceeds = salePrice - saleCosts;
-    var capitalGain = netSaleProceeds - price;
-    var taxableGain = capitalGain > 0 ? (years >= 1 ? capitalGain * 0.5 : capitalGain) : capitalGain;
-    var cgtPayable = taxableGain > 0 ? taxableGain * taxRate : 0;
-    var netAfterTaxProfit = capitalGain - cgtPayable;
-
-    return {
-      salePrice: salePrice,
-      saleCosts: saleCosts,
-      netSaleProceeds: netSaleProceeds,
-      capitalGain: capitalGain,
-      taxableGain: taxableGain,
-      cgtPayable: cgtPayable,
-      netAfterTaxProfit: netAfterTaxProfit,
-      years: years,
-      discount50pct: years >= 1
-    };
-  }
-
-  function buildCgtSection(params) {
-    if (!params.purchasePrice || !$('cgt-section').open) return null;
-
-    var cgt = calcCgt(params);
-
-    var wrapper = el('div', { class: 'cgt-result-card card' });
-    wrapper.appendChild(el('h2', {}, ['CGT Projection (' + cgt.years + ' years)']));
-
-    var tableWrap = el('div', { style: 'overflow-x:auto' });
-    var table = el('table', { class: 'result-table' });
-    var rows = [
-      ['Projected sale price', fmt(cgt.salePrice)],
-      ['Sale costs (' + (params.cgtSaleCostsPct * 100).toFixed(1) + '%)', '−' + fmt(cgt.saleCosts)],
-      ['Net sale proceeds', fmt(cgt.netSaleProceeds)],
-      ['Cost base (purchase price)', '−' + fmt(params.purchasePrice)],
-      ['Capital gain', fmt(cgt.capitalGain)],
-      ['50% CGT discount (held > 12 months)', cgt.discount50pct ? '50% applied' : 'Not applicable'],
-      ['Taxable gain', fmt(cgt.taxableGain)],
-      ['CGT payable (' + (params.marginalTaxRate * 100).toFixed(1) + '% marginal rate)', '−' + fmt(cgt.cgtPayable)],
-      ['Net after-tax profit', fmt(cgt.netAfterTaxProfit)]
-    ];
-
-    rows.forEach(function (r, i) {
-      var cls = i === rows.length - 1 ? 'row-total' : '';
-      table.appendChild(el('tr', { class: cls }, [td(r[0]), td(r[1])]));
-    });
-
-    tableWrap.appendChild(table);
-    wrapper.appendChild(tableWrap);
-    wrapper.appendChild(el('p', { class: 'cgt-disclaimer' }, [
-      'CGT estimate is indicative only. Actual liability depends on your complete tax position, any cost base adjustments, and other CGT events. Consult a registered tax agent.'
-    ]));
-    return wrapper;
-  }
-
-  // ---- Render --------------------------------------------------------
-
-  function renderRow(label, value, cls, indent) {
-    var labelText = indent ? '    ' + label : label;
-    return el('tr', { class: cls || '' }, [
-      td(labelText),
-      td(value, 'num')
-    ]);
-  }
-
-  function renderResults(params, ng, sd, lt) {
-    var panel = $('results');
-    panel.innerHTML = '';
-
-    // ---- Verdict card ----------------------------------------
-    var isNeg = ng.gearingStatus === 'negative';
-    var isPos = ng.gearingStatus === 'positive';
-    var statusLabel = isNeg ? 'Negatively Geared' : (isPos ? 'Positively Geared' : 'Neutrally Geared');
-
-    var verdict = el('div', { class: 'verdict-card ' + ng.gearingStatus }, [
-      el('div', { class: 'verdict-badge' }, [statusLabel]),
-      el('div', { class: 'verdict-headline' }, [
-        isNeg ? '−' + fmt(ng.weeklyNetCost) : '+' + fmt(-ng.weeklyNetCost)
-      ]),
-      el('div', { class: 'verdict-subline' }, ['per week net of tax benefit']),
-      el('div', { class: 'verdict-meta' }, [
-        el('div', { class: 'verdict-meta-item' }, [
-          el('div', { class: 'vmi-label' }, ['Annual rent']),
-          el('div', { class: 'vmi-value' }, [fmt(ng.annualRent)])
-        ]),
-        el('div', { class: 'verdict-meta-item' }, [
-          el('div', { class: 'vmi-label' }, ['Annual deductions']),
-          el('div', { class: 'vmi-value' }, [fmt(ng.totalDeductions)])
-        ]),
-        el('div', { class: 'verdict-meta-item' }, [
-          el('div', { class: 'vmi-label' }, [isNeg ? 'Tax saving' : 'Net income']),
-          el('div', { class: 'vmi-value' }, [isNeg ? fmt(ng.taxBenefit) : fmt(ng.netCashFlow)])
-        ])
-      ])
-    ]);
-    panel.appendChild(verdict);
-
-    // ---- Results grid ----------------------------------------
-    var grid = el('div', { class: 'results-grid card', style: 'margin-top:20px; padding:0; overflow:hidden;' });
-
-    // Left: annual cash flow
-    var leftCol = el('div', { style: 'padding:24px;' });
-    var leftTitle = el('h2', {}, ['Annual Cash Flow']);
-    var cfTable = el('table', { class: 'result-table' });
-
-    cfTable.appendChild(renderRow('Gross rental income', fmt(ng.annualRent), 'row-income'));
-
-    if (ng.loanType === 'pi' && ng.monthlyRepayment > 0) {
-      cfTable.appendChild(renderRow('Total P&I repayment (annual)', '−' + fmt(ng.monthlyRepayment * 12), 'row-expense'));
-      cfTable.appendChild(renderRow('  of which: interest (deductible)', '−' + fmt(ng.interestCost), 'row-expense'));
-      var principal = ng.monthlyRepayment * 12 - ng.interestCost;
-      cfTable.appendChild(renderRow('  of which: principal (not deductible)', '−' + fmt(principal), 'row-expense'));
+  function updateLvr() {
+    var price = getNum('ape-purchase-price');
+    var loan  = getNum('ape-loan-amount');
+    var badge = $('lvr-badge');
+    if (!badge) return;
+    if (price > 0 && loan > 0) {
+      badge.textContent = ((loan / price) * 100).toFixed(1) + '% LVR';
+      badge.hidden = false;
     } else {
-      cfTable.appendChild(renderRow('Interest cost', '−' + fmt(ng.interestCost), 'row-expense'));
+      badge.hidden = true;
     }
-    cfTable.appendChild(renderRow('Management fees', '−' + fmt(ng.managementFees), 'row-expense'));
-    cfTable.appendChild(renderRow('Council, insurance & maintenance', '−' + fmt(ng.otherExpenses), 'row-expense'));
-    if (ng.depreciation > 0) {
-      cfTable.appendChild(renderRow('Depreciation', '−' + fmt(ng.depreciation), 'row-expense'));
-    }
-    cfTable.appendChild(renderRow(
-      isNeg ? 'Net rental loss (before tax)' : 'Net rental income (before tax)',
-      (isNeg ? '−' : '+') + fmt(Math.abs(ng.netRentalIncome)),
-      'row-total'
-    ));
-    if (isNeg && params.marginalTaxRate > 0) {
-      cfTable.appendChild(renderRow('Tax saving', '+' + fmt(ng.taxBenefit), 'row-saving'));
-    }
-    cfTable.appendChild(renderRow(
-      isNeg ? 'Net annual cost (after tax)' : 'Net annual surplus (after tax)',
-      (isNeg ? '−' : '+') + fmt(Math.abs(ng.netCashFlow)),
-      isNeg ? 'row-net-neg row-total' : 'row-net-pos row-total'
-    ));
-
-    leftCol.appendChild(leftTitle);
-    leftCol.appendChild(cfTable);
-    if (ng.loanType === 'pi') {
-      leftCol.appendChild(el('p', { class: 'pi-notice' }, [
-        'P&I loan: only the interest portion (' + fmt(ng.interestCost) + '/yr) is tax-deductible. Principal repayments are not.'
-      ]));
-    }
-    grid.appendChild(leftCol);
-
-    // Divider on desktop
-    grid.appendChild(el('div', { style: 'border-left:1px solid #e2e8f0;' }));
-
-    // Right: upfront + annual holding
-    var rightCol = el('div', { style: 'padding:24px;' });
-    var rightTitle = el('h2', {}, ['Upfront & Annual Costs']);
-    var holdTable = el('table', { class: 'result-table' });
-
-    var deposit = params.purchasePrice > 0
-      ? Math.max(0, params.purchasePrice - params.loanAmount)
-      : 0;
-
-    holdTable.appendChild(renderRow('Upfront costs', '', ''));
-    holdTable.appendChild(renderRow('Deposit (price − loan)',
-      deposit > 0 ? fmt(deposit) : '—', 'row-upfront'));
-    holdTable.appendChild(renderRow('Stamp duty (est.)',
-      sd.value !== null ? fmt(sd.value) : 'n/a', 'row-upfront'));
-
-    if (params.isFirstHomeBuyer && sd.fhogAmount && sd.fhogAmount > 0) {
-      holdTable.appendChild(renderRow('First Home Owner Grant',
-        '+' + fmt(sd.fhogAmount), 'row-upfront row-saving'));
-    }
-
-    var totalUpfront = (sd.value !== null && deposit > 0)
-      ? deposit + sd.value - (params.isFirstHomeBuyer && sd.fhogAmount ? sd.fhogAmount : 0)
-      : null;
-    holdTable.appendChild(renderRow('Total upfront (est.)',
-      totalUpfront !== null ? fmt(totalUpfront) : '—',
-      'row-total'));
-
-    holdTable.appendChild(el('tr', { style: 'height:14px' }));
-    holdTable.appendChild(renderRow('Annual holding costs', '', ''));
-    holdTable.appendChild(renderRow('Land tax (est.)',
-      (lt.value !== null && lt.value > 0) ? fmt(lt.value)
-        : (lt.value === 0 ? '$0.00 (below threshold)' : 'n/a'),
-      'row-upfront'));
-    holdTable.appendChild(renderRow(
-      isNeg ? 'Net cash cost' : 'Net cash surplus',
-      (isNeg ? '−' : '+') + fmt(Math.abs(ng.netCashFlow)),
-      isNeg ? 'row-net-neg row-total' : 'row-net-pos row-total'
-    ));
-
-    rightCol.appendChild(rightTitle);
-    rightCol.appendChild(holdTable);
-    grid.appendChild(rightCol);
-
-    panel.appendChild(grid);
-
-    // ---- Bar chart -------------------------------------------
-    var chartSvg = buildBarChart(ng, params.isFirstHomeBuyer);
-    if (chartSvg) {
-      var chartCard = el('div', { class: 'chart-card card' });
-      chartCard.appendChild(el('h2', {}, ['Income vs. Expenses']));
-      chartCard.appendChild(chartSvg);
-      panel.appendChild(chartCard);
-    }
-
-    // ---- Break-even table ------------------------------------
-    panel.appendChild(buildBreakevenTable(params, ng));
-
-    // ---- CGT section -----------------------------------------
-    var cgtCard = buildCgtSection(params);
-    if (cgtCard) panel.appendChild(cgtCard);
-
-    // ---- Rate caveats ----------------------------------------
-    var allAssumptions = [];
-    if (ng.assumptions) ng.assumptions.forEach(function (a) { allAssumptions.push(a); });
-    if (sd.assumptions) sd.assumptions.forEach(function (a) {
-      if (a.indexOf('VERIFY') !== 0) allAssumptions.push(a);
-    });
-    if (lt.assumptions) lt.assumptions.forEach(function (a) {
-      if (a.indexOf('VERIFY') !== 0 && allAssumptions.indexOf(a) === -1) allAssumptions.push(a);
-    });
-
-    var detailsEl = el('details', { class: 'assumptions-toggle' });
-    var sumEl = el('summary', {}, ['Assumptions & limitations (' + allAssumptions.length + ')']);
-    var ul = el('ul', { class: 'assumptions-list' });
-    allAssumptions.forEach(function (a) {
-      ul.appendChild(el('li', {}, [a]));
-    });
-    detailsEl.appendChild(sumEl);
-    detailsEl.appendChild(ul);
-    panel.appendChild(detailsEl);
-
-    // ---- Disclaimer ------------------------------------------
-    panel.appendChild(el('p', { class: 'disclaimer' }, [
-      'This tool provides estimates only and is not financial, tax, or legal advice. ' +
-      'Stamp duty and land tax rates are approximations based on publicly available schedules ' +
-      'and may not reflect recent legislative changes. Always verify figures with the relevant ' +
-      'state revenue office and consult a licensed accountant or financial adviser before making ' +
-      'investment decisions. Rate tables are marked VERIFY where not yet confirmed against ' +
-      'current official sources.'
-    ]));
-
-    // ---- Print button ----------------------------------------
-    var printBtn = el('button', { type: 'button', class: 'btn-print' }, ['Print Summary']);
-    printBtn.addEventListener('click', function () { window.print(); });
-    panel.appendChild(printBtn);
-
-    panel.hidden = false;
-    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  // ---- Sensitivity slider --------------------------------------------
+  // ================================================================
+  // STATE DEFAULTS
+  // ================================================================
+
+  function applyStateDefaults(state) {
+    var d = stateDefaults[state];
+    if (!d) return;
+    var mgmtEl   = $('ape-management-fee');
+    var councilEl = $('ape-council-rates');
+    var insEl     = $('ape-insurance');
+    if (mgmtEl   && !mgmtEl.dataset.userEdited)   { mgmtEl.value = d.managementFee; }
+    if (councilEl && !councilEl.dataset.userEdited) { councilEl.value = d.councilRates.toLocaleString('en-AU'); }
+    if (insEl     && !insEl.dataset.userEdited)     { insEl.value = d.insurance.toLocaleString('en-AU'); }
+  }
+
+  // ================================================================
+  // FHB INFO BOX
+  // ================================================================
+
+  function updateFhbInfoBox(state) {
+    var isFhb = $('ape-fhb') && $('ape-fhb').checked;
+    var box = $('fhb-info-box');
+    if (!box) return;
+    if (!isFhb || !state) { box.hidden = true; return; }
+    var c = fhbConcessions[state];
+    if (!c) { box.hidden = true; return; }
+
+    var lines = [];
+    if (c.grantAmount > 0) {
+      lines.push('<strong>FHOG: ' + fmtMoney(c.grantAmount) + '</strong> (eligibility criteria apply).');
+    }
+    if (c.fullyExemptThreshold !== null) {
+      lines.push('Full stamp duty exemption for prices ≤ ' + fmtMoney(c.fullyExemptThreshold) + '.');
+    }
+    if (c.stampDutyThreshold !== null && c.fullyExemptThreshold !== null) {
+      lines.push('Partial concession up to ' + fmtMoney(c.stampDutyThreshold) + '.');
+    } else if (c.stampDutyThreshold !== null) {
+      lines.push('Stamp duty concession available up to ' + fmtMoney(c.stampDutyThreshold) + '.');
+    }
+    if (lines.length === 0) {
+      lines.push('No specific stamp duty concession in this state, but FHOG may apply.');
+    }
+    lines.push('Always confirm eligibility with your state revenue office.');
+
+    box.innerHTML = lines.join('<br>');
+    box.hidden = false;
+  }
+
+  // ================================================================
+  // RATE SENSITIVITY
+  // ================================================================
 
   function updateSensitivity(params) {
-    var sliderEl = $('ape-rate-slider');
+    var sliderEl  = $('ape-rate-slider');
     var previewEl = $('sensitivity-preview');
     if (!sliderEl || !previewEl) return;
-
-    var baseRate = params.interestRate;
     var sliderRate = parseFloat(sliderEl.value) / 100;
     if (!isFinite(sliderRate)) return;
-
     var altParams = {};
     Object.keys(params).forEach(function (k) { altParams[k] = params[k]; });
     altParams.interestRate = sliderRate;
-
     var altNg = APE_NegativeGearing.calculate(altParams);
-    var rateLabel = (sliderRate * 100).toFixed(1);
-    var cashLabel = altNg.gearingStatus === 'negative'
-      ? '−' + fmt(Math.abs(altNg.netCashFlow)) + '/yr'
-      : '+' + fmt(altNg.netCashFlow) + '/yr';
-    previewEl.textContent = 'At ' + rateLabel + '%: ' + cashLabel + ' cash position';
+    var cashLabel = altNg.netCashFlow < 0
+      ? fmtMoney(altNg.netCashFlow) + '/yr'
+      : '+' + fmtMoney(altNg.netCashFlow) + '/yr';
+    previewEl.textContent = 'At ' + (sliderRate * 100).toFixed(1) + '%: ' + cashLabel;
+
+    // Update line chart for slider (no debounce)
+    if (chartInstances.line) {
+      var proj = buildProjection(sliderRate, 0.03);
+      var ds = chartInstances.line.data.datasets;
+      ds[0].data = proj.beforeTax;
+      ds[1].data = proj.afterTax;
+      chartInstances.line.update('none');
+    }
   }
 
-  // ---- Loan type toggle -----------------------------------------------
+  // ================================================================
+  // 10-YEAR PROJECTION
+  // ================================================================
 
-  function toggleLoanType() {
-    var loanTypeEl = document.querySelector('input[name="loan-type"]:checked');
-    var loanType = loanTypeEl ? loanTypeEl.value : 'io';
-    var piField = $('pi-loan-term-field');
-    var ioHint = $('io-hint');
-    var piHint = $('pi-hint');
-    if (piField) piField.hidden = loanType !== 'pi';
-    if (ioHint) ioHint.hidden = loanType !== 'io';
-    if (piHint) piHint.hidden = loanType !== 'pi';
+  function buildProjection(interestRate, rentGrowthRate) {
+    var loanAmount   = getNum('ape-loan-amount');
+    var weeklyRent   = getNum('ape-weekly-rent');
+    var vacancyWks   = getNum('ape-vacancy') || 0;
+    var mgmtRate     = getNum('ape-management-fee') / 100;
+    var otherExp     = getNum('ape-council-rates') + getNum('ape-insurance') + getNum('ape-maintenance');
+    var depreciation = getNum('ape-depreciation');
+    var taxRate      = parseFloat(getStr('ape-marginal-tax-rate')) || 0;
+    var annualInterest = loanAmount * interestRate;
+    var beforeTax = [], afterTax = [];
+    for (var yr = 0; yr < 10; yr++) {
+      var rent = weeklyRent * (52 - vacancyWks) * Math.pow(1 + rentGrowthRate, yr);
+      var mgmt = rent * mgmtRate;
+      var totalCosts = annualInterest + mgmt + otherExp + depreciation;
+      var netPos = rent - totalCosts;
+      var taxBenefit = netPos < 0 ? Math.abs(netPos) * taxRate : 0;
+      beforeTax.push(Math.round(netPos));
+      afterTax.push(Math.round(netPos + taxBenefit));
+    }
+    return { beforeTax: beforeTax, afterTax: afterTax };
   }
 
-  // ---- Debounced recalc -----------------------------------------------
+  function estimateBreakevenYear(params) {
+    var weeklyRent   = params.weeklyRent;
+    var vacancyWks   = params.vacancyWeeks || 0;
+    var mgmtRate     = params.managementFeeRate;
+    var otherExp     = params.councilRates + params.insurance + params.maintenance;
+    var depreciation = params.depreciation;
+    var annualInterest = params.loanAmount * params.interestRate;
+    var rentGrowth = 0.03;
+    for (var yr = 1; yr <= 20; yr++) {
+      var rent = weeklyRent * (52 - vacancyWks) * Math.pow(1 + rentGrowth, yr - 1);
+      var mgmt = rent * mgmtRate;
+      var totalCosts = annualInterest + mgmt + otherExp + depreciation;
+      if (rent >= totalCosts) return yr;
+    }
+    return null;
+  }
+
+  // ================================================================
+  // CGT CALCULATION
+  // ================================================================
+
+  function calcCgt(params) {
+    var price       = params.purchasePrice;
+    var growthRate  = params.cgtGrowthRate || 0.05;
+    var years       = params.cgtYears || 10;
+    var saleCostPct = params.cgtSaleCostsPct || 0.025;
+    var taxRate     = params.marginalTaxRate || 0;
+    var salePrice       = price * Math.pow(1 + growthRate, years);
+    var saleCosts       = salePrice * saleCostPct;
+    var netProceeds     = salePrice - saleCosts;
+    var capitalGain     = netProceeds - price;
+    var taxableGain     = capitalGain > 0 ? capitalGain * 0.5 : capitalGain; // 50% discount (held > 12mo assumed)
+    var cgtPayable      = taxableGain > 0 ? taxableGain * taxRate : 0;
+    var netAfterTax     = capitalGain - cgtPayable;
+    return {
+      salePrice: salePrice, saleCosts: saleCosts, netProceeds: netProceeds,
+      capitalGain: capitalGain, taxableGain: taxableGain,
+      cgtPayable: cgtPayable, netAfterTax: netAfterTax, years: years
+    };
+  }
+
+  function renderCgtResults(params) {
+    var resultsEl = $('cgtResults');
+    if (!resultsEl) return;
+    if (!params || !params.purchasePrice) {
+      resultsEl.innerHTML = '<div class="empty-state">Calculate first to see CGT projection.</div>';
+      return;
+    }
+    var cgt = calcCgt(params);
+    var rows = [
+      ['Projected sale price', fmtMoney(cgt.salePrice)],
+      ['Sale costs (' + (params.cgtSaleCostsPct * 100).toFixed(1) + '%)', '−' + fmtMoney(cgt.saleCosts)],
+      ['Net proceeds', fmtMoney(cgt.netProceeds)],
+      ['Cost base', '−' + fmtMoney(params.purchasePrice)],
+      ['Capital gain', fmtMoney(cgt.capitalGain)],
+      ['50% CGT discount applied', 'Yes (held > 12 months)'],
+      ['Taxable gain', fmtMoney(cgt.taxableGain)],
+      ['CGT payable (' + (params.marginalTaxRate * 100).toFixed(1) + '%)', '−' + fmtMoney(cgt.cgtPayable)],
+      ['Net after-tax profit', fmtMoney(cgt.netAfterTax)]
+    ];
+    var html = '';
+    rows.forEach(function (r, i) {
+      var isLast = i === rows.length - 1;
+      html += '<div class="summary-row' + (isLast ? ' summary-row-total' : '') + '">' +
+              '<span class="label">' + r[0] + '</span>' +
+              '<span class="value">' + r[1] + '</span></div>';
+    });
+    resultsEl.innerHTML = html;
+  }
+
+  // ================================================================
+  // CHART INSTANCES
+  // ================================================================
+
+  var chartInstances = { donut: null, bar: null, line: null };
+
+  function getOrCreateDonut(ng) {
+    var ctx = $('donutChart').getContext('2d');
+    var segments = [
+      { label: 'Interest',    value: ng.interestCost },
+      { label: 'Mgmt fees',  value: ng.managementFees },
+      { label: 'Council',    value: ng.councilRates },
+      { label: 'Insurance',  value: ng.insurance },
+      { label: 'Maintenance',value: ng.maintenance },
+      { label: 'Depreciation', value: ng.depreciation }
+    ].filter(function (s) { return s.value > 0; });
+
+    var labels = segments.map(function (s) { return s.label; });
+    var data   = segments.map(function (s) { return s.value; });
+    var colors = DONUT_COLORS.slice(0, segments.length);
+    var textColor = chartTextColor();
+
+    if (chartInstances.donut) {
+      var chart = chartInstances.donut;
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = data;
+      chart.data.datasets[0].backgroundColor = colors;
+      chart.update('none');
+      return chart;
+    }
+
+    chartInstances.donut = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: colors,
+          borderWidth: 2,
+          borderColor: isDark() ? '#161b22' : '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              font: { size: 9, family: 'Inter, system-ui, sans-serif' },
+              color: textColor,
+              boxWidth: 10,
+              padding: 6
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                return ' ' + ctx.label + ': ' + fmtMoney(ctx.raw);
+              }
+            }
+          }
+        }
+      }
+    });
+    return chartInstances.donut;
+  }
+
+  function getOrCreateBar(ng) {
+    var ctx = $('barChart').getContext('2d');
+    var textColor = chartTextColor();
+    var gridColor = chartGridColor();
+
+    var barData = [
+      { label: 'Gross rent',  value: ng.annualRent,     color: '#0f9e76' },
+      { label: 'Interest',    value: -ng.interestCost,  color: '#1e5fad' },
+      { label: 'Other costs', value: -(ng.managementFees + ng.otherExpenses + ng.depreciation), color: '#d97706' },
+      { label: 'Tax benefit', value: ng.taxBenefit,     color: '#10b981' },
+      { label: 'Net',         value: ng.netCashFlow,    color: ng.netCashFlow >= 0 ? '#10b981' : '#ef4444' }
+    ];
+
+    var labels = barData.map(function (d) { return d.label; });
+    var values = barData.map(function (d) { return d.value; });
+    var bkgs   = barData.map(function (d) { return d.color; });
+
+    if (chartInstances.bar) {
+      var chart = chartInstances.bar;
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = values;
+      chart.data.datasets[0].backgroundColor = bkgs;
+      chart.update('none');
+      return chart;
+    }
+
+    chartInstances.bar = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: values,
+          backgroundColor: bkgs,
+          borderRadius: 4,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) { return ' ' + fmtMoney(ctx.raw); }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { font: { size: 9, family: 'Inter, system-ui, sans-serif' }, color: textColor },
+            grid: { display: false }
+          },
+          y: {
+            ticks: {
+              font: { size: 9, family: 'Inter, system-ui, sans-serif' },
+              color: textColor,
+              callback: function (v) { return fmtMoneyShort(v); }
+            },
+            grid: { color: gridColor }
+          }
+        }
+      }
+    });
+    return chartInstances.bar;
+  }
+
+  function getOrCreateLine(projection) {
+    var ctx = $('lineChart').getContext('2d');
+    var textColor = chartTextColor();
+    var gridColor = chartGridColor();
+    var labels = ['Yr 1','Yr 2','Yr 3','Yr 4','Yr 5','Yr 6','Yr 7','Yr 8','Yr 9','Yr 10'];
+
+    if (chartInstances.line) {
+      var chart = chartInstances.line;
+      chart.data.datasets[0].data = projection.beforeTax;
+      chart.data.datasets[1].data = projection.afterTax;
+      chart.update('none');
+      return chart;
+    }
+
+    chartInstances.line = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Before tax',
+            data: projection.beforeTax,
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239,68,68,0.06)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+            borderWidth: 2
+          },
+          {
+            label: 'After tax',
+            data: projection.afterTax,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16,185,129,0.08)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+            borderWidth: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: {
+              font: { size: 9, family: 'Inter, system-ui, sans-serif' },
+              color: textColor,
+              boxWidth: 12,
+              padding: 10
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) { return ' ' + ctx.dataset.label + ': ' + fmtMoney(ctx.raw); }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { font: { size: 9, family: 'Inter, system-ui, sans-serif' }, color: textColor },
+            grid: { display: false }
+          },
+          y: {
+            ticks: {
+              font: { size: 9, family: 'Inter, system-ui, sans-serif' },
+              color: textColor,
+              callback: function (v) { return fmtMoneyShort(v); }
+            },
+            grid: { color: gridColor }
+          }
+        }
+      }
+    });
+    return chartInstances.line;
+  }
+
+  // ================================================================
+  // RENDER DASHBOARD
+  // ================================================================
+
+  function renderStampDuty(sd, params) {
+    var el = $('stampRows');
+    if (!el) return;
+    if (!sd || sd.value === null) {
+      el.innerHTML = '<div class="empty-state">Select a state to calculate</div>';
+      return;
+    }
+    var effectiveRate = params.purchasePrice > 0 ? (sd.value / params.purchasePrice) * 100 : 0;
+    var html =
+      summaryRow('Purchase price', fmtMoney(params.purchasePrice)) +
+      summaryRow('Stamp duty', fmtMoney(sd.value)) +
+      summaryRow('Effective rate', effectiveRate.toFixed(2) + '%');
+    if (params.isFirstHomeBuyer && sd.fhogAmount > 0) {
+      html += summaryRow('FHOG', fmtMoney(sd.fhogAmount));
+    }
+    el.innerHTML = html;
+  }
+
+  function renderLandTax(lt, params) {
+    var el = $('ltRows');
+    if (!el) return;
+    if (!lt || lt.value === null) {
+      el.innerHTML = '<div class="empty-state">Enter land value to calculate</div>';
+      return;
+    }
+    var isNT = params.state === 'NT';
+    var statusBadge = '';
+    if (isNT) {
+      statusBadge = '<span class="badge-green">None — NT</span>';
+    } else if (lt.value === 0) {
+      statusBadge = '<span class="badge-green">Below threshold</span>';
+    } else {
+      statusBadge = '<span class="badge-amber">Liable</span>';
+    }
+    var taxLabel = isNT ? 'No land tax' : (lt.value === 0 ? 'Below threshold' : fmtMoney(lt.value));
+    var html =
+      summaryRow('Land value', fmtMoney(params.landValue)) +
+      summaryRow('Annual land tax', taxLabel) +
+      '<div class="summary-row"><span class="label">Status</span><span class="value">' + statusBadge + '</span></div>';
+    el.innerHTML = html;
+  }
+
+  function summaryRow(label, value) {
+    return '<div class="summary-row"><span class="label">' + label + '</span><span class="value">' + value + '</span></div>';
+  }
+
+  function renderMetrics(ng, params, sd) {
+    // Weekly cost
+    var weeklyEl = $('m-weekly');
+    if (weeklyEl) {
+      if (ng.gearingStatus === 'negative') {
+        weeklyEl.textContent = fmtMoney(-ng.weeklyNetCost) + '/wk';
+        weeklyEl.className = 'metric-value val-negative';
+      } else {
+        weeklyEl.textContent = '+' + fmtMoney(Math.abs(ng.weeklyNetCost)) + '/wk';
+        weeklyEl.className = 'metric-value val-positive';
+      }
+    }
+
+    // Tax benefit
+    var taxEl = $('m-tax');
+    if (taxEl) {
+      if (ng.taxBenefit > 0) {
+        taxEl.textContent = fmtMoney(ng.taxBenefit);
+        taxEl.className = 'metric-value val-positive';
+      } else {
+        taxEl.textContent = '$0';
+        taxEl.className = 'metric-value val-neutral';
+      }
+    }
+
+    // Rental yield
+    var yieldEl = $('m-yield');
+    if (yieldEl) {
+      if (params.purchasePrice > 0) {
+        var grossYield = (ng.annualRent / params.purchasePrice) * 100;
+        yieldEl.textContent = grossYield.toFixed(2) + '%';
+        yieldEl.className = 'metric-value ' + (grossYield >= 5 ? 'val-positive' : grossYield >= 3.5 ? 'val-warning' : 'val-negative');
+      } else {
+        yieldEl.textContent = '—';
+        yieldEl.className = 'metric-value val-neutral';
+      }
+    }
+
+    // Break-even
+    var beEl = $('m-breakeven');
+    if (beEl) {
+      if (ng.gearingStatus === 'positive') {
+        beEl.textContent = 'Now';
+        beEl.className = 'metric-value val-positive';
+      } else {
+        var beYr = estimateBreakevenYear(params);
+        if (beYr !== null) {
+          beEl.textContent = 'Yr ' + beYr;
+          beEl.className = 'metric-value ' + (beYr <= 5 ? 'val-positive' : beYr <= 10 ? 'val-warning' : 'val-negative');
+        } else {
+          beEl.textContent = '>20 yrs';
+          beEl.className = 'metric-value val-negative';
+        }
+      }
+    }
+  }
+
+  function renderStatusBanner(ng) {
+    var banner = $('statusBanner');
+    var labelEl = $('statusLabel');
+    var detailEl = $('statusDetail');
+    if (!banner || !labelEl) return;
+
+    if (ng.gearingStatus === 'negative') {
+      banner.className = 'status-banner negative';
+      labelEl.textContent = 'Negatively Geared';
+      if (detailEl) detailEl.textContent = fmtMoney(ng.netCashFlow) + '/yr after-tax cost';
+    } else if (ng.gearingStatus === 'positive') {
+      banner.className = 'status-banner positive';
+      labelEl.textContent = 'Positively Geared';
+      if (detailEl) detailEl.textContent = '+' + fmtMoney(ng.netCashFlow) + '/yr after-tax income';
+    } else {
+      banner.className = 'status-banner neutral';
+      labelEl.textContent = 'Neutrally Geared';
+      if (detailEl) detailEl.textContent = 'Rent covers costs exactly';
+    }
+  }
+
+  function renderDashboard(params, ng, sd, lt) {
+    // Status banner
+    renderStatusBanner(ng);
+
+    // Metrics
+    renderMetrics(ng, params, sd);
+
+    // Donut chart
+    var donutTotal = $('donutTotal');
+    getOrCreateDonut(ng);
+    if (donutTotal) {
+      donutTotal.textContent = 'Total deductions: ' + fmtMoney(ng.totalDeductions) + '/yr';
+    }
+
+    // Bar chart
+    getOrCreateBar(ng);
+
+    // Line chart projection
+    var projection = buildProjection(params.interestRate, 0.03);
+    getOrCreateLine(projection);
+
+    // Stamp duty panel
+    renderStampDuty(sd, params);
+
+    // Land tax panel
+    renderLandTax(lt, params);
+
+    // CGT (if body is visible)
+    var cgtBody = $('cgtBody');
+    if (cgtBody && !cgtBody.hidden) {
+      renderCgtResults(params);
+    }
+
+    // Rate sensitivity slider
+    var sensWrap = $('sensitivity-wrap');
+    if (sensWrap) {
+      sensWrap.hidden = false;
+      var slider = $('ape-rate-slider');
+      if (slider) {
+        var rate = params.interestRate * 100;
+        slider.min  = Math.max(0.5, rate - 2).toFixed(1);
+        slider.max  = Math.min(15, rate + 3).toFixed(1);
+        slider.value = rate.toFixed(1);
+        updateSensitivity(params);
+      }
+    }
+  }
+
+  // ================================================================
+  // DEBOUNCED RECALC
+  // ================================================================
 
   var hasCalculatedOnce = false;
   var debounceTimer = null;
+  var lastParams = null;
 
-  function triggerDebounceRecalc() {
+  function triggerDebounce() {
     if (!hasCalculatedOnce) return;
-    var updEl = $('updating-indicator');
-    if (updEl) updEl.hidden = false;
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(function () {
-      if (updEl) updEl.hidden = true;
       runCalculation();
-    }, 300);
+    }, 320);
   }
 
   function runCalculation() {
     if (!validateForm()) return;
     var params = readParams();
+    lastParams = params;
     var ng = APE_NegativeGearing.calculate(params);
+
+    // Patch ng with individual expense fields for donut chart
+    ng = Object.assign({}, ng, {
+      councilRates: params.councilRates,
+      insurance:    params.insurance,
+      maintenance:  params.maintenance
+    });
+
     var sd = APE_StampDuty.calculate(params.state, params.purchasePrice, params.isFirstHomeBuyer);
     var lt = APE_LandTax.calculate(params.state, params.landValue);
-    renderResults(params, ng, sd, lt);
-    encodeToUrl(params);
-    // Show/update sensitivity slider
-    var wrapEl = $('sensitivity-wrap');
-    if (wrapEl) {
-      wrapEl.hidden = false;
-      var sliderEl = $('ape-rate-slider');
-      if (sliderEl) {
-        var rate = params.interestRate * 100;
-        sliderEl.min = Math.max(0.5, rate - 2).toFixed(1);
-        sliderEl.max = Math.min(15, rate + 3).toFixed(1);
-        sliderEl.value = rate.toFixed(1);
-        updateSensitivity(params);
-      }
-    }
+    renderDashboard(params, ng, sd, lt);
+    encodeToUrl();
     hasCalculatedOnce = true;
   }
 
-  // ---- Init ----------------------------------------------------------
+  // ================================================================
+  // CGT COLLAPSIBLE
+  // ================================================================
 
-  window.addEventListener('DOMContentLoaded', function () {
+  function initCgtCollapsible() {
+    var toggle   = $('cgtToggle');
+    var body     = $('cgtBody');
+    var chevron  = $('cgtChevron');
+    if (!toggle || !body) return;
 
-    // Currency input formatting
-    currencyInputIds.forEach(function (id) {
-      var inputEl = $(id);
-      if (!inputEl) return;
-      inputEl.addEventListener('blur', function () { formatCurrencyInput(inputEl); });
+    toggle.addEventListener('click', function () {
+      var isOpen = !body.hidden;
+      body.hidden = isOpen;
+      if (chevron) chevron.classList.toggle('open', !isOpen);
+      toggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+      if (!isOpen && lastParams) renderCgtResults(lastParams);
     });
 
-    // Mark user-edited fields
-    ['ape-management-fee', 'ape-council-rates', 'ape-insurance', 'ape-maintenance', 'ape-depreciation'].forEach(function (id) {
-      var e = $(id);
-      if (e) e.addEventListener('input', function () { e.dataset.userEdited = '1'; });
-    });
-
-    // LVR live update
-    $('ape-purchase-price').addEventListener('input', updateLvr);
-    $('ape-loan-amount').addEventListener('input', updateLvr);
-
-    // Land value auto-hint from purchase price
-    $('ape-purchase-price').addEventListener('input', function () {
-      var lv = $('ape-land-value');
-      if (!lv.dataset.userEdited) {
-        var price = numVal('ape-purchase-price');
-        if (price > 0) lv.value = fmtNum(Math.round(price * 0.35));
-        else lv.value = '';
+    // CGT inputs trigger re-render
+    ['cgt-growth', 'cgt-years', 'cgt-sale-costs'].forEach(function (id) {
+      var el = $(id);
+      if (el) {
+        el.addEventListener('input', function () {
+          if (!body.hidden && lastParams) renderCgtResults(lastParams);
+          triggerDebounce();
+        });
       }
     });
-    $('ape-land-value').addEventListener('input', function () {
-      $('ape-land-value').dataset.userEdited = '1';
-    });
+  }
 
-    // State change: update defaults and FHB box
-    $('ape-state').addEventListener('change', function () {
-      var state = strVal('ape-state');
-      updateStateDefaults(state);
-      updateFhbInfoBox(state);
-      validateField('ape-state');
-      triggerDebounceRecalc();
-    });
+  // ================================================================
+  // SHARE & PRINT
+  // ================================================================
 
-    // FHB checkbox
-    $('ape-fhb').addEventListener('change', function () {
-      updateFhbInfoBox(strVal('ape-state'));
-      triggerDebounceRecalc();
-    });
+  function initHeaderButtons() {
+    var shareBtn = $('shareBtn');
+    var printBtn = $('printBtn');
 
-    // Loan type toggle
-    document.querySelectorAll('input[name="loan-type"]').forEach(function (radio) {
-      radio.addEventListener('change', function () {
-        toggleLoanType();
-        triggerDebounceRecalc();
-      });
-    });
-    toggleLoanType();
-
-    // Per-field validation on blur + debounce recalc on input
-    Object.keys(validationRules).forEach(function (id) {
-      var inputEl = $(id);
-      if (!inputEl) return;
-      inputEl.addEventListener('blur', function () { validateField(id); });
-      var eventType = inputEl.tagName === 'SELECT' ? 'change' : 'input';
-      inputEl.addEventListener(eventType, function () {
-        clearError(id);
-        triggerDebounceRecalc();
-      });
-    });
-
-    // Sensitivity slider
-    var sliderEl = $('ape-rate-slider');
-    if (sliderEl) {
-      sliderEl.addEventListener('input', function () {
-        var params = readParams();
-        updateSensitivity(params);
+    if (shareBtn) {
+      shareBtn.addEventListener('click', function () {
+        encodeToUrl();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(window.location.href).then(function () {
+            shareBtn.textContent = 'Copied!';
+            setTimeout(function () { shareBtn.textContent = 'Share'; }, 1800);
+          });
+        } else {
+          shareBtn.textContent = 'Copied!';
+          setTimeout(function () { shareBtn.textContent = 'Share'; }, 1800);
+        }
       });
     }
 
-    // CGT section toggle
-    var cgtSection = $('cgt-section');
-    if (cgtSection) {
-      cgtSection.addEventListener('toggle', function () {
-        triggerDebounceRecalc();
+    if (printBtn) {
+      printBtn.addEventListener('click', function () { window.print(); });
+    }
+  }
+
+  // ================================================================
+  // INIT
+  // ================================================================
+
+  window.addEventListener('DOMContentLoaded', function () {
+
+    // Currency formatting on blur
+    currencyInputIds.forEach(function (id) {
+      var el = $(id);
+      if (el) el.addEventListener('blur', function () { formatCurrencyInput(el); });
+    });
+
+    // Mark user-edited fields so state change doesn't overwrite
+    ['ape-management-fee', 'ape-council-rates', 'ape-insurance', 'ape-maintenance', 'ape-depreciation'].forEach(function (id) {
+      var el = $(id);
+      if (el) el.addEventListener('input', function () { el.dataset.userEdited = '1'; });
+    });
+
+    // LVR
+    var ppEl = $('ape-purchase-price');
+    var laEl = $('ape-loan-amount');
+    if (ppEl) ppEl.addEventListener('input', updateLvr);
+    if (laEl) laEl.addEventListener('input', updateLvr);
+
+    // Purchase price → auto land value
+    if (ppEl) {
+      ppEl.addEventListener('input', function () {
+        var lvEl = $('ape-land-value');
+        if (lvEl && !lvEl.dataset.userEdited) {
+          var price = getNum('ape-purchase-price');
+          lvEl.value = price > 0 ? Math.round(price * 0.35).toLocaleString('en-AU') : '';
+        }
+      });
+    }
+
+    var lvEl = $('ape-land-value');
+    if (lvEl) lvEl.addEventListener('input', function () { lvEl.dataset.userEdited = '1'; });
+
+    // State change
+    var stateEl = $('ape-state');
+    if (stateEl) {
+      stateEl.addEventListener('change', function () {
+        var state = stateEl.value;
+        applyStateDefaults(state);
+        updateFhbInfoBox(state);
+        validateField('ape-state');
+        triggerDebounce();
+      });
+    }
+
+    // FHB checkbox
+    var fhbEl = $('ape-fhb');
+    if (fhbEl) {
+      fhbEl.addEventListener('change', function () {
+        updateFhbInfoBox(getStr('ape-state'));
+        triggerDebounce();
+      });
+    }
+
+    // Loan type toggle buttons
+    var btnIo = $('btn-io');
+    var btnPi = $('btn-pi');
+    if (btnIo) {
+      btnIo.addEventListener('click', function () {
+        setLoanType('io');
+        triggerDebounce();
+      });
+    }
+    if (btnPi) {
+      btnPi.addEventListener('click', function () {
+        setLoanType('pi');
+        triggerDebounce();
+      });
+    }
+
+    // Per-field validation + debounce on all input fields
+    Object.keys(validationRules).forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.addEventListener('blur', function () { validateField(id); });
+      var evt = el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(evt, function () { clearError(id); triggerDebounce(); });
+    });
+
+    // Additional inputs that should trigger recalc
+    ['ape-vacancy', 'ape-loan-term', 'ape-council-rates', 'ape-insurance',
+     'ape-maintenance', 'ape-depreciation', 'ape-marginal-tax-rate'].forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      var evt = el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(evt, triggerDebounce);
+    });
+
+    // Rate sensitivity slider (no debounce — instant)
+    var sliderEl = $('ape-rate-slider');
+    if (sliderEl) {
+      sliderEl.addEventListener('input', function () {
+        if (lastParams) updateSensitivity(lastParams);
       });
     }
 
     // Form submit
-    $('estimator-form').addEventListener('submit', function (e) {
-      e.preventDefault();
-      if (!validateForm()) return;
-      hasCalculatedOnce = true;
-      runCalculation();
-      // Show estimate notice
-      var noticeEl = $('results-estimate-notice');
-      if (noticeEl) noticeEl.hidden = false;
-    });
+    var form = $('estimator-form');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!validateForm()) return;
+        hasCalculatedOnce = true;
+        runCalculation();
+      });
+    }
 
-    // Load from URL if params present
+    // CGT collapsible
+    initCgtCollapsible();
+
+    // Header buttons
+    initHeaderButtons();
+
+    // Load from URL
     if (loadFromUrl()) {
-      var state = strVal('ape-state');
+      var state = getStr('ape-state');
       if (state) {
-        updateStateDefaults(state);
+        applyStateDefaults(state);
         updateFhbInfoBox(state);
       }
       updateLvr();
       if (validateForm()) {
         hasCalculatedOnce = true;
         runCalculation();
-        var noticeEl = $('results-estimate-notice');
-        if (noticeEl) noticeEl.hidden = false;
       }
     }
 

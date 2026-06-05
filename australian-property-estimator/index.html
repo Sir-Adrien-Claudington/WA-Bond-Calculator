@@ -5,42 +5,62 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Australian Property Investment Estimator — Negative Gearing, Stamp Duty &amp; Land Tax</title>
   <meta name="description" content="Estimate stamp duty, annual land tax, and negative gearing benefits for investment properties in any Australian state or territory.">
+  <!-- CSP meta — 'unsafe-inline' in style-src here only (Google Fonts injects inline styles). nginx CSP takes precedence for real enforcement. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; connect-src 'none'; form-action 'self'; base-uri 'self'; frame-ancestors 'none'">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Stylesheet -->
   <link rel="stylesheet" href="styles.css">
+  <!-- Chart.js 4.4.1 with SRI -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
+          integrity="sha512-ZwR1/gSZM3ai6vCdI+LVF1zSq/5HznD3oD+sCoJrzXJ+yKwtkiQMWhiTxed7pOpFGEv73w4R0X5RGOwBKeRw=="
+          crossorigin="anonymous"></script>
 </head>
 <body>
 
-  <!-- ===== HEADER ===== -->
-  <header class="site-header">
-    <div class="container">
-      <h1>Australian Property Investment Estimator</h1>
-      <p>Estimate stamp duty, land tax, and negative gearing benefits for any Australian state or territory.</p>
+<div class="app-shell">
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="2" y="10" width="4" height="9" rx="1" fill="#7dd3fc"/>
+          <rect x="8" y="6" width="4" height="13" rx="1" fill="#38bdf8"/>
+          <rect x="14" y="2" width="4" height="17" rx="1" fill="#0ea5e9"/>
+        </svg>
+        <span class="wordmark">newgearing.xyz</span>
+      </div>
+      <div class="header-actions">
+        <span class="tagline">Australian Property Investment Estimator</span>
+        <button class="hdr-btn" id="shareBtn" type="button">Share</button>
+        <button class="hdr-btn" id="printBtn" type="button">Export PDF</button>
+      </div>
     </div>
   </header>
 
-  <!-- ===== MAIN ===== -->
-  <main class="container" style="padding-bottom:40px;">
-
-    <!-- ----- FORM ----- -->
+  <!-- ===================== FORM PANEL ===================== -->
+  <aside class="form-panel">
     <form id="estimator-form" novalidate>
 
       <!-- Property Details -->
-      <div class="card">
-        <h2>Property Details</h2>
+      <div class="form-section">
+        <div class="section-title">Property Details</div>
 
-        <!-- First Home Buyer toggle -->
-        <div class="field field-checkbox">
-          <label class="checkbox-label">
+        <div class="field-group fhb-row">
+          <label class="fhb-label">
             <input type="checkbox" id="ape-fhb" name="fhb">
-            <span>First Home Buyer</span>
+            First Home Buyer
           </label>
-          <p class="field-hint">Apply state FHB stamp duty concessions and show First Home Owner Grant (FHOG) amount. Eligibility criteria apply.</p>
         </div>
         <div id="fhb-info-box" class="fhb-info-box" hidden></div>
 
-        <div class="field">
-          <label for="ape-state">State / Territory</label>
-          <select id="ape-state" name="state" required>
-            <option value="">Select a state or territory…</option>
+        <div class="field-group">
+          <label class="field-label" for="ape-state">State / Territory</label>
+          <select class="field-input field-select" id="ape-state" name="state" required>
+            <option value="">Select a state…</option>
             <option value="NSW">New South Wales (NSW)</option>
             <option value="VIC">Victoria (VIC)</option>
             <option value="QLD">Queensland (QLD)</option>
@@ -53,274 +73,300 @@
           <p class="field-error" id="err-state" hidden></p>
         </div>
 
-        <div class="fields-2col">
-          <div class="field">
-            <label for="ape-purchase-price">Purchase Price</label>
+        <div class="field-row-2">
+          <div class="field-group">
+            <label class="field-label" for="ape-purchase-price">Purchase Price ($)</label>
             <div class="input-wrap">
-              <span class="prefix">$</span>
-              <input type="text" id="ape-purchase-price" name="purchase-price"
-                     inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false"
-                     placeholder="e.g. 750,000">
+              <span class="input-prefix">$</span>
+              <input class="field-input has-prefix" type="text" id="ape-purchase-price"
+                     inputmode="decimal" autocomplete="off" placeholder="750,000">
             </div>
             <p class="field-error" id="err-purchase-price" hidden></p>
           </div>
-          <div class="field">
-            <label for="ape-land-value">
-              Land Value (unimproved)
-            </label>
+          <div class="field-group">
+            <label class="field-label" for="ape-land-value">Land Value ($)</label>
             <div class="input-wrap">
-              <span class="prefix">$</span>
-              <input type="text" id="ape-land-value" name="land-value"
-                     inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false"
-                     placeholder="Auto">
+              <span class="input-prefix">$</span>
+              <input class="field-input has-prefix" type="text" id="ape-land-value"
+                     inputmode="decimal" autocomplete="off" placeholder="Auto">
             </div>
-            <p class="field-hint" id="land-value-hint">Used for land tax. Varies widely by state and location — inner-city land can be 60–80% of purchase price; regional properties are often 20–30%. The most accurate source is your council rates notice or a registered valuer.</p>
             <p class="field-error" id="err-land-value" hidden></p>
           </div>
         </div>
       </div>
 
       <!-- Loan -->
-      <div class="card">
-        <h2>Loan</h2>
+      <div class="form-section">
+        <div class="section-title">Loan</div>
 
-        <!-- P&I toggle -->
-        <div class="field">
-          <label>Repayment Type</label>
-          <div class="radio-group">
-            <label class="radio-label">
-              <input type="radio" name="loan-type" id="ape-loan-type-io" value="io" checked>
-              <span>Interest Only</span>
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="loan-type" id="ape-loan-type-pi" value="pi">
-              <span>Principal &amp; Interest</span>
-            </label>
+        <div class="field-group">
+          <label class="field-label">Repayment Type</label>
+          <div class="toggle-group">
+            <button type="button" class="toggle-btn active" id="btn-io" data-value="io">Interest Only</button>
+            <button type="button" class="toggle-btn" id="btn-pi" data-value="pi">Principal &amp; Interest</button>
           </div>
-        </div>
-        <div id="pi-loan-term-field" class="field" hidden>
-          <label for="ape-loan-term">Loan Term (years)</label>
-          <div class="input-wrap has-suffix">
-            <input type="text" id="ape-loan-term" name="loan-term"
-                   inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false"
-                   placeholder="30" value="30">
-            <span class="suffix">yrs</span>
-          </div>
+          <input type="hidden" id="ape-loan-type" value="io">
         </div>
 
-        <div class="fields-2col">
-          <div class="field">
-            <label for="ape-loan-amount">
-              Loan Amount
-              <span id="lvr-badge" class="lvr-badge" hidden></span>
+        <div class="field-row-2">
+          <div class="field-group">
+            <label class="field-label" for="ape-loan-amount">
+              Loan Amount ($)
+              <span class="lvr-badge" id="lvr-badge" hidden></span>
             </label>
             <div class="input-wrap">
-              <span class="prefix">$</span>
-              <input type="text" id="ape-loan-amount" name="loan-amount"
-                     inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false"
-                     placeholder="e.g. 600,000">
+              <span class="input-prefix">$</span>
+              <input class="field-input has-prefix" type="text" id="ape-loan-amount"
+                     inputmode="decimal" autocomplete="off" placeholder="600,000">
             </div>
             <p class="field-error" id="err-loan-amount" hidden></p>
           </div>
-          <div class="field">
-            <label for="ape-interest-rate">Interest Rate (% p.a.)</label>
-            <div class="input-wrap has-suffix">
-              <input type="text" id="ape-interest-rate" name="interest-rate"
-                     inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false"
-                     placeholder="e.g. 6.50" value="6.50">
-              <span class="suffix">%</span>
+          <div class="field-group">
+            <label class="field-label" for="ape-interest-rate">Interest Rate (%)</label>
+            <div class="input-wrap">
+              <input class="field-input has-suffix" type="text" id="ape-interest-rate"
+                     inputmode="decimal" autocomplete="off" placeholder="6.50" value="6.50">
+              <span class="input-suffix">%</span>
             </div>
-            <p class="field-hint" id="io-hint">Interest-only basis. Principal repayments are not tax-deductible.</p>
-            <p class="field-hint" id="pi-hint" hidden>P&amp;I basis. Only the interest component is tax-deductible.</p>
             <p class="field-error" id="err-interest-rate" hidden></p>
           </div>
         </div>
 
-        <!-- Sensitivity slider -->
-        <div class="sensitivity-wrap" id="sensitivity-wrap" hidden>
-          <label for="ape-rate-slider" class="sensitivity-label">Rate sensitivity</label>
+        <div class="field-group" id="pi-loan-term-field" hidden>
+          <label class="field-label" for="ape-loan-term">Loan Term (years)</label>
+          <div class="input-wrap">
+            <input class="field-input has-suffix" type="text" id="ape-loan-term"
+                   inputmode="decimal" autocomplete="off" placeholder="30" value="30">
+            <span class="input-suffix">yrs</span>
+          </div>
+        </div>
+
+        <!-- Rate sensitivity -->
+        <div class="sensitivity-block" id="sensitivity-wrap" hidden>
+          <label class="field-label sensitivity-label" for="ape-rate-slider">Rate sensitivity</label>
           <div class="sensitivity-row">
             <input type="range" id="ape-rate-slider" class="rate-slider"
                    min="0.5" max="15" step="0.1" value="6.5">
-            <span id="sensitivity-preview" class="sensitivity-preview"></span>
+            <span class="sensitivity-preview" id="sensitivity-preview"></span>
           </div>
         </div>
       </div>
 
       <!-- Rental Income -->
-      <div class="card">
-        <h2>Rental Income</h2>
-        <div class="fields-2col">
-          <div class="field">
-            <label for="ape-weekly-rent">Weekly Rent <small>(per week)</small></label>
+      <div class="form-section">
+        <div class="section-title">Rental Income</div>
+        <div class="field-row-2">
+          <div class="field-group">
+            <label class="field-label" for="ape-weekly-rent">Weekly Rent ($)</label>
             <div class="input-wrap">
-              <span class="prefix">$</span>
-              <input type="text" id="ape-weekly-rent" name="weekly-rent"
-                     inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false"
-                     placeholder="e.g. 650">
+              <span class="input-prefix">$</span>
+              <input class="field-input has-prefix" type="text" id="ape-weekly-rent"
+                     inputmode="decimal" autocomplete="off" placeholder="650">
             </div>
             <p class="field-error" id="err-weekly-rent" hidden></p>
           </div>
-          <div class="field">
-            <label for="ape-management-fee">Property Management Fee</label>
-            <div class="input-wrap has-suffix">
-              <input type="text" id="ape-management-fee" name="management-fee"
-                     inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false"
-                     placeholder="e.g. 9" value="8.5">
-              <span class="suffix">%</span>
+          <div class="field-group">
+            <label class="field-label" for="ape-vacancy">Vacancy (wks/yr)</label>
+            <div class="input-wrap">
+              <input class="field-input has-suffix" type="text" id="ape-vacancy"
+                     inputmode="decimal" autocomplete="off" placeholder="2" value="2">
+              <span class="input-suffix">wks</span>
             </div>
-            <p class="field-hint" id="mgmt-fee-hint">Of rent collected. Typically 7–10% depending on state.</p>
-            <p class="field-error" id="err-management-fee" hidden></p>
           </div>
-          <div class="field">
-            <label for="ape-vacancy">Vacancy <small>(weeks per year)</small></label>
-            <div class="input-wrap has-suffix">
-              <input type="text" id="ape-vacancy" name="vacancy"
-                     inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false"
-                     placeholder="e.g. 2" value="2">
-              <span class="suffix">wks</span>
-            </div>
-            <p class="field-hint">Australian average is 2–4 weeks.</p>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="ape-management-fee">Management Fee (%)</label>
+          <div class="input-wrap">
+            <input class="field-input has-suffix" type="text" id="ape-management-fee"
+                   inputmode="decimal" autocomplete="off" placeholder="8.5" value="8.5">
+            <span class="input-suffix">%</span>
           </div>
+          <p class="field-error" id="err-management-fee" hidden></p>
         </div>
       </div>
 
       <!-- Annual Expenses -->
-      <div class="card">
-        <h2>Annual Expenses</h2>
-        <div class="fields-2col">
-          <div class="field">
-            <label for="ape-council-rates">Council Rates <small>(annual)</small></label>
+      <div class="form-section">
+        <div class="section-title">Annual Expenses</div>
+        <div class="field-row-3">
+          <div class="field-group">
+            <label class="field-label" for="ape-council-rates">Council Rates</label>
             <div class="input-wrap">
-              <span class="prefix">$</span>
-              <input type="text" id="ape-council-rates" name="council-rates"
-                     inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false"
-                     placeholder="e.g. 1,500" value="1500">
+              <span class="input-prefix">$</span>
+              <input class="field-input has-prefix" type="text" id="ape-council-rates"
+                     inputmode="decimal" autocomplete="off" placeholder="1,500" value="1500">
             </div>
             <p class="field-error" id="err-council-rates" hidden></p>
           </div>
-          <div class="field">
-            <label for="ape-insurance">Landlord Insurance <small>(annual)</small></label>
+          <div class="field-group">
+            <label class="field-label" for="ape-insurance">Insurance</label>
             <div class="input-wrap">
-              <span class="prefix">$</span>
-              <input type="text" id="ape-insurance" name="insurance"
-                     inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false"
-                     placeholder="e.g. 1,200" value="1200">
+              <span class="input-prefix">$</span>
+              <input class="field-input has-prefix" type="text" id="ape-insurance"
+                     inputmode="decimal" autocomplete="off" placeholder="1,200" value="1200">
             </div>
             <p class="field-error" id="err-insurance" hidden></p>
           </div>
-          <div class="field">
-            <label for="ape-maintenance">Maintenance &amp; Repairs <small>(annual)</small></label>
+          <div class="field-group">
+            <label class="field-label" for="ape-maintenance">Maintenance</label>
             <div class="input-wrap">
-              <span class="prefix">$</span>
-              <input type="text" id="ape-maintenance" name="maintenance"
-                     inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false"
-                     placeholder="e.g. 2,000" value="1500">
+              <span class="input-prefix">$</span>
+              <input class="field-input has-prefix" type="text" id="ape-maintenance"
+                     inputmode="decimal" autocomplete="off" placeholder="1,500" value="1500">
             </div>
             <p class="field-error" id="err-maintenance" hidden></p>
           </div>
-          <div class="field">
-            <label for="ape-depreciation">Depreciation Allowance <small>(annual)</small></label>
-            <div class="input-wrap">
-              <span class="prefix">$</span>
-              <input type="text" id="ape-depreciation" name="depreciation"
-                     inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false"
-                     placeholder="e.g. 5,000" value="0">
-            </div>
-            <p class="field-hint">From a quantity surveyor report. Leave 0 if unknown.</p>
-            <p class="field-error" id="err-depreciation" hidden></p>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="ape-depreciation">Depreciation ($)</label>
+          <div class="input-wrap">
+            <span class="input-prefix">$</span>
+            <input class="field-input has-prefix" type="text" id="ape-depreciation"
+                   inputmode="decimal" autocomplete="off" placeholder="0" value="0">
           </div>
+          <p class="field-error" id="err-depreciation" hidden></p>
         </div>
       </div>
 
       <!-- Tax Rate -->
-      <div class="card">
-        <h2>Your Marginal Tax Rate</h2>
-        <div class="field">
-          <label for="ape-marginal-tax-rate">Income tax bracket (incl. 2% Medicare levy)</label>
-          <select id="ape-marginal-tax-rate" name="marginal-tax-rate">
+      <div class="form-section">
+        <div class="section-title">Tax Rate</div>
+        <div class="field-group">
+          <label class="field-label" for="ape-marginal-tax-rate">Marginal tax rate</label>
+          <select class="field-input field-select" id="ape-marginal-tax-rate" name="marginal-tax-rate">
             <option value="0">0% — Income below $18,201</option>
             <option value="0.21">21% — $18,201 to $45,000</option>
             <option value="0.345" selected>34.5% — $45,001 to $120,000</option>
             <option value="0.39">39% — $120,001 to $180,000</option>
             <option value="0.47">47% — $180,001 and above</option>
           </select>
-          <p class="field-hint">Based on 2025-26 ATO rates. Select the bracket that includes your taxable income.</p>
+          <p class="field-hint">Based on 2025-26 ATO rates</p>
         </div>
       </div>
 
-      <!-- CGT Section -->
-      <details class="card cgt-details" id="cgt-section">
-        <summary>Capital Gains Tax Projection (optional)</summary>
-        <div class="cgt-body">
-          <div class="fields-2col">
-            <div class="field">
-              <label for="ape-cgt-growth">Annual Capital Growth Rate</label>
-              <div class="input-wrap has-suffix">
-                <input type="text" id="ape-cgt-growth" name="cgt-growth"
-                       inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false"
-                       placeholder="5" value="5">
-                <span class="suffix">%</span>
-              </div>
-            </div>
-            <div class="field">
-              <label for="ape-cgt-years">Holding Period</label>
-              <div class="input-wrap has-suffix">
-                <input type="text" id="ape-cgt-years" name="cgt-years"
-                       inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false"
-                       placeholder="10" value="10">
-                <span class="suffix">yrs</span>
-              </div>
-            </div>
-            <div class="field">
-              <label for="ape-cgt-sale-costs">Sale Costs</label>
-              <div class="input-wrap has-suffix">
-                <input type="text" id="ape-cgt-sale-costs" name="cgt-sale-costs"
-                       inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false"
-                       placeholder="2.5" value="2.5">
-                <span class="suffix">%</span>
-              </div>
-              <p class="field-hint">Agent commission, legal fees, etc.</p>
-            </div>
-          </div>
-        </div>
-      </details>
-
-      <button type="submit" class="btn-calculate">Calculate</button>
+      <button type="submit" class="calc-btn" id="calcBtn">
+        <span>Calculate</span>
+      </button>
 
     </form>
+  </aside>
 
-    <!-- Results estimate notice -->
-    <p id="results-estimate-notice" class="results-estimate-notice" hidden>
-      These are estimates only. Results depend on individual circumstances and may not reflect your actual tax position.
-    </p>
+  <!-- ===================== DASHBOARD ===================== -->
+  <main class="dashboard" id="dashboard">
 
-    <!-- Updating indicator -->
-    <p id="updating-indicator" class="updating-indicator" hidden>Updating…</p>
+    <!-- 1. Status banner -->
+    <div class="status-banner neutral" id="statusBanner">
+      <div style="display:flex;align-items:center">
+        <span class="status-icon">📊</span>
+        <span class="status-label" id="statusLabel">Enter your details and calculate</span>
+      </div>
+      <span class="status-detail" id="statusDetail"></span>
+    </div>
 
-    <!-- ----- RESULTS ----- -->
-    <section id="results" hidden aria-live="polite"></section>
+    <!-- 2. Metric cards -->
+    <div class="metric-grid" id="metricGrid">
+      <div class="metric-card">
+        <div class="metric-label">Weekly Cost</div>
+        <div class="metric-value val-neutral" id="m-weekly">—</div>
+        <div class="metric-sub">after-tax</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Tax Benefit</div>
+        <div class="metric-value val-neutral" id="m-tax">—</div>
+        <div class="metric-sub">annual saving</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Rental Yield</div>
+        <div class="metric-value val-neutral" id="m-yield">—</div>
+        <div class="metric-sub">gross</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Break-even</div>
+        <div class="metric-value val-neutral" id="m-breakeven">—</div>
+        <div class="metric-sub">estimated year</div>
+      </div>
+    </div>
+
+    <!-- 3. Charts row -->
+    <div class="chart-row-2">
+      <div class="dash-card">
+        <div class="dash-card-title">Expense Breakdown</div>
+        <div class="dash-card-sub">Annual deductible expenses</div>
+        <div style="position:relative;height:150px"><canvas id="donutChart"></canvas></div>
+        <div class="chart-total" id="donutTotal"></div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-title">Annual Cash Flow</div>
+        <div class="dash-card-sub">Income vs. costs vs. benefit</div>
+        <div style="position:relative;height:150px"><canvas id="barChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 4. 10-year projection -->
+    <div class="dash-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div>
+          <div class="dash-card-title">10-Year Cash Position Projection</div>
+          <div class="dash-card-sub" id="projectionSub">Assuming 3% annual rent growth</div>
+        </div>
+      </div>
+      <div style="position:relative;height:160px"><canvas id="lineChart"></canvas></div>
+    </div>
+
+    <!-- 5. Stamp duty + land tax -->
+    <div class="chart-row-2">
+      <div class="dash-card" id="stampCard">
+        <div class="dash-card-title">Stamp Duty</div>
+        <div class="stamp-rows" id="stampRows"><div class="empty-state">Select a state to calculate</div></div>
+      </div>
+      <div class="dash-card" id="landTaxCard">
+        <div class="dash-card-title">Land Tax</div>
+        <div class="lt-rows" id="ltRows"><div class="empty-state">Select a state to calculate</div></div>
+      </div>
+    </div>
+
+    <!-- 6. CGT collapsible -->
+    <div class="dash-card collapsible-card" id="cgtCard">
+      <button class="card-toggle" id="cgtToggle" type="button" aria-expanded="false">
+        <span class="dash-card-title">Capital Gains Estimate</span>
+        <span class="chevron" id="cgtChevron">▾</span>
+      </button>
+      <div class="collapsible-body" id="cgtBody" hidden>
+        <div class="field-row-3" style="margin-bottom:10px">
+          <div class="field-group">
+            <label class="field-label" for="cgt-growth">Growth rate %</label>
+            <input class="field-input" id="cgt-growth" type="text" inputmode="decimal" value="5" autocomplete="off">
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="cgt-years">Holding years</label>
+            <input class="field-input" id="cgt-years" type="text" inputmode="decimal" value="10" autocomplete="off">
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="cgt-sale-costs">Sale costs %</label>
+            <input class="field-input" id="cgt-sale-costs" type="text" inputmode="decimal" value="2.5" autocomplete="off">
+          </div>
+        </div>
+        <div id="cgtResults" class="cgt-results"></div>
+        <p class="cgt-disclaimer">CGT estimate is indicative only. Actual liability depends on your complete tax position. Consult a registered tax agent.</p>
+      </div>
+    </div>
+
+    <!-- Footer disclaimer -->
+    <p class="footer-disclaimer">Australian Property Investment Estimator provides general information only. It does not constitute financial product advice under the Corporations Act 2001 (Cth). You should seek advice from a licensed financial adviser, registered tax agent, or solicitor before making investment decisions. Results are indicative only.</p>
 
   </main>
 
-  <!-- ===== FOOTER ===== -->
-  <footer class="site-footer">
-    <div class="container">
-      <p>Australian Property Investment Estimator provides general information only. It does not constitute financial product advice under the Corporations Act 2001 (Cth). You should seek advice from a licensed financial adviser, registered tax agent, or solicitor before making investment decisions. Results are indicative only and based on the inputs you provide.</p>
-    </div>
-  </footer>
+</div>
 
-  <!-- Data tables (order matters — modules depend on these globals) -->
-  <script src="data/stamp-duty-rates.js"></script>
-  <script src="data/land-tax-rates.js"></script>
-
-  <!-- Calculation modules -->
-  <script src="modules/stamp-duty.js"></script>
-  <script src="modules/land-tax.js"></script>
-  <script src="modules/negative-gearing.js"></script>
-
-  <!-- UI glue -->
-  <script src="app.js"></script>
+<!-- Data tables (order matters — modules depend on these globals) -->
+<script src="data/stamp-duty-rates.js"></script>
+<script src="data/land-tax-rates.js"></script>
+<!-- Calculation modules -->
+<script src="modules/stamp-duty.js"></script>
+<script src="modules/land-tax.js"></script>
+<script src="modules/negative-gearing.js"></script>
+<!-- UI layer -->
+<script src="app.js"></script>
 
 </body>
 </html>
