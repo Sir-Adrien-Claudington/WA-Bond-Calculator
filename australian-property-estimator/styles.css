@@ -545,6 +545,75 @@ body {
   font-size: 11px;
 }
 
+/* ---- Regime Banner (policy-aware) ---- */
+.regime-banner {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid;
+  transition: all 0.3s;
+}
+
+.regime-banner[hidden] { display: none; }
+
+.regime-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.regime-icon {
+  font-size: 16px;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+
+.regime-title {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.regime-sub {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+
+.regime-banner.regime-success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #0f766e;
+}
+
+.regime-banner.regime-warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: var(--amber);
+}
+
+@media (prefers-color-scheme: dark) {
+  .regime-banner.regime-success {
+    background: rgba(15,158,118,0.12);
+    border-color: rgba(15,158,118,0.3);
+    color: #5eead4;
+  }
+  .regime-banner.regime-warning {
+    background: rgba(217,119,6,0.12);
+    border-color: rgba(217,119,6,0.3);
+    color: #fbbf24;
+  }
+}
+
+/* ---- Quarantined-loss styling (amber warning) ---- */
+.quarantine-note {
+  color: var(--amber);
+  font-weight: 600;
+}
+
+.summary-row .value.amber-value { color: var(--amber); font-weight: 600; }
+
 /* ---- Metric Grid ---- */
 .metric-grid {
   display: grid;
@@ -696,6 +765,55 @@ body {
 .cgt-disclaimer {
   font-size: 10px;
   color: var(--text-muted);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+/* ---- CGT split-gain table (new regime) ---- */
+.cgt-split-intro {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.cgt-split-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+
+.cgt-split-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cgt-split-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.cgt-split-table th:nth-child(2),
+.cgt-split-table th:nth-child(4),
+.cgt-split-table td:nth-child(2),
+.cgt-split-table td:nth-child(4) {
+  text-align: right;
+}
+
+.cgt-split-table .cgt-split-total td {
+  font-weight: 600;
+  border-bottom: none;
+  border-top: 1px solid var(--border);
+}
+
+.cgt-regime-disclaimer {
+  font-size: 10px;
+  color: var(--amber);
+  font-weight: 500;
   margin-top: 8px;
   line-height: 1.5;
 }

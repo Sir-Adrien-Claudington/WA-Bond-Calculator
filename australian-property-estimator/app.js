@@ -35,6 +35,30 @@
 
   var DONUT_COLORS = ['#1e5fad', '#0f9e76', '#d97706', '#9333ea', '#ef4444', '#6b7280'];
 
+  // ----------------------------------------------------------------
+  // POLICY REGIME (2026-27 Federal Budget — announced, not yet law)
+  // ----------------------------------------------------------------
+  // Negative gearing changes apply to contracts entered AFTER 7:30pm
+  // AEST on 12 May 2026. Contracts on/before that moment are grandfathered.
+  // The quarantining of losses and split-CGT treatment commence 1 Jul 2027.
+  var NEGATIVE_GEARING_CUTOFF = new Date('2026-05-12T19:30:00+10:00');
+  var CGT_REFORM_DATE = new Date('2027-07-01');
+
+  // Shared disclaimer that must accompany every new-regime output.
+  var REGIME_DISCLAIMER = 'Announced in the 2026-27 Federal Budget — not yet law. Seek advice from a registered tax agent before making decisions.';
+
+  function getRegime(contractDate, propertyType) {
+    var isNewBuild = propertyType === 'new_build';
+    var isGrandfathered = contractDate <= NEGATIVE_GEARING_CUTOFF;
+    return {
+      negativeGearingUnrestricted: isNewBuild || isGrandfathered,
+      cgtFullDiscount: isNewBuild,
+      cgtSplitTreatment: !isNewBuild && !isGrandfathered,
+      isNewBuild: isNewBuild,
+      isGrandfathered: isGrandfathered
+    };
+  }
+
   // ================================================================
   // HELPERS
   // ================================================================
@@ -42,6 +66,8 @@
   function $(id) { return document.getElementById(id); }
 
   function stripCommas(s) { return String(s).replace(/,/g, ''); }
+
+  function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
 
   function getNum(id) {
     var el = $(id);
@@ -204,8 +230,16 @@
 
   function readParams() {
     var loanType = getStr('ape-loan-type') || 'io';
+    var propertyType = getStr('ape-property-type') || 'established';
+    var contractStr = getStr('ape-contract-date');
+    // Parse the date input (YYYY-MM-DD) as a local date if provided.
+    var contractDate = contractStr ? new Date(contractStr + 'T00:00:00+10:00') : null;
+    var regime = contractDate ? getRegime(contractDate, propertyType) : null;
     return {
       state:             getStr('ape-state'),
+      contractDate:      contractDate,
+      propertyType:      propertyType,
+      regime:            regime,
       purchasePrice:     getNum('ape-purchase-price'),
       landValue:         getNum('ape-land-value'),
       loanAmount:        getNum('ape-loan-amount'),
@@ -236,6 +270,7 @@
     'ape-interest-rate', 'ape-weekly-rent', 'ape-vacancy', 'ape-management-fee',
     'ape-council-rates', 'ape-insurance', 'ape-maintenance', 'ape-depreciation',
     'ape-marginal-tax-rate', 'ape-loan-term', 'ape-loan-type',
+    'ape-contract-date', 'ape-property-type',
     'cgt-growth', 'cgt-years', 'cgt-sale-costs'
   ];
 
@@ -265,6 +300,9 @@
     if (q.has('ape-loan-type')) {
       setLoanType(q.get('ape-loan-type') === 'pi' ? 'pi' : 'io');
     }
+    if (q.has('ape-property-type')) {
+      setPropertyType(q.get('ape-property-type') === 'new_build' ? 'new_build' : 'established');
+    }
     return hasAny;
   }
 
@@ -281,6 +319,21 @@
     if (btnIo) btnIo.classList.toggle('active', type === 'io');
     if (btnPi) btnPi.classList.toggle('active', type === 'pi');
     if (termField) termField.hidden = (type !== 'pi');
+  }
+
+  // ================================================================
+  // PROPERTY TYPE TOGGLE
+  // ================================================================
+
+  function setPropertyType(type) {
+    var hiddenInput = $('ape-property-type');
+    var btnEst = $('btn-established');
+    var btnNew = $('btn-newbuild');
+    var hint   = $('newbuild-hint');
+    if (hiddenInput) hiddenInput.value = type;
+    if (btnEst) btnEst.classList.toggle('active', type === 'established');
+    if (btnNew) btnNew.classList.toggle('active', type === 'new_build');
+    if (hint) hint.hidden = (type !== 'new_build');
   }
 
   // ================================================================
@@ -373,6 +426,7 @@
       var ds = chartInstances.line.data.datasets;
       ds[0].data = proj.beforeTax;
       ds[1].data = proj.afterTax;
+      if (ds.length > 2) ds[2].data = proj.newRegime;
       chartInstances.line.update('none');
     }
   }
@@ -390,7 +444,8 @@
     var depreciation = getNum('ape-depreciation');
     var taxRate      = parseFloat(getStr('ape-marginal-tax-rate')) || 0;
     var annualInterest = loanAmount * interestRate;
-    var beforeTax = [], afterTax = [];
+    var beforeTax = [], afterTax = [], newRegime = [];
+    var carriedLoss = 0; // accumulated quarantined losses (new regime)
     for (var yr = 0; yr < 10; yr++) {
       var rent = weeklyRent * (52 - vacancyWks) * Math.pow(1 + rentGrowthRate, yr);
       var mgmt = rent * mgmtRate;
@@ -399,8 +454,28 @@
       var taxBenefit = netPos < 0 ? Math.abs(netPos) * taxRate : 0;
       beforeTax.push(Math.round(netPos));
       afterTax.push(Math.round(netPos + taxBenefit));
+
+      // --- New-regime after-tax line (quarantined losses carried forward) ---
+      var newRegimeYear;
+      if (netPos < 0) {
+        // Negatively geared: no tax benefit, loss accumulates.
+        carriedLoss += -netPos;
+        newRegimeYear = netPos;
+      } else {
+        // Positively geared: carried losses offset taxable rental income first.
+        var taxableIncome = netPos - carriedLoss;
+        if (taxableIncome < 0) {
+          carriedLoss = -taxableIncome; // some loss remains carried forward
+          taxableIncome = 0;
+        } else {
+          carriedLoss = 0;
+        }
+        var taxOnIncome = taxableIncome * taxRate;
+        newRegimeYear = netPos - taxOnIncome;
+      }
+      newRegime.push(Math.round(newRegimeYear));
     }
-    return { beforeTax: beforeTax, afterTax: afterTax };
+    return { beforeTax: beforeTax, afterTax: afterTax, newRegime: newRegime };
   }
 
   function estimateBreakevenYear(params) {
@@ -434,10 +509,52 @@
     var saleCosts       = salePrice * saleCostPct;
     var netProceeds     = salePrice - saleCosts;
     var capitalGain     = netProceeds - price;
+
+    // --- CASE B: new regime, established property → split CGT treatment ---
+    // Pre-reform gain keeps the 50% discount; post-reform gain has no discount
+    // and a 30% minimum effective tax rate.
+    if (params.regime && params.regime.cgtSplitTreatment && params.contractDate && capitalGain > 0) {
+      var msPerYear = 365.25 * 24 * 3600 * 1000;
+      var yearsToReformDate = (CGT_REFORM_DATE - params.contractDate) / msPerYear;
+      // Clamp so a contract already past the reform date, or a sale before it,
+      // degrades gracefully to a single period.
+      yearsToReformDate = Math.max(0, Math.min(years, yearsToReformDate));
+
+      var valueAtReformDate = price * Math.pow(1 + growthRate, yearsToReformDate);
+      var preSplitGain  = valueAtReformDate - price;
+      var postSplitGain = salePrice - valueAtReformDate;
+      if (preSplitGain < 0) preSplitGain = 0;
+      if (postSplitGain < 0) postSplitGain = 0;
+
+      // Pre-reform: 50% discount still applies.
+      var taxablePreGain = preSplitGain * 0.5;
+      // Post-reform: 30% minimum tax, no discount.
+      var effectivePostRate = Math.max(0.30, taxRate);
+      var taxablePostGain   = postSplitGain;
+
+      var preTax  = taxablePreGain * taxRate;
+      var postTax = taxablePostGain * effectivePostRate;
+      var totalCGT = preTax + postTax;
+
+      return {
+        split: true,
+        salePrice: salePrice, saleCosts: saleCosts, netProceeds: netProceeds,
+        capitalGain: capitalGain, years: years,
+        preSplitGain: preSplitGain, postSplitGain: postSplitGain,
+        taxablePreGain: taxablePreGain, taxablePostGain: taxablePostGain,
+        effectivePostRate: effectivePostRate,
+        preTax: preTax, postTax: postTax,
+        cgtPayable: totalCGT,
+        netAfterTax: capitalGain - totalCGT
+      };
+    }
+
+    // --- CASE A: grandfathered, new build, or no regime → 50% discount ---
     var taxableGain     = capitalGain > 0 ? capitalGain * 0.5 : capitalGain; // 50% discount (held > 12mo assumed)
     var cgtPayable      = taxableGain > 0 ? taxableGain * taxRate : 0;
     var netAfterTax     = capitalGain - cgtPayable;
     return {
+      split: false,
       salePrice: salePrice, saleCosts: saleCosts, netProceeds: netProceeds,
       capitalGain: capitalGain, taxableGain: taxableGain,
       cgtPayable: cgtPayable, netAfterTax: netAfterTax, years: years
@@ -452,6 +569,49 @@
       return;
     }
     var cgt = calcCgt(params);
+
+    // --- CASE B: split-gain breakdown table ---
+    if (cgt.split) {
+      var tbl =
+        '<table class="cgt-split-table">' +
+          '<thead><tr>' +
+            '<th>Period</th><th>Gain</th><th>Treatment</th><th>Tax payable</th>' +
+          '</tr></thead><tbody>' +
+          '<tr>' +
+            '<td>Pre-1 Jul 2027</td>' +
+            '<td>' + fmtMoney(cgt.preSplitGain) + '</td>' +
+            '<td>50% discount</td>' +
+            '<td>' + fmtMoney(cgt.preTax) + '</td>' +
+          '</tr>' +
+          '<tr>' +
+            '<td>Post-1 Jul 2027</td>' +
+            '<td>' + fmtMoney(cgt.postSplitGain) + '</td>' +
+            '<td>30% minimum tax</td>' +
+            '<td>' + fmtMoney(cgt.postTax) + '</td>' +
+          '</tr>' +
+          '<tr class="cgt-split-total">' +
+            '<td>Total</td>' +
+            '<td>' + fmtMoney(cgt.capitalGain) + '</td>' +
+            '<td></td>' +
+            '<td>' + fmtMoney(cgt.cgtPayable) + '</td>' +
+          '</tr>' +
+        '</tbody></table>';
+
+      var summary =
+        summaryRow('Projected sale price', fmtMoney(cgt.salePrice)) +
+        summaryRow('Sale costs (' + (params.cgtSaleCostsPct * 100).toFixed(1) + '%)', '−' + fmtMoney(cgt.saleCosts)) +
+        summaryRow('Capital gain', fmtMoney(cgt.capitalGain)) +
+        '<div class="summary-row summary-row-total"><span class="label">Net after-tax profit</span>' +
+        '<span class="value">' + fmtMoney(cgt.netAfterTax) + '</span></div>';
+
+      resultsEl.innerHTML =
+        '<p class="cgt-split-intro">Split CGT treatment applies — the gain is taxed in two periods:</p>' +
+        tbl + summary +
+        '<p class="cgt-regime-disclaimer">' + REGIME_DISCLAIMER + '</p>';
+      return;
+    }
+
+    // --- CASE A: standard 50% discount ---
     var rows = [
       ['Projected sale price', fmtMoney(cgt.salePrice)],
       ['Sale costs (' + (params.cgtSaleCostsPct * 100).toFixed(1) + '%)', '−' + fmtMoney(cgt.saleCosts)],
@@ -609,46 +769,113 @@
     return chartInstances.bar;
   }
 
-  function getOrCreateLine(projection) {
+  function makeNewRegimeDataset(data) {
+    return {
+      label: 'After tax, new regime',
+      data: data,
+      borderColor: '#d97706',
+      backgroundColor: 'rgba(217,119,6,0.08)',
+      fill: false,
+      borderDash: [5, 4],
+      tension: 0.3,
+      pointRadius: 3,
+      borderWidth: 2
+    };
+  }
+
+  // Holds the fractional x-index (0-based) of 1 Jul 2027 for the vertical
+  // marker, or null when the new regime does not apply. Read by the plugin.
+  var reformLineIndex = null;
+
+  // Chart.js plugin: draws a vertical dashed "New regime" marker at the
+  // 1 Jul 2027 position. No external dependency — pure canvas drawing.
+  var reformLinePlugin = {
+    id: 'reformLine',
+    afterDraw: function (chart) {
+      if (reformLineIndex === null) return;
+      var xScale = chart.scales.x;
+      var yScale = chart.scales.y;
+      if (!xScale || !yScale) return;
+      var x = xScale.getPixelForValue(reformLineIndex);
+      if (!isFinite(x)) return;
+      var ctx = chart.ctx;
+      ctx.save();
+      ctx.beginPath();
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#d97706';
+      ctx.moveTo(x, yScale.top);
+      ctx.lineTo(x, yScale.bottom);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#d97706';
+      ctx.font = '9px Inter, system-ui, sans-serif';
+      ctx.textAlign = x > (xScale.left + xScale.right) / 2 ? 'right' : 'left';
+      var labelX = ctx.textAlign === 'right' ? x - 4 : x + 4;
+      ctx.fillText('New regime', labelX, yScale.top + 9);
+      ctx.restore();
+    }
+  };
+
+  function getOrCreateLine(projection, regime, reformIdx) {
     var ctx = $('lineChart').getContext('2d');
     var textColor = chartTextColor();
     var gridColor = chartGridColor();
     var labels = ['Yr 1','Yr 2','Yr 3','Yr 4','Yr 5','Yr 6','Yr 7','Yr 8','Yr 9','Yr 10'];
+    var showNewRegime = !!(regime && regime.cgtSplitTreatment);
+    reformLineIndex = showNewRegime && isFinite(reformIdx) ? reformIdx : null;
 
     if (chartInstances.line) {
       var chart = chartInstances.line;
       chart.data.datasets[0].data = projection.beforeTax;
       chart.data.datasets[1].data = projection.afterTax;
+      // Add or remove the amber new-regime dataset as needed.
+      var hasAmber = chart.data.datasets.length > 2;
+      if (showNewRegime) {
+        if (!hasAmber) {
+          chart.data.datasets.push(makeNewRegimeDataset(projection.newRegime));
+        } else {
+          chart.data.datasets[2].data = projection.newRegime;
+        }
+      } else if (hasAmber) {
+        chart.data.datasets.splice(2, 1);
+      }
       chart.update('none');
       return chart;
     }
 
+    var datasets = [
+      {
+        label: 'Before tax',
+        data: projection.beforeTax,
+        borderColor: '#ef4444',
+        backgroundColor: 'rgba(239,68,68,0.06)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+        borderWidth: 2
+      },
+      {
+        label: 'After tax, current rules',
+        data: projection.afterTax,
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16,185,129,0.08)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+        borderWidth: 2
+      }
+    ];
+    if (showNewRegime) {
+      datasets.push(makeNewRegimeDataset(projection.newRegime));
+    }
+
     chartInstances.line = new Chart(ctx, {
       type: 'line',
+      plugins: [reformLinePlugin],
       data: {
         labels: labels,
-        datasets: [
-          {
-            label: 'Before tax',
-            data: projection.beforeTax,
-            borderColor: '#ef4444',
-            backgroundColor: 'rgba(239,68,68,0.06)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 3,
-            borderWidth: 2
-          },
-          {
-            label: 'After tax',
-            data: projection.afterTax,
-            borderColor: '#10b981',
-            backgroundColor: 'rgba(16,185,129,0.08)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 3,
-            borderWidth: 2
-          }
-        ]
+        datasets: datasets
       },
       options: {
         responsive: true,
@@ -752,13 +979,20 @@
 
     // Tax benefit
     var taxEl = $('m-tax');
+    var taxSubEl = $('m-tax-sub');
     if (taxEl) {
-      if (ng.taxBenefit > 0) {
+      if (ng.quarantined) {
+        taxEl.textContent = 'Quarantined';
+        taxEl.className = 'metric-value val-warning';
+        if (taxSubEl) taxSubEl.textContent = 'loss carried forward';
+      } else if (ng.taxBenefit > 0) {
         taxEl.textContent = fmtMoney(ng.taxBenefit);
         taxEl.className = 'metric-value val-positive';
+        if (taxSubEl) taxSubEl.textContent = 'annual saving';
       } else {
         taxEl.textContent = '$0';
         taxEl.className = 'metric-value val-neutral';
+        if (taxSubEl) taxSubEl.textContent = 'annual saving';
       }
     }
 
@@ -803,7 +1037,15 @@
     if (ng.gearingStatus === 'negative') {
       banner.className = 'status-banner negative';
       labelEl.textContent = 'Negatively Geared';
-      if (detailEl) detailEl.textContent = fmtMoney(ng.netCashFlow) + '/yr after-tax cost';
+      if (detailEl) {
+        if (ng.quarantined) {
+          var loss = Math.abs(ng.netRentalIncome);
+          detailEl.innerHTML = '<span class="quarantine-note">Quarantined loss: ' + fmtMoney(loss) +
+            ' — carried forward to future rental income</span>';
+        } else {
+          detailEl.textContent = fmtMoney(ng.netCashFlow) + '/yr after-tax cost';
+        }
+      }
     } else if (ng.gearingStatus === 'positive') {
       banner.className = 'status-banner positive';
       labelEl.textContent = 'Positively Geared';
@@ -815,9 +1057,47 @@
     }
   }
 
+  function renderRegimeBanner(regime) {
+    var banner = $('regimeBanner');
+    var iconEl = $('regimeIcon');
+    var titleEl = $('regimeTitle');
+    var subEl = $('regimeSub');
+    if (!banner || !iconEl || !titleEl || !subEl) return;
+
+    // Only show once a contract date has been entered.
+    if (!regime) {
+      banner.hidden = true;
+      return;
+    }
+
+    var icon, title, cls;
+    if (regime.isGrandfathered) {
+      cls = 'regime-success';
+      icon = '🛡️';
+      title = 'Grandfathered — current negative gearing rules and 50% CGT discount apply';
+    } else if (regime.isNewBuild) {
+      cls = 'regime-success';
+      icon = '🏗️';
+      title = 'New build — full negative gearing retained; 50% CGT discount or cost-base indexation at sale';
+    } else {
+      cls = 'regime-warning';
+      icon = '⚠️';
+      title = 'New regime (post 12 May 2026) — negative gearing quarantined from 1 Jul 2027 · split CGT treatment applies';
+    }
+
+    banner.className = 'regime-banner ' + cls;
+    iconEl.textContent = icon;
+    titleEl.textContent = title;
+    subEl.textContent = REGIME_DISCLAIMER;
+    banner.hidden = false;
+  }
+
   function renderDashboard(params, ng, sd, lt) {
     // Status banner
     renderStatusBanner(ng);
+
+    // Regime banner (policy-aware)
+    renderRegimeBanner(params.regime);
 
     // Metrics
     renderMetrics(ng, params, sd);
@@ -834,7 +1114,12 @@
 
     // Line chart projection
     var projection = buildProjection(params.interestRate, 0.03);
-    getOrCreateLine(projection);
+    var reformIdx = null;
+    if (params.regime && params.regime.cgtSplitTreatment && params.contractDate) {
+      var msPerYear = 365.25 * 24 * 3600 * 1000;
+      reformIdx = (CGT_REFORM_DATE - params.contractDate) / msPerYear; // fractional year index
+    }
+    getOrCreateLine(projection, params.regime, reformIdx);
 
     // Stamp duty panel
     renderStampDuty(sd, params);
@@ -867,16 +1152,29 @@
   // LIGHTWEIGHT TAX CARD UPDATE (runs before first full calculation)
   // ================================================================
 
-  function updateTaxCards() {
+  function updateStampDuty() {
     var state = getStr('ape-state');
     if (!state) return;
     var purchasePrice = getNum('ape-purchase-price');
     var landValue     = getNum('ape-land-value');
     var isFhb         = $('ape-fhb') ? $('ape-fhb').checked : false;
     var sd = APE_StampDuty.calculate(state, purchasePrice, isFhb);
-    var lt = APE_LandTax.calculate(state, landValue);
     renderStampDuty(sd, { state: state, purchasePrice: purchasePrice, landValue: landValue, isFirstHomeBuyer: isFhb });
-    renderLandTax(lt,  { state: state, purchasePrice: purchasePrice, landValue: landValue, isFirstHomeBuyer: isFhb });
+  }
+
+  function updateLandTax() {
+    var state = getStr('ape-state');
+    if (!state) return;
+    var purchasePrice = getNum('ape-purchase-price');
+    var landValue     = getNum('ape-land-value');
+    var isFhb         = $('ape-fhb') ? $('ape-fhb').checked : false;
+    var lt = APE_LandTax.calculate(state, landValue);
+    renderLandTax(lt, { state: state, purchasePrice: purchasePrice, landValue: landValue, isFirstHomeBuyer: isFhb });
+  }
+
+  function updateTaxCards() {
+    updateStampDuty();
+    updateLandTax();
   }
 
   // ================================================================
@@ -907,6 +1205,22 @@
       insurance:    params.insurance,
       maintenance:  params.maintenance
     });
+
+    // --- Regime adjustment (Step 6): quarantine the loss when new rules apply ---
+    // Default: keep the module's tax benefit (grandfathered / new build / no date).
+    ng.quarantined = false;
+    ng.quarantinedAmount = 0;
+    if (params.regime && !params.regime.negativeGearingUnrestricted) {
+      // New regime, established property: rental losses cannot offset other
+      // income — the would-be tax benefit becomes $0 and the loss is carried forward.
+      if (ng.gearingStatus === 'negative') {
+        ng.quarantined = true;
+        ng.quarantinedAmount = ng.taxBenefit; // the benefit that no longer applies
+        ng.taxBenefit = 0;
+        ng.netCashFlow = round2(ng.netRentalIncome); // no tax offset added back
+        ng.weeklyNetCost = round2(-ng.netCashFlow / 52);
+      }
+    }
 
     var sd = APE_StampDuty.calculate(params.state, params.purchasePrice, params.isFirstHomeBuyer);
     var lt = APE_LandTax.calculate(params.state, params.landValue);
@@ -1025,7 +1339,9 @@
         applyStateDefaults(state);
         updateFhbInfoBox(state);
         validateField('ape-state');
-        updateTaxCards();
+        // Refresh tax cards immediately so they stop showing the "Select a state" placeholder
+        updateStampDuty();
+        updateLandTax();
         triggerDebounce();
       });
     }
@@ -1051,6 +1367,34 @@
     if (btnPi) {
       btnPi.addEventListener('click', function () {
         setLoanType('pi');
+        triggerDebounce();
+      });
+    }
+
+    // Property type toggle buttons
+    var btnEst = $('btn-established');
+    var btnNew = $('btn-newbuild');
+    if (btnEst) {
+      btnEst.addEventListener('click', function () {
+        setPropertyType('established');
+        if (lastParams) renderRegimeBanner(readParams().regime);
+        triggerDebounce();
+      });
+    }
+    if (btnNew) {
+      btnNew.addEventListener('click', function () {
+        setPropertyType('new_build');
+        if (lastParams) renderRegimeBanner(readParams().regime);
+        triggerDebounce();
+      });
+    }
+
+    // Contract date input
+    var contractEl = $('ape-contract-date');
+    if (contractEl) {
+      contractEl.addEventListener('change', function () {
+        // Show the regime banner as soon as a date is entered.
+        renderRegimeBanner(readParams().regime);
         triggerDebounce();
       });
     }
@@ -1106,6 +1450,7 @@
         updateFhbInfoBox(state);
       }
       updateLvr();
+      renderRegimeBanner(readParams().regime);
       if (validateForm()) {
         hasCalculatedOnce = true;
         runCalculation();

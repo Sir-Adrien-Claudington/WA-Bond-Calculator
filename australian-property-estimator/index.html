@@ -6,16 +6,15 @@
   <title>Australian Property Investment Estimator — Negative Gearing, Stamp Duty &amp; Land Tax</title>
   <meta name="description" content="Estimate stamp duty, annual land tax, and negative gearing benefits for investment properties in any Australian state or territory.">
   <!-- CSP meta — 'unsafe-inline' in style-src here only (Google Fonts injects inline styles). nginx CSP takes precedence for real enforcement. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; connect-src 'none'; form-action 'self'; base-uri 'self'; frame-ancestors 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; connect-src 'none'; form-action 'self'; base-uri 'self'; frame-ancestors 'none'">
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Stylesheet -->
   <link rel="stylesheet" href="styles.css">
-  <!-- Chart.js 4.4.1 — CSP restricts to cdnjs.cloudflare.com; SRI hash omitted as unverifiable without fetching -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
-          crossorigin="anonymous"></script>
+  <!-- Chart.js 4.4.1 — self-hosted so CSP can use script-src 'self' (no external CDN needed) -->
+  <script src="chart.min.js"></script>
 </head>
 <body>
 
@@ -91,6 +90,22 @@
             </div>
             <p class="field-error" id="err-land-value" hidden></p>
           </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="ape-contract-date">Contract / purchase date</label>
+          <input class="field-input" type="date" id="ape-contract-date" autocomplete="off">
+          <p class="field-hint">Use the contract signing date, not the settlement date</p>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Property type</label>
+          <div class="toggle-group">
+            <button type="button" class="toggle-btn active" id="btn-established" data-value="established">Established property</button>
+            <button type="button" class="toggle-btn" id="btn-newbuild" data-value="new_build">New build</button>
+          </div>
+          <input type="hidden" id="ape-property-type" value="established">
+          <p class="field-hint" id="newbuild-hint" hidden>Residential property that genuinely adds to housing stock; has not been previously sold or occupied for more than 12 months</p>
         </div>
       </div>
 
@@ -262,6 +277,17 @@
       <span class="status-detail" id="statusDetail"></span>
     </div>
 
+    <!-- 1b. Regime status banner (policy-aware; hidden until a contract date is set) -->
+    <div class="regime-banner" id="regimeBanner" hidden>
+      <div class="regime-inner">
+        <span class="regime-icon" id="regimeIcon" aria-hidden="true"></span>
+        <div class="regime-text">
+          <div class="regime-title" id="regimeTitle"></div>
+          <div class="regime-sub" id="regimeSub"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- 2. Metric cards -->
     <div class="metric-grid" id="metricGrid">
       <div class="metric-card">
@@ -272,7 +298,7 @@
       <div class="metric-card">
         <div class="metric-label">Tax Benefit</div>
         <div class="metric-value val-neutral" id="m-tax">—</div>
-        <div class="metric-sub">annual saving</div>
+        <div class="metric-sub" id="m-tax-sub">annual saving</div>
       </div>
       <div class="metric-card">
         <div class="metric-label">Rental Yield</div>
