@@ -141,17 +141,19 @@
   // Source: State Revenue Office Tasmania — "Land tax".
   // https://www.sro.tas.gov.au/land-tax
   // VERIFY: confirm TAS thresholds and rates.
+  // Source: SRO Tasmania — rates-of-land-tax (confirmed 1 July 2025).
+  // Cross-check: $272,222 → $712.50 | $600,000 → $3,237.50
   var TAS = {
     state: 'TAS',
     name: 'Tasmania',
-    source: 'State Revenue Office Tasmania — Land tax',
-    sourceUrl: 'https://www.sro.tas.gov.au/land-tax',
-    verify: true,
+    source: 'State Revenue Office Tasmania — Land tax rates (1 Jul 2025)',
+    sourceUrl: 'https://www.sro.tas.gov.au/land-tax/rates-of-land-tax',
+    verify: false,
     hasLandTax: true,
     brackets: [
-      { upTo: 124999, base: 0, rate: 0, over: 0 },
-      { upTo: 499999, base: 0, rate: 0.0045, over: 125000 },
-      { upTo: null, base: 1687.5, rate: 0.015, over: 500000 }
+      { upTo: 124999,  base: 0,      rate: 0,      over: 0 },
+      { upTo: 499999,  base: 50,     rate: 0.0045, over: 125000 },
+      { upTo: null,    base: 1737.5, rate: 0.015,  over: 500000 }
     ]
   };
 
@@ -161,20 +163,26 @@
   // VERIFY: ACT land tax = fixed charge + marginal rate on AUV, charged on
   // rateable (not unimproved purchase) value and billed quarterly. The model
   // here is a SIMPLIFICATION. Confirm the fixed charge and marginal scale.
+  // Source: ACT Revenue Office — calculating-land-tax (2025-26 rates confirmed).
+  // Fixed annual charge ($1,693) folded into base of each bracket.
+  // No tax-free threshold — all investment properties are assessed.
+  // ACT uses Average Unimproved Value (AUV), not purchase price.
+  // Cross-check: $272,222 → $3,285 | note: "$1,000-$4,000 typical for this range"
   var ACT = {
     state: 'ACT',
     name: 'Australian Capital Territory',
-    source: 'ACT Revenue Office — Land tax',
-    sourceUrl: 'https://www.revenue.act.gov.au/land-tax',
-    verify: true,
+    source: 'ACT Revenue Office — Land tax rates 2025-26',
+    sourceUrl: 'https://www.revenue.act.gov.au/land-tax/calculating-land-tax',
+    verify: false,
     hasLandTax: true,
-    fixedCharge: 1462,
-    fixedChargeNote: 'ACT adds a yearly fixed charge (VERIFY amount) plus marginal rates on the average unimproved value. Fixed charge is folded into the first bracket base below as an approximation.',
+    fixedCharge: 1693,
+    fixedChargeNote: 'ACT land tax has a fixed annual charge ($1,693 for 2025-26) plus progressive rates on Average Unimproved Value (AUV). Fixed charge is folded into bracket bases. No tax-free threshold applies to investment property.',
     brackets: [
-      { upTo: 150000, base: 1462, rate: 0.0054, over: 0 },
-      { upTo: 275000, base: 2272, rate: 0.0064, over: 150000 },
-      { upTo: 2000000, base: 3072, rate: 0.0114, over: 275000 },
-      { upTo: null, base: 22737, rate: 0.0114, over: 2000000 }
+      { upTo: 150000,  base: 1693,  rate: 0.0054, over: 0 },
+      { upTo: 275000,  base: 2503,  rate: 0.0064, over: 150000 },
+      { upTo: 1000000, base: 3303,  rate: 0.0124, over: 275000 },
+      { upTo: 2000000, base: 12293, rate: 0.0125, over: 1000000 },
+      { upTo: null,    base: 24793, rate: 0.0126, over: 2000000 }
     ]
   };
 

@@ -90,10 +90,17 @@ var APE_StampDuty = (function () {
       };
     }
 
-    var bracket = pickBracket(table.brackets, value);
-    var marginal = value - bracket.over;
-    var duty = bracket.base + bracket.rate * marginal;
-    duty = round2(duty);
+    // NT: quadratic formula applies below $525,000; flat rate on full value above.
+    var duty;
+    if (stateCode === 'NT' && value <= 525000) {
+      var V = value / 1000;
+      duty = round2((0.06571441 * V * V) + (15 * V));
+    } else {
+      var bracket = pickBracket(table.brackets, value);
+      // Skip the NT sentinel bracket (ntQuadratic:true) — won't reach it above $525k.
+      var marginal = value - bracket.over;
+      duty = round2(bracket.base + bracket.rate * marginal);
+    }
 
     var fhogAmount = 0;
     var fhbNote = '';
@@ -120,16 +127,21 @@ var APE_StampDuty = (function () {
 
     var breakdown = [];
     breakdown.push('Property value entered: ' + formatMoney(value) + '.');
-    breakdown.push(
-      'Applicable bracket: amounts over ' + formatMoney(bracket.over) +
-      ' are charged at ' + (bracket.rate * 100).toFixed(2) + '%' +
-      (bracket.base > 0 ? ', plus a fixed ' + formatMoney(bracket.base) + '.' : '.')
-    );
-    breakdown.push(
-      'Calculation: ' + formatMoney(bracket.base) + ' + ' +
-      (bracket.rate * 100).toFixed(2) + '% of ' + formatMoney(marginal) +
-      ' = ' + formatMoney(duty) + '.'
-    );
+    if (stateCode === 'NT' && value <= 525000) {
+      breakdown.push('NT quadratic formula: D = (0.06571441 × V²) + (15 × V) where V = value ÷ 1000.');
+      breakdown.push('Calculation: V = ' + (value / 1000).toFixed(3) + ' → D = ' + formatMoney(duty) + '.');
+    } else if (bracket) {
+      breakdown.push(
+        'Applicable bracket: amounts over ' + formatMoney(bracket.over) +
+        ' are charged at ' + (bracket.rate * 100).toFixed(2) + '%' +
+        (bracket.base > 0 ? ', plus a fixed ' + formatMoney(bracket.base) + '.' : '.')
+      );
+      breakdown.push(
+        'Calculation: ' + formatMoney(bracket.base) + ' + ' +
+        (bracket.rate * 100).toFixed(2) + '% of ' + formatMoney(marginal) +
+        ' = ' + formatMoney(duty) + '.'
+      );
+    }
     if (fhbNote) breakdown.push(fhbNote);
     if (isFirstHomeBuyer && fhogAmount > 0) {
       breakdown.push('First Home Owner Grant (FHOG): ' + formatMoney(fhogAmount) + ' (eligibility criteria apply).');

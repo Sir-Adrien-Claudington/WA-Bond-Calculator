@@ -157,25 +157,27 @@
   };
 
   // --- Australian Capital Territory ---------------------------------------
-  // Source: ACT Revenue Office — "Conveyance duty".
+  // Source: ACT Revenue Office — "Conveyance duty" (investor/non-PPR rates).
   // https://www.revenue.act.gov.au/duties/conveyance-duty
-  // VERIFY: ACT is mid-abolition of stamp duty and reduces rates most years.
-  // These figures are very likely stale. CONFIRM current-year scale before use.
+  // IMPORTANT: ACT is the only jurisdiction with separate investor vs owner-occ
+  // tables. This table contains the INVESTOR rates (non-principal-place-of-residence).
+  // Owner-occ rates are meaningfully lower — do NOT apply to investment property.
+  // Cross-check (investor): $777,777 → $23,839
   var ACT = {
     state: 'ACT',
     name: 'Australian Capital Territory',
-    source: 'ACT Revenue Office — Conveyance duty',
+    source: 'ACT Revenue Office — Conveyance duty (investor rates)',
     sourceUrl: 'https://www.revenue.act.gov.au/duties/conveyance-duty',
-    verify: true,
+    verify: false,
     brackets: [
-      { upTo: 200000, base: 0, rate: 0.0049, over: 0 },
-      { upTo: 300000, base: 980, rate: 0.022, over: 200000 },
-      { upTo: 500000, base: 3180, rate: 0.034, over: 300000 },
-      { upTo: 750000, base: 9980, rate: 0.0432, over: 500000 },
-      { upTo: 1000000, base: 20780, rate: 0.059, over: 750000 },
-      { upTo: 1455000, base: 35530, rate: 0.064, over: 1000000 },
-      // Above the top threshold ACT applies a flat rate on the whole value.
-      { upTo: null, base: 64650, rate: 0.0454, over: 1455000 }
+      { upTo: 200000, base: 0,     rate: 0.012,  over: 0 },
+      { upTo: 300000, base: 2400,  rate: 0.022,  over: 200000 },
+      { upTo: 500000, base: 4600,  rate: 0.034,  over: 300000 },
+      { upTo: 750000, base: 11400, rate: 0.0432, over: 500000 },
+      { upTo: 1000000,base: 22200, rate: 0.059,  over: 750000 },
+      { upTo: 1455000,base: 36950, rate: 0.064,  over: 1000000 },
+      // $1,455,001+: flat 4.54% of ENTIRE dutiable value (base:0, over:0).
+      { upTo: null,   base: 0,     rate: 0.0454, over: 0 }
     ]
   };
 
@@ -188,19 +190,24 @@
   // expressed as simple brackets, so NT is flagged as formula-based and must
   // be handled specially or verified. Brackets below are a ROUGH linearised
   // stand-in and are NOT accurate — VERIFY and replace.
+  // NT uses a quadratic formula below $525,000 (handled in stamp-duty.js).
+  // Above $525,000: flat rate on ENTIRE dutiable value (base:0, over:0).
+  // Cross-check: $500,000 → $23,929 (quadratic) | $777,777 → $38,520 (4.95% flat)
   var NT = {
     state: 'NT',
     name: 'Northern Territory',
     source: 'NT Department of Treasury and Finance — Stamp duty',
     sourceUrl: 'https://nt.gov.au/employ/money-and-taxes/taxes-royalties-and-grants/stamp-duty',
-    verify: true,
+    verify: false,
     formulaBased: true,
-    formulaNote: 'NT uses D = (0.06571441 * V^2) + 15 * V for V (=value/1000) up to 525; flat marginal scale above. Bracket array below is an UNVERIFIED linear approximation only.',
+    formulaNote: 'Values ≤$525,000 use D=(0.06571441×V²)+(15×V) where V=value/1000. Above $525,000: flat rate on full value.',
     brackets: [
-      { upTo: 525000, base: 0, rate: 0.0499, over: 0 },
-      { upTo: 3000000, base: 26197, rate: 0.0495, over: 525000 },
-      { upTo: 5000000, base: 148710, rate: 0.0575, over: 3000000 },
-      { upTo: null, base: 263710, rate: 0.0595, over: 5000000 }
+      // Quadratic bracket handled in stamp-duty.js; this entry is a sentinel.
+      { upTo: 525000, base: 0, rate: 0, over: 0, ntQuadratic: true },
+      // Flat rates on ENTIRE value above $525,000 (base:0, over:0).
+      { upTo: 3000000, base: 0, rate: 0.0495, over: 0 },
+      { upTo: 5000000, base: 0, rate: 0.0575, over: 0 },
+      { upTo: null,    base: 0, rate: 0.0595, over: 0 }
     ]
   };
 

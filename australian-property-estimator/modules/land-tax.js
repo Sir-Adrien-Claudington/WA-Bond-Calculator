@@ -113,7 +113,11 @@ var APE_LandTax = (function () {
     var assumptions = [];
     assumptions.push('General ownership (individual, non-trust, non-absentee, non-foreign).');
     assumptions.push('Principal place of residence exemption NOT applied — investment property assumed.');
-    assumptions.push('Land value entered is treated as your total taxable landholding in ' + table.name + '.');
+    if (stateCode === 'ACT') {
+      assumptions.push('ACT land tax is assessed quarterly based on Average Unimproved Value (AUV). This estimate uses the site value entered as a proxy for AUV.');
+    } else {
+      assumptions.push('Land value entered is treated as your total taxable landholding in ' + table.name + '.');
+    }
     if (table.verify) {
       assumptions.push('VERIFY: rate table for ' + table.name + ' has not been confirmed against the current revenue office page and may be out of date.');
     }
