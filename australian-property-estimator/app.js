@@ -449,6 +449,7 @@
     var altParams = {};
     Object.keys(params).forEach(function (k) { altParams[k] = params[k]; });
     altParams.interestRate = sliderRate;
+    altParams.landTax = params.landTaxAnnual || 0; // NG module reads landTax, not landTaxAnnual
     var altNg = APE_NegativeGearing.calculate(altParams);
     var cashLabel = altNg.netCashFlow < 0
       ? fmtMoney(altNg.netCashFlow) + '/yr'
@@ -573,18 +574,32 @@
     // These offset the capital gain at sale before CGT is applied.
     var totalQuarantinedLoss = 0;
     if (params.regime && !params.regime.negativeGearingUnrestricted) {
-      var qLoan  = params.loanAmount;
-      var qRate  = params.interestRate;
-      var qRent  = params.weeklyRent;
-      var qVac   = params.vacancyWeeks || 0;
-      var qMgmt  = params.managementFeeRate;
-      var qOther = params.councilRates + params.insurance + params.maintenance + (params.landTaxAnnual || 0);
-      var qDepr  = params.depreciation;
-      var qTax   = params.marginalTaxRate;
+      var qLoan      = params.loanAmount;
+      var qRate      = params.interestRate;
+      var qLoanType  = params.loanType || 'io';
+      var qTermYears = params.loanTermYears || 30;
+      var qRent      = params.weeklyRent;
+      var qVac       = params.vacancyWeeks || 0;
+      var qMgmt      = params.managementFeeRate;
+      var qOther     = params.councilRates + params.insurance + params.maintenance + (params.landTaxAnnual || 0);
+      var qDepr      = params.depreciation;
       var rentGrowth = 0.03;
+      // Pre-compute P&I monthly constants for declining-balance interest.
+      var qMonthlyRate = qRate / 12;
+      var qNumPayments = qTermYears * 12;
+      var qPiFactor    = (qLoanType === 'pi' && qLoan > 0 && qRate > 0)
+        ? Math.pow(1 + qMonthlyRate, qNumPayments) : 0;
       for (var qy = 0; qy < years; qy++) {
+        var qAnnualInterest;
+        if (qLoanType === 'pi' && qPiFactor > 0) {
+          var qPaidFactor = Math.pow(1 + qMonthlyRate, 12 * qy);
+          var qBalance = qLoan * (qPiFactor - qPaidFactor) / (qPiFactor - 1);
+          qAnnualInterest = qBalance * qRate;
+        } else {
+          qAnnualInterest = qLoan * qRate;
+        }
         var qYearRent = qRent * (52 - qVac) * Math.pow(1 + rentGrowth, qy);
-        var qYearCosts = qLoan * qRate + qYearRent * qMgmt + qOther + qDepr;
+        var qYearCosts = qAnnualInterest + qYearRent * qMgmt + qOther + qDepr;
         var qNetPos = qYearRent - qYearCosts;
         if (qNetPos < 0) totalQuarantinedLoss += -qNetPos;
       }
@@ -599,7 +614,10 @@
 
       // Edge case A: if value at reform date is below cost base, no pre-reform gain.
       var valueAtReformDate = price * Math.pow(1 + growthRate, yearsToReformDate);
-      var preSplitGain  = Math.max(0, valueAtReformDate - costBase);
+      // Cap preSplitGain to adjustedCapitalGain so quarantined losses are allocated
+      // to the post-reform period first; prevents preTax exceeding the adjusted gain.
+      var preSplitGainRaw = Math.max(0, valueAtReformDate - costBase);
+      var preSplitGain    = Math.min(preSplitGainRaw, adjustedCapitalGain);
       // Edge case B: if sold before reform date, all gain is pre-reform (yearsToReformDate === years → postSplitGain = 0).
       var postSplitGain = Math.max(0, adjustedCapitalGain - preSplitGain);
 
@@ -1341,12 +1359,19 @@
       if (!isOpen && lastParams) renderCgtResults(lastParams);
     });
 
-    // CGT inputs trigger re-render
+    // CGT inputs trigger re-render with fresh DOM values (avoids 320ms stale-params flash).
     ['cgt-growth', 'cgt-years', 'cgt-sale-costs'].forEach(function (id) {
       var el = $(id);
       if (el) {
         el.addEventListener('input', function () {
-          if (!body.hidden && lastParams) renderCgtResults(lastParams);
+          if (!body.hidden && lastParams) {
+            var freshCgtParams = Object.assign({}, lastParams, {
+              cgtGrowthRate:  getNum('cgt-growth') / 100,
+              cgtYears:       getNum('cgt-years') || 10,
+              cgtSaleCostsPct:getNum('cgt-sale-costs') / 100
+            });
+            renderCgtResults(freshCgtParams);
+          }
           triggerDebounce();
         });
       }
