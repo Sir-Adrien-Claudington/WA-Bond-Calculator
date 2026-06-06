@@ -1,5 +1,6 @@
 server {
     listen $PORT;
+    server_tokens off;
     root /usr/share/nginx/html;
     index index.html;
 
