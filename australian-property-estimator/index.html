@@ -55,6 +55,14 @@
         </div>
         <div id="fhb-info-box" class="fhb-info-box" hidden></div>
 
+        <div class="field-group fhb-row" id="wa-mrit-row" hidden>
+          <label class="fhb-label">
+            <input type="checkbox" id="ape-wa-metro" name="wa-metro" checked>
+            Perth metropolitan area (MRIT applies at 0.14% above $300k)
+          </label>
+          <p class="field-hint">MRIT applies to land within the Perth metropolitan region only. Uncheck for regional WA properties.</p>
+        </div>
+
         <div class="field-group">
           <label class="field-label" for="ape-state">State / Territory</label>
           <select class="field-input field-select" id="ape-state" name="state" required>
@@ -372,6 +380,15 @@
             <input class="field-input" id="cgt-sale-costs" type="text" inputmode="decimal" value="2.5" autocomplete="off">
           </div>
         </div>
+        <div class="field-group">
+          <label class="field-label" for="cgt-current-value">Current estimated market value (optional)</label>
+          <div class="input-wrap">
+            <span class="input-prefix">$</span>
+            <input class="field-input has-prefix" id="cgt-current-value" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 1,200,000">
+          </div>
+          <p class="field-hint">If you've owned this property for several years, enter today's estimated value for a more accurate CGT projection. Leave blank to project from the original purchase price.</p>
+        </div>
+        <div id="cgt-holding-nudge" class="field-hint" hidden></div>
         <div id="cgtResults" class="cgt-results"></div>
         <p class="cgt-disclaimer">CGT estimate is indicative only. Actual liability depends on your complete tax position. Consult a registered tax agent.</p>
       </div>

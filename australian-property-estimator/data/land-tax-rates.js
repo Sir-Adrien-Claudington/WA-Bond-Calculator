@@ -98,22 +98,23 @@
   // --- Western Australia ---------------------------------------------------
   // Source: RevenueWA — "Land tax rates".
   // https://www.wa.gov.au/organisation/department-of-finance/land-tax
-  // VERIFY: confirm WA bracket bases and thresholds.
+  // $300,001–$420,000 is a FLAT $300 (not marginal) — use base:300, rate:0.
+  // Cross-checks: $315k→$300 | $420k→$300 | $500k→$500 | $1M→$1,750
   var WA = {
     state: 'WA',
     name: 'Western Australia',
     source: 'RevenueWA — Land tax',
     sourceUrl: 'https://www.wa.gov.au/organisation/department-of-finance/land-tax',
-    verify: true,
+    verify: false,
     hasLandTax: true,
     brackets: [
-      { upTo: 300000, base: 0, rate: 0, over: 0 },
-      { upTo: 420000, base: 0, rate: 0.0025, over: 300000 },
-      { upTo: 1000000, base: 300, rate: 0.009, over: 420000 },
-      { upTo: 1800000, base: 5520, rate: 0.018, over: 1000000 },
-      { upTo: 5000000, base: 19920, rate: 0.02, over: 1800000 },
-      { upTo: 11000000, base: 83920, rate: 0.023, over: 5000000 },
-      { upTo: null, base: 221920, rate: 0.0267, over: 11000000 }
+      { upTo: 300000,   base: 0,      rate: 0,      over: 0 },
+      { upTo: 420000,   base: 300,    rate: 0,      over: 300000 },
+      { upTo: 1000000,  base: 300,    rate: 0.0025, over: 420000 },
+      { upTo: 1800000,  base: 1750,   rate: 0.009,  over: 1000000 },
+      { upTo: 5000000,  base: 8950,   rate: 0.018,  over: 1800000 },
+      { upTo: 11000000, base: 66550,  rate: 0.02,   over: 5000000 },
+      { upTo: null,     base: 186550, rate: 0.0267, over: 11000000 }
     ]
   };
 

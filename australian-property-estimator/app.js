@@ -255,9 +255,11 @@
       loanType:          loanType,
       loanTermYears:     getNum('ape-loan-term') || 30,
       isFirstHomeBuyer:  $('ape-fhb') ? $('ape-fhb').checked : false,
+      waMetro:           $('ape-wa-metro') ? $('ape-wa-metro').checked : false,
       cgtGrowthRate:     getNum('cgt-growth') / 100,
       cgtYears:          getNum('cgt-years') || 10,
-      cgtSaleCostsPct:   getNum('cgt-sale-costs') / 100
+      cgtSaleCostsPct:   getNum('cgt-sale-costs') / 100,
+      cgtCurrentValue:   getNum('cgt-current-value') || 0
     };
   }
 
@@ -271,7 +273,7 @@
     'ape-council-rates', 'ape-insurance', 'ape-maintenance', 'ape-depreciation',
     'ape-marginal-tax-rate', 'ape-loan-term', 'ape-loan-type',
     'ape-contract-date', 'ape-property-type',
-    'cgt-growth', 'cgt-years', 'cgt-sale-costs'
+    'cgt-growth', 'cgt-years', 'cgt-sale-costs', 'cgt-current-value'
   ];
 
   function encodeToUrl() {
@@ -401,6 +403,15 @@
     if (mgmtEl   && !mgmtEl.dataset.userEdited)   { mgmtEl.value = d.managementFee; }
     if (councilEl && !councilEl.dataset.userEdited) { councilEl.value = d.councilRates.toLocaleString('en-AU'); }
     if (insEl     && !insEl.dataset.userEdited)     { insEl.value = d.insurance.toLocaleString('en-AU'); }
+  }
+
+  // ================================================================
+  // WA METRO (MRIT) ROW VISIBILITY
+  // ================================================================
+
+  function updateWaMritRow(state) {
+    var row = $('wa-mrit-row');
+    if (row) row.hidden = (state !== 'WA');
   }
 
   // ================================================================
@@ -558,17 +569,19 @@
   // ================================================================
 
   function calcCgt(params) {
-    var price       = params.purchasePrice;
-    var stampDuty   = params.stampDutyValue || 0;
-    var costBase    = price + stampDuty; // stamp duty is part of the CGT cost base
-    var growthRate  = params.cgtGrowthRate || 0.05;
-    var years       = params.cgtYears || 10;
-    var saleCostPct = params.cgtSaleCostsPct || 0.025;
-    var taxRate     = params.marginalTaxRate || 0;
-    var salePrice       = price * Math.pow(1 + growthRate, years);
-    var saleCosts       = salePrice * saleCostPct;
-    var netProceeds     = salePrice - saleCosts;
-    var capitalGain     = Math.max(0, netProceeds - costBase);
+    var price         = params.purchasePrice;
+    var stampDuty     = params.stampDutyValue || 0;
+    var costBase      = price + stampDuty; // stamp duty is part of the CGT cost base
+    var growthRate    = params.cgtGrowthRate || 0.05;
+    var years         = params.cgtYears || 10;
+    var saleCostPct   = params.cgtSaleCostsPct || 0.025;
+    var taxRate       = params.marginalTaxRate || 0;
+    var currentValue  = params.cgtCurrentValue || 0; // optional "project from today" start value
+    var startValue    = currentValue > 0 ? currentValue : price;
+    var salePrice     = startValue * Math.pow(1 + growthRate, years);
+    var saleCosts     = salePrice * saleCostPct;
+    var netProceeds   = salePrice - saleCosts;
+    var capitalGain   = Math.max(0, netProceeds - costBase);
 
     // Accumulate quarantined rental losses over the holding period (new regime only).
     // These offset the capital gain at sale before CGT is applied.
@@ -668,7 +681,31 @@
       resultsEl.innerHTML = '<div class="empty-state">Calculate first to see CGT projection.</div>';
       return;
     }
+
+    // Holding-years nudge: show tip if contract date is more than 5 years ago.
+    var nudgeEl = $('cgt-holding-nudge');
+    if (nudgeEl && params.contractDate) {
+      var msPerYear = 365.25 * 24 * 3600 * 1000;
+      var heldYears = (Date.now() - params.contractDate.getTime()) / msPerYear;
+      if (heldYears > 5 && !(params.cgtCurrentValue > 0)) {
+        nudgeEl.textContent = 'ⓘ This property has been held for ' + Math.floor(heldYears) +
+          ' years. Consider entering a current market value above for a more realistic CGT projection.';
+        nudgeEl.hidden = false;
+      } else {
+        nudgeEl.hidden = true;
+      }
+    } else if (nudgeEl) {
+      nudgeEl.hidden = true;
+    }
+
     var cgt = calcCgt(params);
+
+    // "Projecting from current value" note.
+    var startNote = (params.cgtCurrentValue > 0)
+      ? '<p class="field-hint" style="margin-bottom:8px">Projecting from current market value of ' +
+        fmtMoney(params.cgtCurrentValue) + '. CGT cost base still uses original purchase price (' +
+        fmtMoney(params.purchasePrice) + ') + stamp duty.</p>'
+      : '';
 
     // --- CASE B: split-gain breakdown table ---
     if (cgt.split) {
@@ -707,7 +744,7 @@
         '<div class="summary-row summary-row-total"><span class="label">Net after-tax profit</span>' +
         '<span class="value">' + fmtMoney(cgt.netAfterTax) + '</span></div>';
 
-      resultsEl.innerHTML =
+      resultsEl.innerHTML = startNote +
         '<p class="cgt-split-intro">Split CGT treatment applies — the gain is taxed in two periods:</p>' +
         tbl + summary +
         '<p class="cgt-regime-disclaimer">' + REGIME_DISCLAIMER + '</p>';
@@ -738,7 +775,7 @@
               '<span class="label">' + r[0] + '</span>' +
               '<span class="value">' + r[1] + '</span></div>';
     });
-    resultsEl.innerHTML = html;
+    resultsEl.innerHTML = startNote + html;
   }
 
   // ================================================================
@@ -1064,8 +1101,18 @@
     var taxLabel = isNT ? 'No land tax' : (lt.value === 0 ? 'Below threshold' : fmtMoney(lt.value));
     var html =
       summaryRow('Land value', fmtMoney(params.landValue)) +
-      summaryRow('Annual land tax', taxLabel) +
-      '<div class="summary-row"><span class="label">Status</span><span class="value">' + statusBadge + '</span></div>';
+      summaryRow('Annual land tax', taxLabel);
+
+    // WA: show MRIT as a separate deductible line when metro is checked.
+    var mrit = params.mritAnnual || 0;
+    if (params.state === 'WA') {
+      html += summaryRow('MRIT (metro levy)', mrit > 0 ? fmtMoney(mrit) : 'Not applicable');
+      if (mrit > 0) {
+        html += summaryRow('Total land charges', fmtMoney((lt.value || 0) + mrit));
+      }
+    }
+
+    html += '<div class="summary-row"><span class="label">Status</span><span class="value">' + statusBadge + '</span></div>';
     el.innerHTML = html;
   }
 
@@ -1312,14 +1359,22 @@
     params.landTaxAnnual  = (lt && lt.value !== null) ? lt.value : 0;
     params.stampDutyValue = (sd && sd.value !== null) ? sd.value : 0;
 
-    var ng = APE_NegativeGearing.calculate(Object.assign({}, params, { landTax: params.landTaxAnnual }));
+    // WA Metropolitan Region Improvement Tax (MRIT): 0.14% on land value over $300k.
+    params.mritAnnual = (params.state === 'WA' && params.waMetro && params.landValue > 300000)
+      ? Math.round((params.landValue - 300000) * 0.0014 * 100) / 100
+      : 0;
+
+    var ng = APE_NegativeGearing.calculate(Object.assign({}, params, {
+      landTax: params.landTaxAnnual + params.mritAnnual  // both are deductible
+    }));
 
     // Patch ng with individual expense fields for donut chart
     ng = Object.assign({}, ng, {
       councilRates: params.councilRates,
       insurance:    params.insurance,
       maintenance:  params.maintenance,
-      landTax:      params.landTaxAnnual
+      landTax:      params.landTaxAnnual,
+      mrit:         params.mritAnnual
     });
 
     // Quarantine the loss when new rules apply.
@@ -1360,15 +1415,16 @@
     });
 
     // CGT inputs trigger re-render with fresh DOM values (avoids 320ms stale-params flash).
-    ['cgt-growth', 'cgt-years', 'cgt-sale-costs'].forEach(function (id) {
+    ['cgt-growth', 'cgt-years', 'cgt-sale-costs', 'cgt-current-value'].forEach(function (id) {
       var el = $(id);
       if (el) {
         el.addEventListener('input', function () {
           if (!body.hidden && lastParams) {
             var freshCgtParams = Object.assign({}, lastParams, {
-              cgtGrowthRate:  getNum('cgt-growth') / 100,
-              cgtYears:       getNum('cgt-years') || 10,
-              cgtSaleCostsPct:getNum('cgt-sale-costs') / 100
+              cgtGrowthRate:   getNum('cgt-growth') / 100,
+              cgtYears:        getNum('cgt-years') || 10,
+              cgtSaleCostsPct: getNum('cgt-sale-costs') / 100,
+              cgtCurrentValue: getNum('cgt-current-value') || 0
             });
             renderCgtResults(freshCgtParams);
           }
@@ -1457,6 +1513,7 @@
         var state = stateEl.value;
         applyStateDefaults(state);
         updateFhbInfoBox(state);
+        updateWaMritRow(state);
         validateField('ape-state');
         // Refresh tax cards immediately so they stop showing the "Select a state" placeholder
         updateStampDuty();
@@ -1470,6 +1527,14 @@
     if (fhbEl) {
       fhbEl.addEventListener('change', function () {
         updateFhbInfoBox(getStr('ape-state'));
+        triggerDebounce();
+      });
+    }
+
+    // WA metro checkbox
+    var waMetroEl = $('ape-wa-metro');
+    if (waMetroEl) {
+      waMetroEl.addEventListener('change', function () {
         triggerDebounce();
       });
     }
@@ -1573,6 +1638,7 @@
       if (state) {
         applyStateDefaults(state);
         updateFhbInfoBox(state);
+        updateWaMritRow(state);
       }
       updateLvr();
       renderRegimeBanner(readParams().regime);
