@@ -131,13 +131,17 @@ var APE_NegativeGearing = (function () {
     } else {
       bd.push('Interest cost: ' + fmtMoney(interestCost) + ' (' + fmtPct(rate) + ' p.a. on ' + fmtMoney(loan) + ' loan, interest-only basis).');
     }
-    bd.push('Property management fees: ' + fmtMoney(managementFees) + ' (' + fmtPct(mgmtRate) + ' of rent).');
+    if (mgmtRate === 0) {
+      bd.push('Property management: Self-managed (no management fee).');
+    } else {
+      bd.push('Property management fees: ' + fmtMoney(managementFees) + ' (' + fmtPct(mgmtRate) + ' of rent).');
+    }
     bd.push('Council rates, insurance & maintenance: ' + fmtMoney(councilInsuranceMaint) + '.');
     if (landTax > 0) {
       bd.push('Land tax (tax-deductible investment expense): ' + fmtMoney(landTax) + '.');
     }
     if (depreciation > 0) {
-      bd.push('Depreciation allowance: ' + fmtMoney(depreciation) + '.');
+      bd.push('Depreciation allowance: ' + fmtMoney(depreciation) + ' (non-cash deduction — reduces taxable income without being an out-of-pocket expense).');
     }
     bd.push('Total deductions: ' + fmtMoney(totalDeductions) + '.');
     bd.push(
@@ -172,6 +176,11 @@ var APE_NegativeGearing = (function () {
       'This is a simplified estimate only. Seek qualified tax advice for your specific situation.'
     ];
 
+    // Cash position excludes depreciation (non-cash). Useful for showing
+    // that a property may be operationally cash-positive before depreciation.
+    var cashDeductions   = round2(totalDeductions - depreciation);
+    var cashRentalPos    = round2(annualRent - cashDeductions); // positive = cash surplus ex-depr
+
     return Object.freeze({
       type:                    'negative-gearing',
       gearingStatus:           gearingStatus,
@@ -182,6 +191,8 @@ var APE_NegativeGearing = (function () {
       landTax:                 landTax,
       otherExpenses:           otherExpenses,
       depreciation:            depreciation,
+      cashDeductions:          cashDeductions,
+      cashRentalPos:           cashRentalPos,
       totalDeductions:         totalDeductions,
       netRentalIncome:  netRentalIncome,
       taxBenefit:       taxBenefit,

@@ -1198,6 +1198,13 @@
           var loss = Math.abs(ng.netRentalIncome);
           detailEl.innerHTML = '<span class="quarantine-note">Quarantined loss: ' + fmtMoney(loss) +
             ' — carried forward to future rental income</span>';
+        } else if (ng.depreciation > 0) {
+          // Show cash vs accounting split when there is a non-cash depreciation deduction.
+          var cashNote = ng.cashRentalPos >= 0
+            ? 'Cash surplus ex-depreciation: +' + fmtMoney(ng.cashRentalPos) + '/yr'
+            : 'Cash loss ex-depreciation: ' + fmtMoney(ng.cashRentalPos) + '/yr';
+          detailEl.innerHTML = fmtMoney(ng.netCashFlow) + '/yr after-tax · <span class="depreciation-note" title="Depreciation (' +
+            fmtMoney(ng.depreciation) + ') is a non-cash deduction">' + cashNote + ' (depreciation is non-cash)</span>';
         } else {
           detailEl.textContent = fmtMoney(ng.netCashFlow) + '/yr after-tax cost';
         }
@@ -1227,7 +1234,11 @@
     }
 
     var icon, title, cls;
-    if (regime.isGrandfathered) {
+    if (regime.isGrandfathered && regime.isNewBuild) {
+      cls = 'regime-success';
+      icon = '🏗️';
+      title = 'Grandfathered and new build — full negative gearing applies. At sale, choose 50% CGT discount or cost-base indexation.';
+    } else if (regime.isGrandfathered) {
       cls = 'regime-success';
       icon = '🛡️';
       title = 'Grandfathered — current negative gearing rules and 50% CGT discount apply';
