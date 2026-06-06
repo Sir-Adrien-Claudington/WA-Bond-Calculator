@@ -303,6 +303,13 @@
     if (q.has('ape-property-type')) {
       setPropertyType(q.get('ape-property-type') === 'new_build' ? 'new_build' : 'established');
     }
+    // Remap pre-Stage-3 tax rate values to the current 2025-26 schedule.
+    var taxEl = $('ape-marginal-tax-rate');
+    if (taxEl) {
+      var OLD_RATE_MAP = { '0.21': '0.18', '0.345': '0.32' };
+      var mapped = OLD_RATE_MAP[taxEl.value];
+      if (mapped) taxEl.value = mapped;
+    }
     return hasAny;
   }
 
@@ -319,6 +326,34 @@
     if (btnIo) btnIo.classList.toggle('active', type === 'io');
     if (btnPi) btnPi.classList.toggle('active', type === 'pi');
     if (termField) termField.hidden = (type !== 'pi');
+    updateLoanTypeHint();
+  }
+
+  function updateLoanTypeHint() {
+    var hintEl = $('loan-type-hint');
+    if (!hintEl) return;
+    var type = getStr('ape-loan-type') || 'io';
+    if (type === 'pi') {
+      var loan = getNum('ape-loan-amount');
+      var rate = getNum('ape-interest-rate') / 100;
+      var term = getNum('ape-loan-term') || 30;
+      var yr1Interest = '';
+      if (loan > 0 && rate > 0) {
+        var mr = rate / 12;
+        var n  = term * 12;
+        var mp = round2(loan * mr * Math.pow(1 + mr, n) / (Math.pow(1 + mr, n) - 1));
+        var bal = loan, interest = 0;
+        for (var m = 0; m < 12; m++) {
+          var mi = round2(bal * mr);
+          interest = round2(interest + mi);
+          bal = round2(bal - (mp - mi));
+        }
+        yr1Interest = ' (~' + fmtMoney(interest) + ' yr 1 on this loan)';
+      }
+      hintEl.textContent = 'Principal & interest. Only the interest component is tax-deductible' + yr1Interest + '. Principal repayments are not deductible.';
+    } else {
+      hintEl.textContent = 'Interest-only basis. Principal repayments are not tax-deductible.';
+    }
   }
 
   // ================================================================
@@ -422,7 +457,7 @@
 
     // Update line chart for slider (no debounce)
     if (chartInstances.line) {
-      var proj = buildProjection(sliderRate, 0.03);
+      var proj = buildProjection(Object.assign({}, params, { interestRate: sliderRate }), 0.03);
       var ds = chartInstances.line.data.datasets;
       ds[0].data = proj.beforeTax;
       ds[1].data = proj.afterTax;
@@ -435,18 +470,40 @@
   // 10-YEAR PROJECTION
   // ================================================================
 
-  function buildProjection(interestRate, rentGrowthRate) {
-    var loanAmount   = getNum('ape-loan-amount');
-    var weeklyRent   = getNum('ape-weekly-rent');
-    var vacancyWks   = getNum('ape-vacancy') || 0;
-    var mgmtRate     = getNum('ape-management-fee') / 100;
-    var otherExp     = getNum('ape-council-rates') + getNum('ape-insurance') + getNum('ape-maintenance');
-    var depreciation = getNum('ape-depreciation');
-    var taxRate      = parseFloat(getStr('ape-marginal-tax-rate')) || 0;
-    var annualInterest = loanAmount * interestRate;
+  function buildProjection(params, rentGrowthRate) {
+    var loanAmount    = params.loanAmount;
+    var interestRate  = params.interestRate;
+    var loanType      = params.loanType || 'io';
+    var loanTermYears = params.loanTermYears || 30;
+    var weeklyRent    = params.weeklyRent;
+    var vacancyWks    = params.vacancyWeeks || 0;
+    var mgmtRate      = params.managementFeeRate;
+    var otherExp      = params.councilRates + params.insurance + params.maintenance + (params.landTaxAnnual || 0);
+    var depreciation  = params.depreciation;
+    var taxRate       = params.marginalTaxRate;
+
+    // For P&I: pre-compute monthly repayment so we can derive each year's interest from the declining balance.
+    var monthlyRate = interestRate / 12;
+    var numPayments = loanTermYears * 12;
+    var piMonthlyPayment = (loanType === 'pi' && loanAmount > 0 && interestRate > 0)
+      ? round2(loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments) / (Math.pow(1 + monthlyRate, numPayments) - 1))
+      : 0;
+
     var beforeTax = [], afterTax = [], newRegime = [];
-    var carriedLoss = 0; // accumulated quarantined losses (new regime)
+    var carriedLoss = 0;
     for (var yr = 0; yr < 10; yr++) {
+      // Deductible interest for this year.
+      var annualInterest;
+      if (loanType === 'pi' && piMonthlyPayment > 0) {
+        // Outstanding balance at start of year = L × ((1+r)^n − (1+r)^(12·yr)) / ((1+r)^n − 1)
+        var factor = Math.pow(1 + monthlyRate, numPayments);
+        var paidFactor = Math.pow(1 + monthlyRate, 12 * yr);
+        var balance = loanAmount * (factor - paidFactor) / (factor - 1);
+        annualInterest = balance * interestRate; // approximate (balance × annual rate)
+      } else {
+        annualInterest = loanAmount * interestRate;
+      }
+
       var rent = weeklyRent * (52 - vacancyWks) * Math.pow(1 + rentGrowthRate, yr);
       var mgmt = rent * mgmtRate;
       var totalCosts = annualInterest + mgmt + otherExp + depreciation;
@@ -482,7 +539,7 @@
     var weeklyRent   = params.weeklyRent;
     var vacancyWks   = params.vacancyWeeks || 0;
     var mgmtRate     = params.managementFeeRate;
-    var otherExp     = params.councilRates + params.insurance + params.maintenance;
+    var otherExp     = params.councilRates + params.insurance + params.maintenance + (params.landTaxAnnual || 0);
     var depreciation = params.depreciation;
     var annualInterest = params.loanAmount * params.interestRate;
     var rentGrowth = 0.03;
@@ -501,6 +558,8 @@
 
   function calcCgt(params) {
     var price       = params.purchasePrice;
+    var stampDuty   = params.stampDutyValue || 0;
+    var costBase    = price + stampDuty; // stamp duty is part of the CGT cost base
     var growthRate  = params.cgtGrowthRate || 0.05;
     var years       = params.cgtYears || 10;
     var saleCostPct = params.cgtSaleCostsPct || 0.025;
@@ -508,40 +567,60 @@
     var salePrice       = price * Math.pow(1 + growthRate, years);
     var saleCosts       = salePrice * saleCostPct;
     var netProceeds     = salePrice - saleCosts;
-    var capitalGain     = netProceeds - price;
+    var capitalGain     = Math.max(0, netProceeds - costBase);
+
+    // Accumulate quarantined rental losses over the holding period (new regime only).
+    // These offset the capital gain at sale before CGT is applied.
+    var totalQuarantinedLoss = 0;
+    if (params.regime && !params.regime.negativeGearingUnrestricted) {
+      var qLoan  = params.loanAmount;
+      var qRate  = params.interestRate;
+      var qRent  = params.weeklyRent;
+      var qVac   = params.vacancyWeeks || 0;
+      var qMgmt  = params.managementFeeRate;
+      var qOther = params.councilRates + params.insurance + params.maintenance + (params.landTaxAnnual || 0);
+      var qDepr  = params.depreciation;
+      var qTax   = params.marginalTaxRate;
+      var rentGrowth = 0.03;
+      for (var qy = 0; qy < years; qy++) {
+        var qYearRent = qRent * (52 - qVac) * Math.pow(1 + rentGrowth, qy);
+        var qYearCosts = qLoan * qRate + qYearRent * qMgmt + qOther + qDepr;
+        var qNetPos = qYearRent - qYearCosts;
+        if (qNetPos < 0) totalQuarantinedLoss += -qNetPos;
+      }
+    }
+    var adjustedCapitalGain = Math.max(0, capitalGain - totalQuarantinedLoss);
 
     // --- CASE B: new regime, established property → split CGT treatment ---
-    // Pre-reform gain keeps the 50% discount; post-reform gain has no discount
-    // and a 30% minimum effective tax rate.
     if (params.regime && params.regime.cgtSplitTreatment && params.contractDate && capitalGain > 0) {
       var msPerYear = 365.25 * 24 * 3600 * 1000;
       var yearsToReformDate = (CGT_REFORM_DATE - params.contractDate) / msPerYear;
-      // Clamp so a contract already past the reform date, or a sale before it,
-      // degrades gracefully to a single period.
       yearsToReformDate = Math.max(0, Math.min(years, yearsToReformDate));
 
+      // Edge case A: if value at reform date is below cost base, no pre-reform gain.
       var valueAtReformDate = price * Math.pow(1 + growthRate, yearsToReformDate);
-      var preSplitGain  = valueAtReformDate - price;
-      var postSplitGain = salePrice - valueAtReformDate;
-      if (preSplitGain < 0) preSplitGain = 0;
-      if (postSplitGain < 0) postSplitGain = 0;
+      var preSplitGain  = Math.max(0, valueAtReformDate - costBase);
+      // Edge case B: if sold before reform date, all gain is pre-reform (yearsToReformDate === years → postSplitGain = 0).
+      var postSplitGain = Math.max(0, adjustedCapitalGain - preSplitGain);
 
       // Pre-reform: 50% discount still applies.
       var taxablePreGain = preSplitGain * 0.5;
       // Post-reform: 30% minimum tax, no discount.
       var effectivePostRate = Math.max(0.30, taxRate);
-      var taxablePostGain   = postSplitGain;
 
       var preTax  = taxablePreGain * taxRate;
-      var postTax = taxablePostGain * effectivePostRate;
+      var postTax = postSplitGain * effectivePostRate;
       var totalCGT = preTax + postTax;
 
       return {
         split: true,
+        costBase: costBase, stampDuty: stampDuty,
         salePrice: salePrice, saleCosts: saleCosts, netProceeds: netProceeds,
-        capitalGain: capitalGain, years: years,
+        capitalGain: capitalGain, adjustedCapitalGain: adjustedCapitalGain,
+        totalQuarantinedLoss: totalQuarantinedLoss,
+        years: years,
         preSplitGain: preSplitGain, postSplitGain: postSplitGain,
-        taxablePreGain: taxablePreGain, taxablePostGain: taxablePostGain,
+        taxablePreGain: taxablePreGain,
         effectivePostRate: effectivePostRate,
         preTax: preTax, postTax: postTax,
         cgtPayable: totalCGT,
@@ -549,14 +628,17 @@
       };
     }
 
-    // --- CASE A: grandfathered, new build, or no regime → 50% discount ---
-    var taxableGain     = capitalGain > 0 ? capitalGain * 0.5 : capitalGain; // 50% discount (held > 12mo assumed)
-    var cgtPayable      = taxableGain > 0 ? taxableGain * taxRate : 0;
-    var netAfterTax     = capitalGain - cgtPayable;
+    // --- CASE A: grandfathered, new build, or no regime → 50% discount on adjusted gain ---
+    var taxableGain = adjustedCapitalGain > 0 ? adjustedCapitalGain * 0.5 : 0;
+    var cgtPayable  = taxableGain > 0 ? taxableGain * taxRate : 0;
+    var netAfterTax = capitalGain - cgtPayable;
     return {
       split: false,
+      costBase: costBase, stampDuty: stampDuty,
       salePrice: salePrice, saleCosts: saleCosts, netProceeds: netProceeds,
-      capitalGain: capitalGain, taxableGain: taxableGain,
+      capitalGain: capitalGain, adjustedCapitalGain: adjustedCapitalGain,
+      totalQuarantinedLoss: totalQuarantinedLoss,
+      taxableGain: taxableGain,
       cgtPayable: cgtPayable, netAfterTax: netAfterTax, years: years
     };
   }
@@ -600,7 +682,10 @@
       var summary =
         summaryRow('Projected sale price', fmtMoney(cgt.salePrice)) +
         summaryRow('Sale costs (' + (params.cgtSaleCostsPct * 100).toFixed(1) + '%)', '−' + fmtMoney(cgt.saleCosts)) +
-        summaryRow('Capital gain', fmtMoney(cgt.capitalGain)) +
+        summaryRow('Net proceeds', fmtMoney(cgt.netProceeds)) +
+        summaryRow('Cost base (purchase + stamp duty)', '−' + fmtMoney(cgt.costBase)) +
+        summaryRow('Gross capital gain', fmtMoney(cgt.capitalGain)) +
+        (cgt.totalQuarantinedLoss > 0 ? summaryRow('Accumulated quarantined losses', '−' + fmtMoney(cgt.totalQuarantinedLoss)) : '') +
         '<div class="summary-row summary-row-total"><span class="label">Net after-tax profit</span>' +
         '<span class="value">' + fmtMoney(cgt.netAfterTax) + '</span></div>';
 
@@ -616,13 +701,18 @@
       ['Projected sale price', fmtMoney(cgt.salePrice)],
       ['Sale costs (' + (params.cgtSaleCostsPct * 100).toFixed(1) + '%)', '−' + fmtMoney(cgt.saleCosts)],
       ['Net proceeds', fmtMoney(cgt.netProceeds)],
-      ['Cost base', '−' + fmtMoney(params.purchasePrice)],
-      ['Capital gain', fmtMoney(cgt.capitalGain)],
+      ['Cost base (purchase + stamp duty)', '−' + fmtMoney(cgt.costBase)],
+      ['Gross capital gain', fmtMoney(cgt.capitalGain)]
+    ];
+    if (cgt.totalQuarantinedLoss > 0) {
+      rows.push(['Accumulated quarantined losses', '−' + fmtMoney(cgt.totalQuarantinedLoss)]);
+    }
+    rows = rows.concat([
       ['50% CGT discount applied', 'Yes (held > 12 months)'],
       ['Taxable gain', fmtMoney(cgt.taxableGain)],
       ['CGT payable (' + (params.marginalTaxRate * 100).toFixed(1) + '%)', '−' + fmtMoney(cgt.cgtPayable)],
       ['Net after-tax profit', fmtMoney(cgt.netAfterTax)]
-    ];
+    ]);
     var html = '';
     rows.forEach(function (r, i) {
       var isLast = i === rows.length - 1;
@@ -647,6 +737,7 @@
       { label: 'Council',    value: ng.councilRates },
       { label: 'Insurance',  value: ng.insurance },
       { label: 'Maintenance',value: ng.maintenance },
+      { label: 'Land tax',   value: ng.landTax || 0 },
       { label: 'Depreciation', value: ng.depreciation }
     ].filter(function (s) { return s.value > 0; });
 
@@ -1113,7 +1204,7 @@
     getOrCreateBar(ng);
 
     // Line chart projection
-    var projection = buildProjection(params.interestRate, 0.03);
+    var projection = buildProjection(params, 0.03);
     var reformIdx = null;
     if (params.regime && params.regime.cgtSplitTreatment && params.contractDate) {
       var msPerYear = 365.25 * 24 * 3600 * 1000;
@@ -1196,34 +1287,37 @@
   function runCalculation() {
     if (!validateForm()) return;
     var params = readParams();
-    lastParams = params;
-    var ng = APE_NegativeGearing.calculate(params);
+
+    // Calculate land tax and stamp duty first so they feed into NG deductions and CGT cost base.
+    var sd = APE_StampDuty.calculate(params.state, params.purchasePrice, params.isFirstHomeBuyer);
+    var lt = APE_LandTax.calculate(params.state, params.landValue);
+    params.landTaxAnnual  = (lt && lt.value !== null) ? lt.value : 0;
+    params.stampDutyValue = (sd && sd.value !== null) ? sd.value : 0;
+
+    var ng = APE_NegativeGearing.calculate(Object.assign({}, params, { landTax: params.landTaxAnnual }));
 
     // Patch ng with individual expense fields for donut chart
     ng = Object.assign({}, ng, {
       councilRates: params.councilRates,
       insurance:    params.insurance,
-      maintenance:  params.maintenance
+      maintenance:  params.maintenance,
+      landTax:      params.landTaxAnnual
     });
 
-    // --- Regime adjustment (Step 6): quarantine the loss when new rules apply ---
-    // Default: keep the module's tax benefit (grandfathered / new build / no date).
+    // Quarantine the loss when new rules apply.
     ng.quarantined = false;
     ng.quarantinedAmount = 0;
     if (params.regime && !params.regime.negativeGearingUnrestricted) {
-      // New regime, established property: rental losses cannot offset other
-      // income — the would-be tax benefit becomes $0 and the loss is carried forward.
       if (ng.gearingStatus === 'negative') {
         ng.quarantined = true;
-        ng.quarantinedAmount = ng.taxBenefit; // the benefit that no longer applies
+        ng.quarantinedAmount = ng.taxBenefit;
         ng.taxBenefit = 0;
-        ng.netCashFlow = round2(ng.netRentalIncome); // no tax offset added back
+        ng.netCashFlow = round2(ng.netRentalIncome);
         ng.weeklyNetCost = round2(-ng.netCashFlow / 52);
       }
     }
 
-    var sd = APE_StampDuty.calculate(params.state, params.purchasePrice, params.isFirstHomeBuyer);
-    var lt = APE_LandTax.calculate(params.state, params.landValue);
+    lastParams = params;
     renderDashboard(params, ng, sd, lt);
     encodeToUrl();
     hasCalculatedOnce = true;
@@ -1354,6 +1448,12 @@
         triggerDebounce();
       });
     }
+
+    // Update loan-type hint when key inputs change
+    ['ape-loan-amount', 'ape-interest-rate', 'ape-loan-term'].forEach(function (id) {
+      var el = $(id);
+      if (el) el.addEventListener('input', updateLoanTypeHint);
+    });
 
     // Loan type toggle buttons
     var btnIo = $('btn-io');

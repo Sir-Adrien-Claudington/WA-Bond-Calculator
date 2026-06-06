@@ -67,10 +67,10 @@
       { upTo: 100000, base: 500, rate: 0, over: 50000 },
       { upTo: 300000, base: 975, rate: 0, over: 100000 },
       { upTo: 600000, base: 1350, rate: 0.003, over: 300000 },
-      { upTo: 1000000, base: 2250, rate: 0.006, over: 600000 },
-      { upTo: 1800000, base: 4650, rate: 0.009, over: 1000000 },
-      { upTo: 3000000, base: 11850, rate: 0.0165, over: 1800000 },
-      { upTo: null, base: 31650, rate: 0.0265, over: 3000000 }
+      { upTo: 1000000, base: 2250, rate: 0.005, over: 600000 },
+      { upTo: 1800000, base: 4250, rate: 0.008, over: 1000000 },
+      { upTo: 3000000, base: 10650, rate: 0.013, over: 1800000 },
+      { upTo: null, base: 26250, rate: 0.0265, over: 3000000 }
     ]
   };
 

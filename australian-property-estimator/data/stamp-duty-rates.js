@@ -64,10 +64,11 @@
       { upTo: 25000, base: 0, rate: 0.014, over: 0 },
       { upTo: 130000, base: 350, rate: 0.024, over: 25000 },
       { upTo: 960000, base: 2870, rate: 0.06, over: 130000 },
-      // $960,000 to $2,000,000: flat 5.5% of the full dutiable value.
-      // Represented as marginal here; VERIFY this approximation against SRO.
-      { upTo: 2000000, base: 52800, rate: 0.055, over: 960000 },
-      { upTo: null, base: 110000, rate: 0.065, over: 2000000 }
+      // $960,001 to $2,000,000: flat 5.5% of ENTIRE dutiable value (not marginal).
+      // Setting over: 0 makes the formula `0 + 0.055 × value` = flat rate on full value.
+      { upTo: 2000000, base: 0, rate: 0.055, over: 0 },
+      // Over $2,000,000: flat 6.5% of ENTIRE dutiable value.
+      { upTo: null, base: 0, rate: 0.065, over: 0 }
     ]
   };
 

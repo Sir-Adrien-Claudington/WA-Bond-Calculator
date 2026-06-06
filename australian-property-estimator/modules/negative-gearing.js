@@ -8,12 +8,12 @@
  *
  * No DOM access. No persistence. Pure function of its inputs.
  *
- * Australian income tax rates used (2025-26, incl. Medicare levy):
+ * Australian income tax rates used (2025-26, Stage 3 cuts, incl. Medicare levy):
  *   0%    — $0 to $18,200
- *   21%   — $18,201 to $45,000   (19% + 2% ML)
- *   34.5% — $45,001 to $120,000  (32.5% + 2% ML)
- *   39%   — $120,001 to $180,000 (37% + 2% ML)
- *   47%   — $180,001+            (45% + 2% ML)
+ *   18%   — $18,201 to $45,000   (16% + 2% ML)
+ *   32%   — $45,001 to $135,000  (30% + 2% ML)
+ *   39%   — $135,001 to $190,000 (37% + 2% ML)
+ *   47%   — $190,001+            (45% + 2% ML)
  */
 
 var APE_NegativeGearing = (function () {
@@ -63,6 +63,7 @@ var APE_NegativeGearing = (function () {
     var council      = round2(Number(params.councilRates)      || 0);
     var insurance    = round2(Number(params.insurance)         || 0);
     var maintenance  = round2(Number(params.maintenance)       || 0);
+    var landTax      = round2(Number(params.landTax)           || 0);
     var depreciation = round2(Number(params.depreciation)      || 0);
     var taxRate      = Number(params.marginalTaxRate)          || 0;
     var loanType     = params.loanType === 'pi' ? 'pi' : 'io';
@@ -98,9 +99,10 @@ var APE_NegativeGearing = (function () {
     }
 
     // --- Deductions (only interest is deductible for P&I) ---
-    var managementFees  = round2(annualRent * mgmtRate);
-    var otherExpenses   = round2(council + insurance + maintenance);
-    var totalDeductions = round2(interestCost + managementFees + otherExpenses + depreciation);
+    var managementFees           = round2(annualRent * mgmtRate);
+    var councilInsuranceMaint    = round2(council + insurance + maintenance);
+    var otherExpenses            = round2(councilInsuranceMaint + landTax);
+    var totalDeductions          = round2(interestCost + managementFees + otherExpenses + depreciation);
 
     // --- Net rental position ---
     var netRentalIncome = round2(annualRent - totalDeductions);
@@ -130,7 +132,10 @@ var APE_NegativeGearing = (function () {
       bd.push('Interest cost: ' + fmtMoney(interestCost) + ' (' + fmtPct(rate) + ' p.a. on ' + fmtMoney(loan) + ' loan, interest-only basis).');
     }
     bd.push('Property management fees: ' + fmtMoney(managementFees) + ' (' + fmtPct(mgmtRate) + ' of rent).');
-    bd.push('Council rates, insurance & maintenance: ' + fmtMoney(otherExpenses) + '.');
+    bd.push('Council rates, insurance & maintenance: ' + fmtMoney(councilInsuranceMaint) + '.');
+    if (landTax > 0) {
+      bd.push('Land tax (tax-deductible investment expense): ' + fmtMoney(landTax) + '.');
+    }
     if (depreciation > 0) {
       bd.push('Depreciation allowance: ' + fmtMoney(depreciation) + '.');
     }
@@ -168,14 +173,16 @@ var APE_NegativeGearing = (function () {
     ];
 
     return Object.freeze({
-      type:             'negative-gearing',
-      gearingStatus:    gearingStatus,
-      annualRent:       annualRent,
-      interestCost:     interestCost,
-      managementFees:   managementFees,
-      otherExpenses:    otherExpenses,
-      depreciation:     depreciation,
-      totalDeductions:  totalDeductions,
+      type:                    'negative-gearing',
+      gearingStatus:           gearingStatus,
+      annualRent:              annualRent,
+      interestCost:            interestCost,
+      managementFees:          managementFees,
+      councilInsuranceMaint:   councilInsuranceMaint,
+      landTax:                 landTax,
+      otherExpenses:           otherExpenses,
+      depreciation:            depreciation,
+      totalDeductions:         totalDeductions,
       netRentalIncome:  netRentalIncome,
       taxBenefit:       taxBenefit,
       netCashFlow:      netCashFlow,

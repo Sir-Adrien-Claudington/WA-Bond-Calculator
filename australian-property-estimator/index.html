@@ -120,6 +120,7 @@
             <button type="button" class="toggle-btn" id="btn-pi" data-value="pi">Principal &amp; Interest</button>
           </div>
           <input type="hidden" id="ape-loan-type" value="io">
+          <p class="field-hint" id="loan-type-hint">Interest-only basis. Principal repayments are not tax-deductible.</p>
         </div>
 
         <div class="field-row-2">
@@ -249,12 +250,12 @@
           <label class="field-label" for="ape-marginal-tax-rate">Marginal tax rate</label>
           <select class="field-input field-select" id="ape-marginal-tax-rate" name="marginal-tax-rate">
             <option value="0">0% — Income below $18,201</option>
-            <option value="0.21">21% — $18,201 to $45,000</option>
-            <option value="0.345" selected>34.5% — $45,001 to $120,000</option>
-            <option value="0.39">39% — $120,001 to $180,000</option>
-            <option value="0.47">47% — $180,001 and above</option>
+            <option value="0.18">18% — $18,201 to $45,000</option>
+            <option value="0.32" selected>32% — $45,001 to $135,000</option>
+            <option value="0.39">39% — $135,001 to $190,000</option>
+            <option value="0.47">47% — $190,001 and above</option>
           </select>
-          <p class="field-hint">Based on 2025-26 ATO rates</p>
+          <p class="field-hint">Based on 2025-26 ATO rates (Stage 3 cuts)</p>
         </div>
       </div>
 
