@@ -653,6 +653,26 @@ body {
   font-size: 13px !important;
 }
 
+.wabcc-disclaimer-link {
+  color: inherit;
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
+.wabcc-disclaimer-link:hover {
+  opacity: 1;
+}
+
+.wabcc-privacy-link {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.wabcc-content-link {
+  color: #1f5fa8;
+  text-decoration: underline;
+}
+
 /* Call-to-action button link on the guide pages */
 .wabcc-cta-button {
   display: inline-block;

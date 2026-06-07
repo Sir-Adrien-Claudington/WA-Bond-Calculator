@@ -39,6 +39,10 @@
     // Days per week, used to convert unpaid-rent weeks+days into a dollar figure.
     DAYS_PER_WEEK: 7,
 
+    // Weekly rent threshold above which the s 29 four-week bond cap may not apply.
+    // Residential Tenancies Act 1987 (WA) s 29 — verify current prescribed amount.
+    WEEKLY_RENT_THRESHOLD_FOR_BOND_CAP: 1200,
+
     LEGISLATION: "Residential Tenancies Act 1987 (WA)",
     AMENDMENT: "Residential Tenancies Amendment Act 2024 (WA)",
     DISPUTE_BODY: "State Administrative Tribunal of Western Australia (SAT)"
@@ -210,11 +214,17 @@
       return;
     }
     const maxBond = calculateMaximumBond(weeklyRent);
-    if (bondHeld > maxBond) {
+    const highRent = weeklyRent > WA_BOND_RULES.WEEKLY_RENT_THRESHOLD_FOR_BOND_CAP;
+    if (bondHeld > maxBond && highRent) {
+      bondWarning.textContent =
+        "Note: weekly rent exceeds $1,200. The four-week bond cap under s 29 of the Residential " +
+        "Tenancies Act 1987 (WA) may not apply at this rent level — the bond amount may be " +
+        "negotiable. Check your tenancy agreement or seek legal advice.";
+    } else if (bondHeld > maxBond) {
       bondWarning.textContent =
         "Warning: bond held (" + formatCurrency(bondHeld) +
-        ") exceeds the WA maximum of 4 weeks' rent (" + formatCurrency(maxBond) +
-        "). Under the Residential Tenancies Act 1987 (WA) s 29 a landlord may not require more than 4 weeks' rent as bond.";
+        ") exceeds the maximum of 4 weeks’ rent (" + formatCurrency(maxBond) +
+        ") for weekly rents of $1,200 or less under the Residential Tenancies Act 1987 (WA) s 29.";
     } else {
       bondWarning.textContent = "";
     }

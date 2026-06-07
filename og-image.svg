@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#1f5fa8"/>
+  <rect x="0" y="510" width="1200" height="120" fill="#174d8e"/>
+  <!-- Icon strip -->
+  <rect x="80" y="80" width="8" height="120" rx="4" fill="#a8d4f5" opacity="0.6"/>
+  <rect x="98" y="60" width="8" height="140" rx="4" fill="#a8d4f5" opacity="0.8"/>
+  <rect x="116" y="40" width="8" height="160" rx="4" fill="#a8d4f5"/>
+  <!-- Main heading -->
+  <text x="148" y="130" font-family="Georgia, 'Times New Roman', serif" font-size="62" font-weight="bold" fill="white">WA Rental Bond</text>
+  <text x="148" y="210" font-family="Georgia, 'Times New Roman', serif" font-size="62" font-weight="bold" fill="white">Claim Calculator</text>
+  <!-- Sub-heading -->
+  <text x="148" y="290" font-family="Arial, Helvetica, sans-serif" font-size="30" fill="#c8e4f8">Free calculator for landlords &amp; tenants</text>
+  <text x="148" y="340" font-family="Arial, Helvetica, sans-serif" font-size="26" fill="#a8d4f5">Residential Tenancies Act 1987 (WA) &#x2022; 2024 amendments</text>
+  <!-- Divider -->
+  <line x1="148" y1="390" x2="800" y2="390" stroke="#4a90d9" stroke-width="1.5"/>
+  <!-- Trust signals -->
+  <text x="148" y="430" font-family="Arial, Helvetica, sans-serif" font-size="24" fill="#a8d4f5">&#x2713; Free &amp; no sign-up &nbsp;&nbsp; &#x2713; Runs in your browser &nbsp;&nbsp; &#x2713; WA law</text>
+  <!-- Domain -->
+  <text x="148" y="575" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="bold" fill="white">wabond.today</text>
+</svg>
