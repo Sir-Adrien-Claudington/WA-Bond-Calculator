@@ -39,6 +39,11 @@
   var WA_MRIT_RATE = 0.0014;
   var WA_MRIT_THRESHOLD = 300000;
 
+  function calcMrit(state, landValue, isMetro) {
+    if (state !== 'WA' || !isMetro || landValue <= WA_MRIT_THRESHOLD) return 0;
+    return round2((landValue - WA_MRIT_THRESHOLD) * WA_MRIT_RATE);
+  }
+
   // ----------------------------------------------------------------
   // POLICY REGIME (2026-27 Federal Budget — announced, not yet law)
   // ----------------------------------------------------------------
@@ -472,7 +477,7 @@
     var altParams = {};
     Object.keys(params).forEach(function (k) { altParams[k] = params[k]; });
     altParams.interestRate = sliderRate;
-    altParams.landTax = params.landTaxAnnual || 0; // NG module reads landTax, not landTaxAnnual
+    altParams.landTax = (params.landTaxAnnual || 0) + (params.mritAnnual || 0); // NG reads landTax
     var altNg = APE_NegativeGearing.calculate(altParams);
     var cashLabel = altNg.netCashFlow < 0
       ? fmtMoney(altNg.netCashFlow) + '/yr'
@@ -560,14 +565,32 @@
   }
 
   function estimateBreakevenYear(params) {
-    var weeklyRent   = params.weeklyRent;
-    var vacancyWks   = params.vacancyWeeks || 0;
-    var mgmtRate     = params.managementFeeRate;
-    var otherExp     = params.councilRates + params.insurance + params.maintenance + (params.landTaxAnnual || 0) + (params.mritAnnual || 0);
-    var depreciation = params.depreciation;
-    var annualInterest = params.loanAmount * params.interestRate;
-    var rentGrowth = 0.03;
+    var weeklyRent    = params.weeklyRent;
+    var vacancyWks    = params.vacancyWeeks || 0;
+    var mgmtRate      = params.managementFeeRate;
+    var otherExp      = params.councilRates + params.insurance + params.maintenance + (params.landTaxAnnual || 0) + (params.mritAnnual || 0);
+    var depreciation  = params.depreciation;
+    var loanAmount    = params.loanAmount;
+    var interestRate  = params.interestRate;
+    var loanType      = params.loanType || 'io';
+    var loanTermYears = params.loanTermYears || 30;
+    var rentGrowth    = 0.03;
+
+    // Pre-compute P&I amortisation constants (mirrors buildProjection).
+    var monthlyRate = interestRate / 12;
+    var numPayments = loanTermYears * 12;
+    var piFactor    = (loanType === 'pi' && loanAmount > 0 && interestRate > 0)
+      ? Math.pow(1 + monthlyRate, numPayments) : 0;
+
     for (var yr = 1; yr <= 20; yr++) {
+      var annualInterest;
+      if (loanType === 'pi' && piFactor > 0) {
+        var paidFactor  = Math.pow(1 + monthlyRate, 12 * (yr - 1));
+        var balance     = loanAmount * (piFactor - paidFactor) / (piFactor - 1);
+        annualInterest  = balance * interestRate;
+      } else {
+        annualInterest = loanAmount * interestRate;
+      }
       var rent = weeklyRent * (52 - vacancyWks) * Math.pow(1 + rentGrowth, yr - 1);
       var mgmt = rent * mgmtRate;
       var totalCosts = annualInterest + mgmt + otherExp + depreciation;
@@ -606,7 +629,7 @@
       var qRent      = params.weeklyRent;
       var qVac       = params.vacancyWeeks || 0;
       var qMgmt      = params.managementFeeRate;
-      var qOther     = params.councilRates + params.insurance + params.maintenance + (params.landTaxAnnual || 0);
+      var qOther     = params.councilRates + params.insurance + params.maintenance + (params.landTaxAnnual || 0) + (params.mritAnnual || 0);
       var qDepr      = params.depreciation;
       var rentGrowth = 0.03;
       // Pre-compute P&I monthly constants for declining-balance interest.
@@ -1350,10 +1373,8 @@
     var purchasePrice = getNum('ape-purchase-price');
     var landValue     = getNum('ape-land-value');
     var isFhb         = $('ape-fhb') ? $('ape-fhb').checked : false;
-    var isWaMetro     = state === 'WA' && $('ape-wa-metro') && $('ape-wa-metro').checked;
-    var mritAnnual    = (isWaMetro && landValue > WA_MRIT_THRESHOLD)
-      ? round2((landValue - WA_MRIT_THRESHOLD) * WA_MRIT_RATE)
-      : 0;
+    var isWaMetro  = state === 'WA' && !!($('ape-wa-metro') && $('ape-wa-metro').checked);
+    var mritAnnual = calcMrit(state, landValue, isWaMetro);
     var lt = APE_LandTax.calculate(state, landValue);
     renderLandTax(lt, { state: state, purchasePrice: purchasePrice, landValue: landValue, isFirstHomeBuyer: isFhb, mritAnnual: mritAnnual });
   }
@@ -1389,9 +1410,7 @@
     params.landTaxAnnual  = (lt && lt.value !== null) ? lt.value : 0;
     params.stampDutyValue = (sd && sd.value !== null) ? sd.value : 0;
 
-    params.mritAnnual = (params.state === 'WA' && params.waMetro && params.landValue > WA_MRIT_THRESHOLD)
-      ? round2((params.landValue - WA_MRIT_THRESHOLD) * WA_MRIT_RATE)
-      : 0;
+    params.mritAnnual = calcMrit(params.state, params.landValue, params.waMetro);
 
     var ng = APE_NegativeGearing.calculate(Object.assign({}, params, {
       landTax: params.landTaxAnnual + params.mritAnnual  // both are deductible
@@ -1564,6 +1583,7 @@
     var waMetroEl = $('ape-wa-metro');
     if (waMetroEl) {
       waMetroEl.addEventListener('change', function () {
+        updateLandTax(); // refresh MRIT line in card immediately
         triggerDebounce();
       });
     }
