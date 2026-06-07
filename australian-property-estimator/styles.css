@@ -836,6 +836,16 @@ body {
   line-height: 1.5;
   padding: 8px 0;
 }
+.footer-privacy {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  padding: 4px 0 8px;
+}
+.footer-link {
+  color: var(--text-muted);
+  text-decoration: underline;
+}
 
 /* ---- Chart canvas wrappers (replaces blocked inline styles) ---- */
 .chart-wrap-sm { position: relative; height: 150px; }

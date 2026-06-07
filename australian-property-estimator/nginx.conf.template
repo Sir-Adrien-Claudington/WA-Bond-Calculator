@@ -7,6 +7,11 @@ server {
     gzip on;
     gzip_types text/html text/css application/javascript;
 
+    # Block sensitive paths — return 404 instead of falling through to the SPA.
+    location ~ ^/(\.env|\.git|config\.js|\.htaccess|\.htpasswd) {
+        return 404;
+    }
+
     location / {
         try_files $uri $uri/ /index.html;
 
