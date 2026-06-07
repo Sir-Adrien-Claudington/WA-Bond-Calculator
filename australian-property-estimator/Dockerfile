@@ -1,7 +1,7 @@
 FROM nginx:alpine
 
 # Copy only the web-serving files into the HTML root
-COPY index.html styles.css app.js chart.min.js robots.txt /usr/share/nginx/html/
+COPY index.html styles.css app.js chart.min.js robots.txt sitemap.xml og-image.png /usr/share/nginx/html/
 COPY data/ /usr/share/nginx/html/data/
 COPY modules/ /usr/share/nginx/html/modules/
 

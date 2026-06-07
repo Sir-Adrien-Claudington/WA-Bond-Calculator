@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-AU">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,9 +11,14 @@
   <meta property="og:title" content="Australian Property Investment Estimator — Negative Gearing, Stamp Duty &amp; Land Tax">
   <meta property="og:description" content="Estimate stamp duty, annual land tax, and negative gearing benefits for investment properties across all Australian states and territories. Includes 2026-27 Federal Budget policy changes.">
   <meta property="og:site_name" content="newgearing.xyz">
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Australian Property Investment Estimator">
-  <meta name="twitter:description" content="Stamp duty, land tax &amp; negative gearing calculator for all Australian states.">
+  <meta property="og:image" content="https://www.newgearing.xyz/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="newgearing.xyz — Australian Property Investment Estimator">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Australian Property Investment Estimator | newgearing.xyz">
+  <meta name="twitter:description" content="Free calculator for stamp duty, land tax, negative gearing and CGT across all Australian states. Includes 2026-27 Budget regime modelling.">
+  <meta name="twitter:image" content="https://www.newgearing.xyz/og-image.png">
   <!-- CSP meta — 'unsafe-inline' in style-src here only (Google Fonts injects inline styles). nginx CSP takes precedence for real enforcement. -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; connect-src 'none'; form-action 'self'; base-uri 'self'; frame-ancestors 'none'">
   <!-- Google Fonts -->
@@ -24,6 +29,88 @@
   <link rel="stylesheet" href="styles.css">
   <!-- Chart.js 4.4.1 — self-hosted so CSP can use script-src 'self' (no external CDN needed) -->
   <script src="chart.min.js"></script>
+  <!-- Structured data — JSON-LD is a data block, not governed by script-src CSP -->
+  <script type="application/ld+json">
+  [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Australian Property Investment Estimator",
+      "alternateName": "newgearing.xyz",
+      "url": "https://www.newgearing.xyz/",
+      "description": "Free Australian property investment calculator. Calculates stamp duty, annual land tax, negative gearing tax benefit, capital gains tax and 10-year cash flow projections for all states and territories.",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "AUD"
+      },
+      "featureList": [
+        "Stamp duty calculator for all 8 Australian states and territories",
+        "Annual land tax calculator",
+        "Negative gearing tax benefit calculator",
+        "Capital gains tax estimate with 50% discount",
+        "10-year cash flow projection",
+        "Principal and interest vs interest-only comparison",
+        "2026-27 Federal Budget negative gearing regime modelling"
+      ],
+      "inLanguage": "en-AU",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Organization",
+        "name": "newgearing.xyz"
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How is stamp duty calculated in Australia?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Stamp duty (transfer duty) is calculated on a progressive bracket scale that varies by state and territory. Each state has its own rate schedule. For example, in NSW the rate reaches 4.5% for properties between $372,001 and $1,240,000. Investment properties use the general rate — concessions for owner-occupiers and first home buyers do not apply."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is negative gearing in Australia?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Negative gearing occurs when the costs of owning an investment property (interest, management fees, rates, repairs, depreciation) exceed the rental income. The net loss can be offset against other income such as wages, reducing your tax bill. The tax benefit equals the net loss multiplied by your marginal tax rate."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Will negative gearing be abolished in Australia?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The 2026-27 Federal Budget proposed limiting negative gearing for established properties purchased after 7:30pm AEST on 12 May 2026. Under the proposal, losses from these properties could no longer be offset against salary or other income — they would be quarantined and only usable against future rental income or capital gains. Properties purchased before this date remain fully grandfathered. New builds are exempt. These measures are not yet law."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the CGT discount in Australia?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Australian residents who hold an investment property for more than 12 months are entitled to a 50% capital gains tax discount. This means only half the capital gain is added to assessable income and taxed at your marginal rate. The 2026-27 Federal Budget proposed replacing this with cost-base indexation and a 30% minimum tax for properties acquired after 12 May 2026, from 1 July 2027."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How is land tax calculated in Australia?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Land tax is a state and territory tax on the unimproved value of investment land above a threshold. Thresholds and rates vary significantly: NSW has a $1,075,000 threshold; Victoria reduced its threshold to $50,000 in 2024; Queensland's threshold is $600,000; WA is $300,000; the ACT has no threshold. Your principal place of residence is exempt in all states."
+          }
+        }
+      ]
+    }
+  ]
+  </script>
 </head>
 <body>
 
