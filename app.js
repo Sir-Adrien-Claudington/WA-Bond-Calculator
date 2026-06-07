@@ -770,11 +770,23 @@
     submitBtn.textContent = "Get my PDF";
     submitBtn.addEventListener("click", handleEmailSubmit);
 
+    const privacyConsent = document.createElement("p");
+    privacyConsent.className = "wabcc-modal-privacy";
+    privacyConsent.textContent = "By entering your email you agree to our ";
+    const privacyLink = document.createElement("a");
+    privacyLink.href = "/privacy.html";
+    privacyLink.target = "_blank";
+    privacyLink.rel = "noopener noreferrer";
+    privacyLink.textContent = "Privacy Policy";
+    privacyConsent.appendChild(privacyLink);
+    privacyConsent.appendChild(document.createTextNode("."));
+
     card.appendChild(heading);
     card.appendChild(note);
     card.appendChild(emailLabel);
     card.appendChild(emailInput);
     card.appendChild(errorMsg);
+    card.appendChild(privacyConsent);
     card.appendChild(submitBtn);
     overlay.appendChild(card);
     document.body.appendChild(overlay);
