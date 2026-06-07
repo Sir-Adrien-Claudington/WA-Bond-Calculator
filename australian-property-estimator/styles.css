@@ -207,6 +207,10 @@ body {
   margin-top: 3px;
 }
 
+.cgt-current-note {
+  margin-bottom: 8px;
+}
+
 .field-error {
   font-size: 10px;
   color: #dc2626;

@@ -35,6 +35,10 @@
 
   var DONUT_COLORS = ['#1e5fad', '#0f9e76', '#d97706', '#9333ea', '#ef4444', '#6b7280'];
 
+  // WA Metropolitan Region Improvement Tax rate (0.14% on land value above $300k).
+  var WA_MRIT_RATE = 0.0014;
+  var WA_MRIT_THRESHOLD = 300000;
+
   // ----------------------------------------------------------------
   // POLICY REGIME (2026-27 Federal Budget — announced, not yet law)
   // ----------------------------------------------------------------
@@ -68,6 +72,14 @@
   function stripCommas(s) { return String(s).replace(/,/g, ''); }
 
   function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
+
+  // Shared P&I monthly-repayment helper — used by updateLoanTypeHint and buildProjection.
+  // negative-gearing.js keeps its own copy (standalone module, no imports).
+  function piMonthlyPayment(loan, monthlyRate, numPayments) {
+    if (loan <= 0 || monthlyRate <= 0 || numPayments <= 0) return 0;
+    var f = Math.pow(1 + monthlyRate, numPayments);
+    return round2(loan * monthlyRate * f / (f - 1));
+  }
 
   function getNum(id) {
     var el = $(id);
@@ -255,7 +267,7 @@
       loanType:          loanType,
       loanTermYears:     getNum('ape-loan-term') || 30,
       isFirstHomeBuyer:  $('ape-fhb') ? $('ape-fhb').checked : false,
-      waMetro:           $('ape-wa-metro') ? $('ape-wa-metro').checked : false,
+      waMetro:           getStr('ape-state') === 'WA' && !!($('ape-wa-metro') && $('ape-wa-metro').checked),
       cgtGrowthRate:     getNum('cgt-growth') / 100,
       cgtYears:          getNum('cgt-years') || 10,
       cgtSaleCostsPct:   getNum('cgt-sale-costs') / 100,
@@ -343,7 +355,7 @@
       if (loan > 0 && rate > 0) {
         var mr = rate / 12;
         var n  = term * 12;
-        var mp = round2(loan * mr * Math.pow(1 + mr, n) / (Math.pow(1 + mr, n) - 1));
+        var mp = piMonthlyPayment(loan, mr, n);
         var bal = loan, interest = 0;
         for (var m = 0; m < 12; m++) {
           var mi = round2(bal * mr);
@@ -490,15 +502,15 @@
     var weeklyRent    = params.weeklyRent;
     var vacancyWks    = params.vacancyWeeks || 0;
     var mgmtRate      = params.managementFeeRate;
-    var otherExp      = params.councilRates + params.insurance + params.maintenance + (params.landTaxAnnual || 0);
+    var otherExp      = params.councilRates + params.insurance + params.maintenance + (params.landTaxAnnual || 0) + (params.mritAnnual || 0);
     var depreciation  = params.depreciation;
     var taxRate       = params.marginalTaxRate;
 
     // For P&I: pre-compute monthly repayment so we can derive each year's interest from the declining balance.
     var monthlyRate = interestRate / 12;
     var numPayments = loanTermYears * 12;
-    var piMonthlyPayment = (loanType === 'pi' && loanAmount > 0 && interestRate > 0)
-      ? round2(loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments) / (Math.pow(1 + monthlyRate, numPayments) - 1))
+    var piMonthlyPmt = (loanType === 'pi')
+      ? piMonthlyPayment(loanAmount, monthlyRate, numPayments)
       : 0;
 
     var beforeTax = [], afterTax = [], newRegime = [];
@@ -506,7 +518,7 @@
     for (var yr = 0; yr < 10; yr++) {
       // Deductible interest for this year.
       var annualInterest;
-      if (loanType === 'pi' && piMonthlyPayment > 0) {
+      if (loanType === 'pi' && piMonthlyPmt > 0) {
         // Outstanding balance at start of year = L × ((1+r)^n − (1+r)^(12·yr)) / ((1+r)^n − 1)
         var factor = Math.pow(1 + monthlyRate, numPayments);
         var paidFactor = Math.pow(1 + monthlyRate, 12 * yr);
@@ -551,7 +563,7 @@
     var weeklyRent   = params.weeklyRent;
     var vacancyWks   = params.vacancyWeeks || 0;
     var mgmtRate     = params.managementFeeRate;
-    var otherExp     = params.councilRates + params.insurance + params.maintenance + (params.landTaxAnnual || 0);
+    var otherExp     = params.councilRates + params.insurance + params.maintenance + (params.landTaxAnnual || 0) + (params.mritAnnual || 0);
     var depreciation = params.depreciation;
     var annualInterest = params.loanAmount * params.interestRate;
     var rentGrowth = 0.03;
@@ -626,7 +638,9 @@
       yearsToReformDate = Math.max(0, Math.min(years, yearsToReformDate));
 
       // Edge case A: if value at reform date is below cost base, no pre-reform gain.
-      var valueAtReformDate = price * Math.pow(1 + growthRate, yearsToReformDate);
+      // Use startValue (respects cgtCurrentValue) so the reform-date projection is
+      // consistent with the sale-price projection — both grow from the same base.
+      var valueAtReformDate = startValue * Math.pow(1 + growthRate, yearsToReformDate);
       // Cap preSplitGain to adjustedCapitalGain so quarantined losses are allocated
       // to the post-reform period first; prevents preTax exceeding the adjusted gain.
       var preSplitGainRaw = Math.max(0, valueAtReformDate - costBase);
@@ -702,7 +716,7 @@
 
     // "Projecting from current value" note.
     var startNote = (params.cgtCurrentValue > 0)
-      ? '<p class="field-hint" style="margin-bottom:8px">Projecting from current market value of ' +
+      ? '<p class="field-hint cgt-current-note">Projecting from current market value of ' +
         fmtMoney(params.cgtCurrentValue) + '. CGT cost base still uses original purchase price (' +
         fmtMoney(params.purchasePrice) + ') + stamp duty.</p>'
       : '';
@@ -793,6 +807,7 @@
       { label: 'Insurance',  value: ng.insurance },
       { label: 'Maintenance',value: ng.maintenance },
       { label: 'Land tax',   value: ng.landTax || 0 },
+      { label: 'MRIT',       value: ng.mrit || 0 },
       { label: 'Depreciation', value: ng.depreciation }
     ].filter(function (s) { return s.value > 0; });
 
@@ -1335,8 +1350,12 @@
     var purchasePrice = getNum('ape-purchase-price');
     var landValue     = getNum('ape-land-value');
     var isFhb         = $('ape-fhb') ? $('ape-fhb').checked : false;
+    var isWaMetro     = state === 'WA' && $('ape-wa-metro') && $('ape-wa-metro').checked;
+    var mritAnnual    = (isWaMetro && landValue > WA_MRIT_THRESHOLD)
+      ? round2((landValue - WA_MRIT_THRESHOLD) * WA_MRIT_RATE)
+      : 0;
     var lt = APE_LandTax.calculate(state, landValue);
-    renderLandTax(lt, { state: state, purchasePrice: purchasePrice, landValue: landValue, isFirstHomeBuyer: isFhb });
+    renderLandTax(lt, { state: state, purchasePrice: purchasePrice, landValue: landValue, isFirstHomeBuyer: isFhb, mritAnnual: mritAnnual });
   }
 
   function updateTaxCards() {
@@ -1370,9 +1389,8 @@
     params.landTaxAnnual  = (lt && lt.value !== null) ? lt.value : 0;
     params.stampDutyValue = (sd && sd.value !== null) ? sd.value : 0;
 
-    // WA Metropolitan Region Improvement Tax (MRIT): 0.14% on land value over $300k.
-    params.mritAnnual = (params.state === 'WA' && params.waMetro && params.landValue > 300000)
-      ? Math.round((params.landValue - 300000) * 0.0014 * 100) / 100
+    params.mritAnnual = (params.state === 'WA' && params.waMetro && params.landValue > WA_MRIT_THRESHOLD)
+      ? round2((params.landValue - WA_MRIT_THRESHOLD) * WA_MRIT_RATE)
       : 0;
 
     var ng = APE_NegativeGearing.calculate(Object.assign({}, params, {
