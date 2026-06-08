@@ -845,12 +845,11 @@
 
     errorEl.textContent = "";
 
-    // Silently succeed if a bot filled the honeypot field.
+    // Silently dismiss if a bot filled the honeypot field. Do NOT set
+    // emailCaptured — that would bypass the email gate for the rest of the session.
     const hp = document.getElementById("wabcc-hp");
     if (hp && hp.value) {
-      emailCaptured = true;
       hideEmailModal();
-      generatePdf();
       return;
     }
 
