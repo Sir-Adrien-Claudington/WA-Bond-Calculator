@@ -758,6 +758,16 @@
       }
     });
 
+    // Honeypot: hidden from real users, filled by bots that auto-complete all fields.
+    const honeypot = document.createElement("input");
+    honeypot.type = "text";
+    honeypot.name = "website";
+    honeypot.id = "wabcc-hp";
+    honeypot.tabIndex = -1;
+    honeypot.autocomplete = "off";
+    honeypot.setAttribute("aria-hidden", "true");
+    honeypot.style.display = "none";
+
     const errorMsg = document.createElement("p");
     errorMsg.id = "wabcc-email-error";
     errorMsg.className = "wabcc-warning";
@@ -785,6 +795,7 @@
     card.appendChild(note);
     card.appendChild(emailLabel);
     card.appendChild(emailInput);
+    card.appendChild(honeypot);
     card.appendChild(errorMsg);
     card.appendChild(privacyConsent);
     card.appendChild(submitBtn);
@@ -833,13 +844,23 @@
     }
 
     errorEl.textContent = "";
+
+    // Silently succeed if a bot filled the honeypot field.
+    const hp = document.getElementById("wabcc-hp");
+    if (hp && hp.value) {
+      emailCaptured = true;
+      hideEmailModal();
+      generatePdf();
+      return;
+    }
+
     submitBtn.disabled = true;
     submitBtn.textContent = "Sending…";
 
     fetch(EMAIL_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: sanitized })
+      body: JSON.stringify({ email: sanitized, website: "" })
     })
       .then(function (response) {
         if (!response.ok) {
