@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-Email **[REDACTED]** with subject line `[newgearing Security]`.
+Open a **private** GitHub security advisory at: `GitHub repo → Security → Advisories → New draft`.
 
 - Acknowledgement target: 72 hours
 - Fix or mitigation target: 14 days
