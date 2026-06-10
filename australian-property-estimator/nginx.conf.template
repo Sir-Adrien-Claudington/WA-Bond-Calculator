@@ -39,10 +39,10 @@ server {
 
     location ~* \.(js|css)$ {
         limit_req zone=main burst=60 nodelay;
-        expires 1y;
-        # Intentionally no 'immutable' — filenames are not content-hashed so browsers
-        # must revalidate to pick up new deploys (CACHE-010).
-        add_header Cache-Control "public, max-age=31536000";
+        expires 1d;
+        # max-age=86400 (1 day) — filenames are not content-hashed so we use a short TTL
+        # so users pick up updates within 24h without a hard cache-bust.
+        add_header Cache-Control "public, max-age=86400";
         add_header X-Request-ID $request_id always;
 
         add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
