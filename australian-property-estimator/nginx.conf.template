@@ -13,10 +13,12 @@ server {
     }
 
     location / {
+        limit_req zone=main burst=60 nodelay;
         try_files $uri $uri/ /index.html;
 
         # HTML must revalidate on every request so users always get the latest deploy.
         add_header Cache-Control "no-cache" always;
+        add_header X-Request-ID $request_id always;
 
         add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
         add_header X-Frame-Options "DENY" always;
@@ -29,8 +31,10 @@ server {
     }
 
     location ~* \.(js|css)$ {
+        limit_req zone=main burst=60 nodelay;
         expires 1y;
         add_header Cache-Control "public, immutable";
+        add_header X-Request-ID $request_id always;
 
         add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
         add_header X-Frame-Options "DENY" always;

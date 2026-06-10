@@ -18,3 +18,14 @@ desktop.ini
 
 # Dependency dirs (none used, but guard anyway)
 node_modules/
+
+# Build artefacts
+build/
+dist/
+
+# Cloud credentials
+.aws/
+.gcloud/
+.azure/
+*.pem
+*.key
