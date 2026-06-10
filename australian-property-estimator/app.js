@@ -4,6 +4,16 @@
  * URL sharing, real-time debounced updates, and CGT projection.
  */
 
+// Surface unhandled JS errors to the browser console so they aren't silently lost.
+// connect-src 'none' prevents external beaconing; a future Sentry integration
+// would require adding the Sentry CDN to script-src and connect-src in nginx.conf.template.
+window.onerror = function (msg, src, line, col, err) {
+  console.error('[newgearing] Unhandled error', { msg: msg, src: src, line: line, col: col, err: err });
+};
+window.addEventListener('unhandledrejection', function (e) {
+  console.error('[newgearing] Unhandled promise rejection', e.reason);
+});
+
 (function () {
   'use strict';
 

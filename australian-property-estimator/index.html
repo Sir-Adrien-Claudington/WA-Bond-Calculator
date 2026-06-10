@@ -19,12 +19,8 @@
   <meta name="twitter:title" content="Australian Property Investment Estimator | newgearing.xyz">
   <meta name="twitter:description" content="Free calculator for stamp duty, land tax, negative gearing and CGT across all Australian states. Includes 2026-27 Budget regime modelling.">
   <meta name="twitter:image" content="https://www.newgearing.xyz/og-image.png">
-  <!-- CSP meta — 'unsafe-inline' in style-src here only (Google Fonts injects inline styles). nginx CSP takes precedence for real enforcement. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; connect-src 'none'; form-action 'self'; base-uri 'self'; frame-ancestors 'none'">
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- CSP meta — matches nginx header exactly; Inter is self-hosted so no external font origins needed -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; object-src 'none'; connect-src 'none'; form-action 'self'; base-uri 'self'; frame-ancestors 'none'">
   <!-- Stylesheet -->
   <link rel="stylesheet" href="styles.css">
   <!-- Chart.js 4.4.1 — self-hosted so CSP can use script-src 'self' (no external CDN needed) -->
@@ -492,7 +488,7 @@
 
     <!-- Footer disclaimer -->
     <p class="footer-disclaimer">Australian Property Investment Estimator provides general information only. It does not constitute financial product advice under the Corporations Act 2001 (Cth). You should seek advice from a licensed financial adviser, registered tax agent, or solicitor before making investment decisions. Results are indicative only.</p>
-    <p class="footer-privacy">Privacy: all calculations run locally in your browser. No personal data, property details, or financial information is transmitted to any server. No cookies, tracking, or analytics are used.</p>
+    <p class="footer-privacy">Privacy: all calculations run locally in your browser. No personal data, property details, or financial information is transmitted to any server. No cookies, tracking, or analytics are used. <a href="/privacy.html">Privacy Policy</a></p>
 
   </main>
 

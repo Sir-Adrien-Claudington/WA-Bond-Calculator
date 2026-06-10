@@ -5,7 +5,14 @@ server {
     index index.html;
 
     gzip on;
-    gzip_types text/html text/css application/javascript;
+    gzip_types text/html text/css application/javascript font/woff2;
+
+    # Health check — used by Railway and uptime monitors.
+    location = /healthz {
+        access_log off;
+        return 200 "ok\n";
+        add_header Content-Type text/plain;
+    }
 
     # Block sensitive paths — return 404 instead of falling through to the SPA.
     location ~ ^/(\.env|\.git|config\.js|\.htaccess|\.htpasswd) {
@@ -27,13 +34,15 @@ server {
         add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
         add_header Cross-Origin-Opener-Policy "same-origin" always;
         add_header Cross-Origin-Resource-Policy "same-origin" always;
-        add_header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; connect-src 'none'; form-action 'self'; base-uri 'self'; frame-ancestors 'none'" always;
+        add_header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; object-src 'none'; connect-src 'none'; form-action 'self'; base-uri 'self'; frame-ancestors 'none'" always;
     }
 
     location ~* \.(js|css)$ {
         limit_req zone=main burst=60 nodelay;
         expires 1y;
-        add_header Cache-Control "public, immutable";
+        # Intentionally no 'immutable' — filenames are not content-hashed so browsers
+        # must revalidate to pick up new deploys (CACHE-010).
+        add_header Cache-Control "public, max-age=31536000";
         add_header X-Request-ID $request_id always;
 
         add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
@@ -43,6 +52,13 @@ server {
         add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
         add_header Cross-Origin-Opener-Policy "same-origin" always;
         add_header Cross-Origin-Resource-Policy "same-origin" always;
-        add_header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; connect-src 'none'; form-action 'self'; base-uri 'self'; frame-ancestors 'none'" always;
+        add_header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; object-src 'none'; connect-src 'none'; form-action 'self'; base-uri 'self'; frame-ancestors 'none'" always;
+    }
+
+    location ~* \.woff2$ {
+        limit_req zone=main burst=60 nodelay;
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000";
+        add_header Access-Control-Allow-Origin "*";
     }
 }

@@ -31,6 +31,24 @@ After every Railway deployment:
 ## Uptime Monitoring
 
 Register https://www.newgearing.xyz in UptimeRobot (free tier, 5-minute interval) if not already done.
+Use `/healthz` as the health check path — it returns `200 ok` with no logging overhead.
+
+## Infrastructure (Railway)
+
+Service configuration (Railway project: `newgearing`):
+
+| Setting        | Value                        |
+|----------------|------------------------------|
+| Service type   | Docker (Dockerfile in root)  |
+| Source repo    | Sir-Adrien-Claudington/australian-property-estimator |
+| Branch         | master                       |
+| Region         | US West (default)            |
+| Port           | Injected as `$PORT` (Railway default ~8080) |
+| Health check   | `/healthz`                   |
+| Restart policy | On failure                   |
+
+No environment variables are required beyond `PORT` (Railway-injected).
+To reproduce: connect the GitHub repo in Railway → Docker deploy → no env vars needed → done.
 
 ## GitHub Branch Protection
 
