@@ -30,3 +30,6 @@ IAG_*.html
 
 # Claude agent memory — local only
 .claude/
+
+# Local Netlify folder
+.netlify

@@ -1,0 +1,58 @@
+/* StarScape — global CSS reset and base styles */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #000814;
+  color: #E8F4FD;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Typography scale */
+h1, h2, h3, h4 {
+  font-weight: 300;
+  line-height: 1.2;
+}
+
+a {
+  color: #4CC9F0;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus styles for keyboard navigation */
+:focus-visible {
+  outline: 2px solid #4CC9F0;
+  outline-offset: 2px;
+}
+
+/* Canvas fullscreen fix */
+canvas {
+  display: block;
+}

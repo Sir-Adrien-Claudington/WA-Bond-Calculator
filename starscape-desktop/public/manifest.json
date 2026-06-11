@@ -1,0 +1,22 @@
+{
+  "name": "StarScape",
+  "short_name": "StarScape",
+  "description": "An immersive journey through the night sky",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000814",
+  "theme_color": "#000814",
+  "orientation": "landscape-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
