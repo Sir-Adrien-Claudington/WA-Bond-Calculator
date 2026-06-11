@@ -77,6 +77,20 @@ starscape-desktop/
 - **Proxy origin gate** — `ALLOWED_ORIGIN` env var must be set in Netlify before going live. Wildcard CORS (`*`) is dev-only.
 - **Attribution is legally required** — Open Meteo CC BY 4.0 strings must always appear in `SkyConditionsWidget` and `AboutFooter`. Do not remove them.
 
+## Cosmos Explorer Views (added 2026-06-12)
+Three additional views integrated from the Cosmos Explorer concept (adapted from
+Electron to web — no Electron code):
+- `/explorer` — interactive 3D solar system: Three.js WebGLRenderer + CSS3DRenderer
+  floating HTML data panels, custom spherical orbit controls, raycast click-select,
+  bottom pill nav. Panels built with DOM APIs (no innerHTML, per security rules).
+- `/dashboard` — live planet/Moon altitude, azimuth, distance, illumination,
+  rise/set — computed locally via `astronomy-engine` (MIT). No network calls.
+- `/journey` — pure CSS scroll-driven planet tour using `animation-timeline: view()`,
+  zero JS scroll listeners. Graceful fallback in non-supporting browsers.
+Keyboard shortcuts: E / D / J switch views, Escape returns home.
+Fonts: Space Grotesk + JetBrains Mono self-hosted via @fontsource (latin subset only —
+Google Fonts CDN is blocked by CSP). Data: `src/data/planets.ts` (public facts).
+
 ## Outstanding Before Go-Live
 All pre-launch items complete. App is live at https://starscape-desktop.netlify.app.
 Lighthouse scores: Performance 95, Accessibility 96, Best Practices 88, SEO 91.

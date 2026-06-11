@@ -15,6 +15,7 @@ export default defineConfig({
       '@screens': resolve(__dirname, 'src/screens'),
       '@store': resolve(__dirname, 'src/store'),
       '@hooks': resolve(__dirname, 'src/hooks'),
+      '@data': resolve(__dirname, 'src/data'),
       '@utils': resolve(__dirname, 'src/utils'),
       '@constants': resolve(__dirname, 'src/constants'),
     },
@@ -27,6 +28,7 @@ export default defineConfig({
         manualChunks: {
           three: ['three', '@react-three/fiber', '@react-three/drei'],
           gsap: ['gsap'],
+          astro: ['astronomy-engine'],
           framer: ['framer-motion'],
           vendor: ['react', 'react-dom', 'zustand'],
         },

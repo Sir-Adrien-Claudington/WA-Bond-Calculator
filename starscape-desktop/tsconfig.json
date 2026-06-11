@@ -23,6 +23,7 @@
       "@screens/*": ["src/screens/*"],
       "@store/*": ["src/store/*"],
       "@hooks/*": ["src/hooks/*"],
+      "@data/*": ["src/data/*"],
       "@utils/*": ["src/utils/*"],
       "@constants/*": ["src/constants/*"]
     }
