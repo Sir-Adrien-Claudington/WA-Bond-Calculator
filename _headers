@@ -1,6 +1,6 @@
 /*
   Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
-  Content-Security-Policy: default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-hashes' 'sha256-cvSpgqcvrX5FXBN95EEaqOipPecSDs2cmymOp7JgmH8='; img-src 'self' data:; font-src 'self'; connect-src 'self' https://web-production-52326.up.railway.app https://wabond.today https://cloudflareinsights.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com https://static.cloudflareinsights.com 'sha256-UH4F1hKT1CwwRyUiy+/2U3wtTn/ZOwLPv16Pok2I8m8='; style-src 'self' 'unsafe-hashes' 'sha256-cvSpgqcvrX5FXBN95EEaqOipPecSDs2cmymOp7JgmH8='; img-src 'self' data:; font-src 'self'; connect-src 'self' https://web-production-52326.up.railway.app https://wabond.today https://cloudflareinsights.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
