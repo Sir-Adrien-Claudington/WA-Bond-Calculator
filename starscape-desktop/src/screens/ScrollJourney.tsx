@@ -12,7 +12,7 @@ import '../styles/journey.css';
 
 export function ScrollJourney() {
   return (
-    <div className="journey-scroll">
+    <main className="journey-scroll">
       <header className="journey-hero">
         <h1 className="journey-title">The Grand Tour</h1>
         <p className="journey-sub">Eight worlds. One star. Scroll to begin.</p>
@@ -56,6 +56,6 @@ export function ScrollJourney() {
       <footer className="journey-end">
         <p>End of tour — {PLANETS.length} planets, 4.5 billion years in the making.</p>
       </footer>
-    </div>
+    </main>
   );
 }

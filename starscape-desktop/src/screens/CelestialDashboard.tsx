@@ -44,7 +44,7 @@ export function CelestialDashboard() {
   const entries = Object.values(bodies);
 
   return (
-    <div
+    <main
       style={{
         minHeight: '100vh',
         background: '#050714',
@@ -65,7 +65,7 @@ export function CelestialDashboard() {
         >
           Celestial Dashboard
         </h1>
-        <p style={{ color: 'rgba(255,248,231,0.45)', marginBottom: '2rem', fontSize: '0.9375rem' }}>
+        <p style={{ color: 'rgba(255,248,231,0.65)', marginBottom: '2rem', fontSize: '0.9375rem' }}>
           Live positions computed locally with astronomy-engine — refreshed every minute.
         </p>
 
@@ -82,7 +82,7 @@ export function CelestialDashboard() {
           }}
         >
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: 'rgba(255,248,231,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.6875rem' }}>
+            <span style={{ color: 'rgba(255,248,231,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.6875rem' }}>
               Lat
             </span>
             <input
@@ -105,7 +105,7 @@ export function CelestialDashboard() {
             />
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: 'rgba(255,248,231,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.6875rem' }}>
+            <span style={{ color: 'rgba(255,248,231,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.6875rem' }}>
               Lng
             </span>
             <input
@@ -128,13 +128,14 @@ export function CelestialDashboard() {
             />
           </label>
           {updatedAt && (
-            <span style={{ color: 'rgba(255,248,231,0.35)', fontSize: '0.6875rem' }}>
+            <span style={{ color: 'rgba(255,248,231,0.58)', fontSize: '0.6875rem' }}>
               UPDATED {updatedAt.toLocaleTimeString()}
             </span>
           )}
         </div>
 
-        {/* Body cards */}
+        {/* Body cards — fixed-height skeletons reserve space before data
+            arrives so the grid populating causes zero layout shift */}
         <div
           style={{
             display: 'grid',
@@ -142,6 +143,19 @@ export function CelestialDashboard() {
             gap: '1.25rem',
           }}
         >
+          {entries.length === 0 &&
+            Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                aria-hidden="true"
+                style={{
+                  minHeight: 252,
+                  background: 'rgba(6,10,28,0.88)',
+                  border: '1px solid rgba(0,191,165,0.18)',
+                  borderRadius: 12,
+                }}
+              />
+            ))}
           {entries.map((b) => (
             <div
               key={b.name}
@@ -170,7 +184,7 @@ export function CelestialDashboard() {
                   </span>
                 )}
               </div>
-              <div style={{ ...mono, fontSize: '0.625rem', color: 'rgba(255,248,231,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>
+              <div style={{ ...mono, fontSize: '0.625rem', color: 'rgba(255,248,231,0.58)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>
                 {BODY_TYPE[b.name] ?? 'Body'}
               </div>
 
@@ -184,7 +198,7 @@ export function CelestialDashboard() {
                 }}
               >
                 <div>
-                  <div style={{ ...mono, fontSize: '0.5625rem', color: 'rgba(255,248,231,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  <div style={{ ...mono, fontSize: '0.5625rem', color: 'rgba(255,248,231,0.58)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                     Altitude
                   </div>
                   <div style={{ ...mono, fontSize: '0.875rem', color: b.visible ? '#00BFA5' : '#FFF8E7' }}>
@@ -192,7 +206,7 @@ export function CelestialDashboard() {
                   </div>
                 </div>
                 <div>
-                  <div style={{ ...mono, fontSize: '0.5625rem', color: 'rgba(255,248,231,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  <div style={{ ...mono, fontSize: '0.5625rem', color: 'rgba(255,248,231,0.58)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                     Azimuth
                   </div>
                   <div style={{ ...mono, fontSize: '0.875rem' }}>
@@ -200,13 +214,13 @@ export function CelestialDashboard() {
                   </div>
                 </div>
                 <div>
-                  <div style={{ ...mono, fontSize: '0.5625rem', color: 'rgba(255,248,231,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  <div style={{ ...mono, fontSize: '0.5625rem', color: 'rgba(255,248,231,0.58)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                     Distance
                   </div>
                   <div style={{ ...mono, fontSize: '0.875rem' }}>{b.distance.toFixed(3)} AU</div>
                 </div>
                 <div>
-                  <div style={{ ...mono, fontSize: '0.5625rem', color: 'rgba(255,248,231,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  <div style={{ ...mono, fontSize: '0.5625rem', color: 'rgba(255,248,231,0.58)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                     Illumination
                   </div>
                   <div style={{ ...mono, fontSize: '0.875rem' }}>
@@ -214,13 +228,13 @@ export function CelestialDashboard() {
                   </div>
                 </div>
                 <div>
-                  <div style={{ ...mono, fontSize: '0.5625rem', color: 'rgba(255,248,231,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  <div style={{ ...mono, fontSize: '0.5625rem', color: 'rgba(255,248,231,0.58)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                     Rise
                   </div>
                   <div style={{ ...mono, fontSize: '0.875rem' }}>{fmtTime(b.riseTime)}</div>
                 </div>
                 <div>
-                  <div style={{ ...mono, fontSize: '0.5625rem', color: 'rgba(255,248,231,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  <div style={{ ...mono, fontSize: '0.5625rem', color: 'rgba(255,248,231,0.58)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                     Set
                   </div>
                   <div style={{ ...mono, fontSize: '0.875rem' }}>{fmtTime(b.setTime)}</div>
@@ -230,10 +244,10 @@ export function CelestialDashboard() {
           ))}
         </div>
 
-        <p style={{ ...mono, fontSize: '0.6875rem', color: 'rgba(255,248,231,0.3)', marginTop: '2.5rem', textAlign: 'center' }}>
+        <p style={{ ...mono, fontSize: '0.6875rem', color: 'rgba(255,248,231,0.58)', marginTop: '2.5rem', textAlign: 'center' }}>
           Ephemeris: astronomy-engine (MIT) — VSOP87 / NOVAS models, computed in your browser
         </p>
       </div>
-    </div>
+    </main>
   );
 }

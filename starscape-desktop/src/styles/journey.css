@@ -37,7 +37,7 @@
 .journey-sub {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.875rem;
-  color: rgba(255, 248, 231, 0.4);
+  color: rgba(255, 248, 231, 0.62);
   margin-top: 1rem;
   letter-spacing: 0.2em;
 }
@@ -109,7 +109,7 @@
   font-size: 0.6875rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(255, 248, 231, 0.35);
+  color: rgba(255, 248, 231, 0.58);
   margin-bottom: 1.5rem;
 }
 
@@ -139,7 +139,7 @@
   font-size: 0.5625rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: rgba(255, 248, 231, 0.35);
+  color: rgba(255, 248, 231, 0.58);
   margin-bottom: 0.25rem;
 }
 
@@ -192,7 +192,7 @@
   justify-content: center;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.8125rem;
-  color: rgba(255, 248, 231, 0.35);
+  color: rgba(255, 248, 231, 0.58);
   text-align: center;
   padding: 2rem;
 }
