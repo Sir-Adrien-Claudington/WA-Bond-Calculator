@@ -17,3 +17,16 @@ desktop.ini
 *.pem
 secrets.js
 config.local.js
+
+# Personal documents — never commit these
+*.txt
+IAG_*.md
+IAG_*.html
+*Cover_Letter*
+*cover_letter*
+*Resume*
+*resume*
+*CV.*
+
+# Claude agent memory — local only
+.claude/
