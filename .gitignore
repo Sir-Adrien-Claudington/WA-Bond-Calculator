@@ -19,7 +19,7 @@ secrets.js
 config.local.js
 
 # Personal documents — never commit these
-*.txt
+NRMA_*.txt
 IAG_*.md
 IAG_*.html
 *Cover_Letter*
