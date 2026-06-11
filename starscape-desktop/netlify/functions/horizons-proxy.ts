@@ -42,7 +42,9 @@ function buildQuery(
   lon: number,
   epoch: string
 ): string {
-  const stopEpoch = epoch + ' 00:01';
+  // Add 1 minute to epoch for the stop time window
+  const epochMs = new Date(epoch.replace(' ', 'T') + ':00Z').getTime();
+  const stopEpoch = new Date(epochMs + 60_000).toISOString().slice(0, 16).replace('T', ' ');
   const params = new URLSearchParams({
     batch: '1',
     COMMAND: `'${bodyCode}'`,
@@ -57,7 +59,6 @@ function buildQuery(
     STEP_SIZE: "'1 m'",
     QUANTITIES: "'1,9'",
     CSV_FORMAT: "'YES'",
-    CAL_FORMAT: "'ISO'",
   });
   return `${HORIZONS_BASE}?${params.toString()}`;
 }
@@ -127,20 +128,19 @@ export const handler: Handler = async (event) => {
     };
   }
 
-  const results: object[] = [];
-
-  for (const body of BODIES) {
-    try {
+  const settled = await Promise.allSettled(
+    BODIES.map(async (body) => {
       const url = buildQuery(body.code, latNum, lonNum, epoch);
       const response = await fetch(url);
-      if (!response.ok) continue;
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const text = await response.text();
-      const parsed = parseHorizons(text, body.code, body.name, epoch);
-      if (parsed) results.push(parsed);
-    } catch {
-      // Individual body failure — skip
-    }
-  }
+      return parseHorizons(text, body.code, body.name, epoch);
+    })
+  );
+
+  const results: object[] = settled
+    .filter((r): r is PromiseFulfilledResult<object> => r.status === 'fulfilled' && r.value !== null)
+    .map((r) => r.value);
 
   if (results.length === 0) {
     return {

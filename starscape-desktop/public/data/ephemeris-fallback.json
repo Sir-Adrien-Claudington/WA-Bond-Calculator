@@ -1,0 +1,8 @@
+[
+  {"body":"Mercury","bodyCode":"199","raDeg":105.6,"decDeg":24.3,"magnitude":0.25,"epochUtc":"2026-06-11 12:00"},
+  {"body":"Venus","bodyCode":"299","raDeg":105.0,"decDeg":22.0,"magnitude":-3.99,"epochUtc":"2026-06-11 12:00"},
+  {"body":"Mars","bodyCode":"499","raDeg":30.0,"decDeg":16.0,"magnitude":1.31,"epochUtc":"2026-06-11 12:00"},
+  {"body":"Jupiter","bodyCode":"599","raDeg":127.5,"decDeg":17.2,"magnitude":-2.10,"epochUtc":"2026-06-11 12:00"},
+  {"body":"Saturn","bodyCode":"699","raDeg":42.0,"decDeg":15.8,"magnitude":0.90,"epochUtc":"2026-06-11 12:00"},
+  {"body":"Moon","bodyCode":"301","raDeg":210.0,"decDeg":-12.5,"magnitude":-10.50,"epochUtc":"2026-06-11 12:00"}
+]
