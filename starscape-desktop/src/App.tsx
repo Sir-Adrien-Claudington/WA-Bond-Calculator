@@ -2,13 +2,17 @@
 // StarScape — Root application component
 // ---------------------------------------------------------------------------
 
-import { useState, useEffect } from 'react';
-import { HeroSection } from '@screens/HeroSection';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { ConstellationJourney } from '@screens/ConstellationJourney';
 import { PlanetTrackerSection } from '@screens/PlanetTrackerSection';
 import { SkyConditionsWidget } from '@screens/SkyConditionsWidget';
 import { AboutFooter } from '@screens/AboutFooter';
 import { PrivacyPolicy } from '@screens/PrivacyPolicy';
+
+// Three.js is ~262 KB gzip — defer parsing until after initial paint to cut TBT
+const HeroSection = lazy(() =>
+  import('@screens/HeroSection').then((m) => ({ default: m.HeroSection }))
+);
 
 export function App() {
   const [pathname, setPathname] = useState(window.location.pathname);
@@ -31,8 +35,17 @@ export function App() {
         overflowX: 'hidden',
       }}
     >
-      {/* 1. Hero — immersive 3D starfield, scroll-driven camera drift */}
-      <HeroSection />
+      {/* 1. Hero — Three.js loaded lazily to keep TBT low on initial paint */}
+      <Suspense
+        fallback={
+          <div
+            style={{ width: '100%', height: '100vh', background: '#000814' }}
+            aria-label="Loading starfield…"
+          />
+        }
+      >
+        <HeroSection />
+      </Suspense>
 
       {/* 2. Constellation mythology journey — scroll-revealed cards */}
       <ConstellationJourney />
