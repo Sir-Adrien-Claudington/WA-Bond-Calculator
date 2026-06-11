@@ -25,7 +25,7 @@ import type { HorizonsResult, PlanetCard, ApiResult } from './types';
 /**
  * Parse Horizons CSV response text. The data block is between $$SOE / $$EOE.
  */
-function parseHorizonsResponse(
+export function parseHorizonsResponse(
   text: string,
   bodyCode: string,
   bodyName: string,

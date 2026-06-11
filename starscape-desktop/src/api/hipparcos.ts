@@ -31,7 +31,7 @@ function getAllStars(): HipparcosStarRecord[] {
 // B-V colour index → approximate RGB [0..1]
 // Mapping follows standard stellar spectral class colours.
 // ---------------------------------------------------------------------------
-function bvToRgb(bv: number): [number, number, number] {
+export function bvToRgb(bv: number): [number, number, number] {
   if (bv < 0) return [0.792, 0.878, 1.0];       // O/B — blue-white
   if (bv < 0.3) return [1.0, 1.0, 1.0];          // A/F — white
   if (bv < 0.8) return [1.0, 0.965, 0.835];      // G — warm white/yellow

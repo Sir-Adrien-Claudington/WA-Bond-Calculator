@@ -117,6 +117,14 @@ export const handler: Handler = async (event) => {
     };
   }
 
+  if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(epoch)) {
+    return {
+      statusCode: 400,
+      headers: cors,
+      body: JSON.stringify({ error: 'epoch must be YYYY-MM-DD HH:MM' }),
+    };
+  }
+
   const latNum = parseFloat(lat);
   const lonNum = parseFloat(lon);
 
