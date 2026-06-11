@@ -99,7 +99,7 @@ export function HeroSection() {
         >
           <h1
             style={{
-              fontSize: 'clamp(2.5rem, 8vw, 7rem)',
+              fontSize: 'clamp(2.5rem, 5vw, 4.5rem)',
               fontWeight: 200,
               letterSpacing: '0.15em',
               margin: 0,
@@ -110,7 +110,7 @@ export function HeroSection() {
           </h1>
           <p
             style={{
-              fontSize: 'clamp(0.875rem, 2vw, 1.125rem)',
+              fontSize: 'clamp(0.8rem, 1.25vw, 1rem)',
               letterSpacing: '0.3em',
               color: '#8BAFC9',
               marginTop: '1rem',

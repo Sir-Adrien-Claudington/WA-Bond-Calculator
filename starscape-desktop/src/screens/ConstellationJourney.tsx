@@ -124,10 +124,10 @@ function ConstellationCard({
       transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
       style={{
         display: 'grid',
-        gridTemplateColumns: index % 2 === 0 ? '1fr 200px' : '200px 1fr',
-        gap: '3rem',
+        gridTemplateColumns: index % 2 === 0 ? '1fr 260px' : '260px 1fr',
+        gap: '4rem',
         alignItems: 'center',
-        padding: '3rem',
+        padding: '3rem 4rem',
         background: 'rgba(0, 18, 51, 0.6)',
         backdropFilter: 'blur(20px)',
         border: '1px solid rgba(76, 201, 240, 0.15)',
@@ -191,8 +191,8 @@ function ConstellationCard({
       <div style={{ order: index % 2 === 0 ? 1 : 0, display: 'flex', justifyContent: 'center' }}>
         <svg
           viewBox="0 0 200 200"
-          width={200}
-          height={200}
+          width={260}
+          height={260}
           aria-hidden="true"
           style={{ overflow: 'visible' }}
         >
@@ -259,7 +259,7 @@ export function ConstellationJourney() {
       }}
       aria-labelledby="constellations-heading"
     >
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 2rem' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 3rem' }}>
         <h2
           ref={headerRef}
           id="constellations-heading"

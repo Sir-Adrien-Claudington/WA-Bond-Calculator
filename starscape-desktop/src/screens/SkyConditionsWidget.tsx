@@ -54,7 +54,7 @@ export function SkyConditionsWidget() {
       }}
       aria-labelledby="sky-heading"
     >
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 2rem', textAlign: 'center' }}>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '0 3rem', textAlign: 'center' }}>
         <h2
           id="sky-heading"
           style={{

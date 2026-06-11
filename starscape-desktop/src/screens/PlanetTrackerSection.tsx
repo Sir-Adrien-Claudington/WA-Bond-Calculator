@@ -185,7 +185,7 @@ export function PlanetTrackerSection() {
       style={{ background: '#000814', padding: '6rem 0' }}
       aria-labelledby="planets-heading"
     >
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 2rem' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 3rem' }}>
         <h2
           ref={headingRef}
           id="planets-heading"
@@ -260,7 +260,7 @@ export function PlanetTrackerSection() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
                   gap: '1.5rem',
                   perspective: '1000px',
                 }}

@@ -27,7 +27,7 @@ export function AboutFooter() {
         fontSize: '0.8125rem',
       }}
     >
-      <div style={{ maxWidth: 960, margin: '0 auto' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div
           style={{
             display: 'grid',
