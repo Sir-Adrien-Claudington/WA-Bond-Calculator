@@ -1,0 +1,483 @@
+/* ---------------------------------------------------------------------------
+   StarScape — Learning Games styles
+   Palette: --space #050714, --star #FFF8E7, --teal #00BFA5
+--------------------------------------------------------------------------- */
+
+.games-root {
+  position: fixed;
+  inset: 44px 0 0 0;
+  overflow-y: auto;
+  background: #050714;
+  color: #fff8e7;
+  font-family: 'Inter', sans-serif;
+  scrollbar-width: thin;
+  scrollbar-color: #00bfa5 #050714;
+}
+
+/* embed mode: no StarScape top nav above us, so reclaim that space */
+.games-embed {
+  inset: 0;
+}
+
+/* --- Hub hero ------------------------------------------------------------------ */
+
+.games-hero {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3.5rem 2rem 1.5rem;
+  text-align: center;
+}
+
+.games-kicker {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #00bfa5;
+  margin-bottom: 0.75rem;
+}
+
+.games-h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.75rem, 4vw, 3rem);
+  letter-spacing: 0.02em;
+  margin: 0 0 0.75rem;
+}
+
+.games-sub {
+  color: rgba(255, 248, 231, 0.62);
+  font-size: 1rem;
+  line-height: 1.6;
+  max-width: 36rem;
+  margin: 0 auto;
+}
+
+/* --- Tier sections ------------------------------------------------------------- */
+
+.tier-section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 2rem;
+}
+
+.tier-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 1.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.tier-pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #050714;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+}
+
+.tier-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+.tier-note {
+  width: 100%;
+  color: rgba(255, 248, 231, 0.5);
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+/* --- Game cards ---------------------------------------------------------------- */
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.game-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  text-align: left;
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 191, 165, 0.18);
+  background: rgba(6, 10, 28, 0.88);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+}
+
+.game-card-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.game-card-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.game-card-blurb {
+  color: rgba(255, 248, 231, 0.55);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.game-card-kind {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-top: 0.25rem;
+}
+
+/* --- Game shell (in-play) ------------------------------------------------------- */
+
+.game-shell {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 2rem 4rem;
+}
+
+.game-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.game-back {
+  background: none;
+  border: 1px solid rgba(0, 191, 165, 0.32);
+  border-radius: 8px;
+  color: rgba(255, 248, 231, 0.75);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.game-back:hover {
+  border-color: #00bfa5;
+  color: #00bfa5;
+}
+
+.game-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-right: auto;
+}
+
+.game-title-icon {
+  font-size: 1.4rem;
+}
+
+.game-tier-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border: 1px solid;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+}
+
+/* --- Quiz ----------------------------------------------------------------------- */
+
+.quiz-progress {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.quiz-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.35s ease;
+}
+
+.quiz-meta {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 248, 231, 0.45);
+  margin: 0.75rem 0 1.5rem;
+}
+
+.quiz-question {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 500;
+  font-size: 1.4rem;
+  line-height: 1.4;
+  margin: 0 0 1.5rem;
+}
+
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.quiz-option {
+  text-align: left;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 191, 165, 0.22);
+  background: rgba(6, 10, 28, 0.88);
+  color: #fff8e7;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s, transform 0.18s;
+}
+
+.quiz-option:not(:disabled):hover {
+  border-color: #00bfa5;
+  transform: translateX(3px);
+}
+
+.quiz-option-correct {
+  border-color: #00bfa5;
+  background: rgba(0, 191, 165, 0.16);
+}
+
+.quiz-option-wrong {
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.14);
+}
+
+.quiz-option-dim {
+  opacity: 0.45;
+}
+
+.quiz-tick { color: #00bfa5; font-weight: 700; }
+.quiz-cross { color: #ff6b6b; font-weight: 700; }
+
+.quiz-feedback {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(6, 10, 28, 0.6);
+}
+
+.quiz-feedback p {
+  color: rgba(255, 248, 231, 0.7);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin: 0.4rem 0 1rem;
+}
+
+.quiz-verdict-good {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  color: #00bfa5;
+}
+
+.quiz-verdict-bad {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  color: #ff6b6b;
+}
+
+/* --- Buttons -------------------------------------------------------------------- */
+
+.game-btn {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  padding: 0.7rem 1.4rem;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 191, 165, 0.32);
+  background: transparent;
+  color: #fff8e7;
+  cursor: pointer;
+  transition: transform 0.15s, filter 0.15s, border-color 0.15s;
+}
+
+.game-btn:hover { transform: translateY(-2px); border-color: #00bfa5; }
+
+.game-btn-primary {
+  border: none;
+  color: #050714;
+  font-weight: 700;
+}
+
+.game-btn-primary:hover { filter: brightness(1.08); }
+
+.game-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1.75rem;
+}
+
+/* --- Results -------------------------------------------------------------------- */
+
+.game-results {
+  text-align: center;
+  padding: 2.5rem 1rem;
+}
+
+.results-emoji { font-size: 3.5rem; }
+
+.results-score {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 2.5rem;
+  margin-top: 0.5rem;
+}
+
+.results-pct {
+  font-family: 'JetBrains Mono', monospace;
+  color: rgba(255, 248, 231, 0.5);
+  letter-spacing: 0.1em;
+}
+
+.results-verdict {
+  color: rgba(255, 248, 231, 0.7);
+  font-size: 1.0625rem;
+  margin-top: 1rem;
+}
+
+/* --- Ordering game -------------------------------------------------------------- */
+
+.order-instruction {
+  color: rgba(255, 248, 231, 0.7);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  margin: 0 0 1.5rem;
+}
+
+.order-track {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.order-slot {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+}
+
+.order-slot-filled {
+  border-style: solid;
+  background: rgba(0, 191, 165, 0.1);
+}
+
+.order-slot-next {
+  border-color: rgba(0, 191, 165, 0.5);
+}
+
+.order-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8125rem;
+  color: rgba(255, 248, 231, 0.5);
+  width: 1.5rem;
+  flex-shrink: 0;
+}
+
+.order-slot-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+}
+
+.order-slot-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: rgba(255, 248, 231, 0.45);
+  margin-left: auto;
+}
+
+.order-slot-hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: rgba(0, 191, 165, 0.7);
+}
+
+.order-pool {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.order-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 191, 165, 0.25);
+  background: rgba(6, 10, 28, 0.88);
+  color: #fff8e7;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s, background 0.2s;
+}
+
+.order-chip:hover {
+  border-color: #00bfa5;
+  transform: translateY(-2px);
+}
+
+.order-chip-wrong {
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.16);
+  animation: order-shake 0.4s;
+}
+
+@keyframes order-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.order-chip-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+}
+
+.order-chip-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: rgba(255, 248, 231, 0.45);
+}

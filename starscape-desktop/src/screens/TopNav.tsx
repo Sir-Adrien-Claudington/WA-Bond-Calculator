@@ -6,6 +6,7 @@ const ITEMS: Array<[path: string, label: string, key: string]> = [
   ['/explorer', 'Explorer', 'E'],
   ['/dashboard', 'Dashboard', 'D'],
   ['/journey', 'Journey', 'J'],
+  ['/games', 'Games', 'G'],
 ];
 
 interface TopNavProps {

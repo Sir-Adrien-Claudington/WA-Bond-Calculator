@@ -56,3 +56,11 @@ a:hover {
 canvas {
   display: block;
 }
+
+/* Embed mode (?embed=1) — StarScape runs inside an EduTrack iframe with no
+   top nav, so the fixed full-screen views reclaim the 44px nav strip. */
+body.embed-mode .cosmos-explorer,
+body.embed-mode .journey-scroll,
+body.embed-mode .games-root {
+  inset: 0;
+}

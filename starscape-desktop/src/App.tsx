@@ -27,6 +27,12 @@ const CelestialDashboard = lazy(() =>
 const ScrollJourney = lazy(() =>
   import('@screens/ScrollJourney').then((m) => ({ default: m.ScrollJourney }))
 );
+const GamesHub = lazy(() =>
+  import('@screens/GamesHub').then((m) => ({ default: m.GamesHub }))
+);
+
+type Tier = 'beginner' | 'intermediate' | 'knowledgeable';
+const VALID_TIERS: Tier[] = ['beginner', 'intermediate', 'knowledgeable'];
 
 const viewFallback = (
   <div
@@ -38,8 +44,21 @@ const viewFallback = (
 export function App() {
   const [pathname, setPathname] = useState(window.location.pathname);
 
+  // Embed mode (?embed=1) hides StarScape's own nav so it sits cleanly inside
+  // an EduTrack iframe. ?level= deep-links a single games tier.
+  const params = new URLSearchParams(window.location.search);
+  const embed = params.get('embed') === '1';
+  const levelParam = params.get('level');
+  const level = VALID_TIERS.includes(levelParam as Tier) ? (levelParam as Tier) : null;
+
+  useEffect(() => {
+    document.body.classList.toggle('embed-mode', embed);
+    return () => document.body.classList.remove('embed-mode');
+  }, [embed]);
+
   const navigate = useCallback((path: string) => {
-    window.history.pushState({}, '', path);
+    // preserve embed/level params across in-app navigation
+    window.history.pushState({}, '', path + window.location.search);
     setPathname(path);
     window.scrollTo(0, 0);
   }, []);
@@ -65,6 +84,9 @@ export function App() {
           break;
         case 'j':
           navigate('/journey');
+          break;
+        case 'g':
+          navigate('/games');
           break;
         case 'escape':
           // In the explorer, Esc releases the focused object (handled there);
@@ -96,6 +118,12 @@ export function App() {
     view = (
       <Suspense fallback={viewFallback}>
         <ScrollJourney />
+      </Suspense>
+    );
+  } else if (pathname === '/games') {
+    view = (
+      <Suspense fallback={viewFallback}>
+        <GamesHub level={level} embed={embed} />
       </Suspense>
     );
   } else {
@@ -138,7 +166,7 @@ export function App() {
 
   return (
     <>
-      <TopNav pathname={pathname} onNavigate={navigate} />
+      {!embed && <TopNav pathname={pathname} onNavigate={navigate} />}
       {view}
     </>
   );

@@ -16,12 +16,15 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "DENY"
+    # No X-Frame-Options: framing is governed by CSP frame-ancestors below so
+    # EduTrack (and StarScape itself) can embed these public, auth-free pages.
+    # X-Frame-Options only supports DENY/SAMEORIGIN, which cannot allow a
+    # specific cross-origin parent, so it is intentionally omitted.
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(self), camera=(), microphone=()"
     Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.open-meteo.com; img-src 'self' data: blob:; font-src 'self'; worker-src blob:; frame-ancestors 'none';"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.open-meteo.com; img-src 'self' data: blob:; font-src 'self'; worker-src blob:; frame-ancestors 'self' https://edutrack-production-2a6d.up.railway.app;"
 
 # Cache static assets aggressively
 [[headers]]
