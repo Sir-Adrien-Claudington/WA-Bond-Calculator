@@ -1,0 +1,456 @@
+/* ---------------------------------------------------------------------------
+   GeoScape — geology design system + scroll-driven animations
+   Palette: earth/stone with amber, copper and jade accents.
+   Motion: native CSS Scroll-driven Animations API (view() / scroll()),
+   wrapped in @supports so non-supporting browsers render the final state.
+--------------------------------------------------------------------------- */
+
+.geo-root {
+  --geo-bg: #14110d;
+  --geo-bg2: #1d1812;
+  --stone: #f2e8d8;
+  --amber: #d98e3c;
+  --copper: #c9743f;
+  --jade: #4fa88b;
+  --muted: rgba(242, 232, 216, 0.55);
+  position: relative;
+  min-height: 100vh;
+  background: var(--geo-bg);
+  color: var(--stone);
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* --- Nav ------------------------------------------------------------------ */
+
+.geo-nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 48px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  background: rgba(20, 17, 13, 0.7);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(217, 142, 60, 0.18);
+}
+.geo-wordmark {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--stone);
+  text-decoration: none;
+}
+.geo-wordmark span { color: var(--amber); }
+.geo-nav-links { display: flex; gap: 1.25rem; }
+.geo-link {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.geo-link:hover { color: var(--stone); }
+.geo-link-active { color: var(--amber); }
+
+/* --- Hero with 3D parallax ------------------------------------------------ */
+
+.geo-hero {
+  position: relative;
+  height: 100vh;
+  min-height: 620px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+  perspective: 12px;
+}
+.geo-hero-parallax {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+.geo-hero-layer {
+  position: absolute;
+  inset: -20% 0;
+}
+.geo-hero-far {
+  background:
+    radial-gradient(120% 80% at 50% 120%, rgba(217, 142, 60, 0.25), transparent 60%),
+    linear-gradient(180deg, #100d09 0%, #1a140d 55%, #2a1c10 100%);
+  transform: translateZ(-10px) scale(1.9);
+}
+.geo-hero-mid {
+  background:
+    repeating-linear-gradient(
+      178deg,
+      rgba(122, 78, 44, 0.18) 0 14px,
+      rgba(90, 58, 36, 0.18) 14px 30px,
+      rgba(154, 106, 60, 0.16) 30px 52px
+    );
+  opacity: 0.5;
+  transform: translateZ(-6px) scale(1.5);
+  mask-image: linear-gradient(180deg, transparent 30%, #000 100%);
+}
+.geo-hero-near {
+  background: radial-gradient(80% 50% at 50% 100%, rgba(255, 210, 122, 0.18), transparent 70%);
+  transform: translateZ(-2px) scale(1.2);
+}
+.geo-hero-content { position: relative; z-index: 2; padding: 1.5rem; }
+.geo-kicker {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 1rem;
+}
+.geo-h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: clamp(2.5rem, 7vw, 5.5rem);
+  letter-spacing: 0.01em;
+  line-height: 1.02;
+  margin: 0;
+  text-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}
+.geo-hero-sub {
+  max-width: 34rem;
+  margin: 1.25rem auto 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: rgba(242, 232, 216, 0.72);
+}
+.geo-scrollcue {
+  margin-top: 2.5rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+.geo-scrollcue-line {
+  width: 1px; height: 46px;
+  background: linear-gradient(var(--amber), transparent);
+}
+
+/* --- Sections ------------------------------------------------------------- */
+
+.geo-section { max-width: 1100px; margin: 0 auto; padding: 7rem 2rem; }
+.geo-section-head { max-width: 42rem; margin-bottom: 3.5rem; }
+.geo-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--jade); margin-bottom: 0.75rem;
+}
+.geo-h2 {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: clamp(1.8rem, 4vw, 3rem); margin: 0 0 1rem;
+}
+.geo-lead { font-size: 1.0625rem; line-height: 1.7; color: rgba(242, 232, 216, 0.66); margin: 0; }
+
+/* --- Earth layer descent -------------------------------------------------- */
+
+.strata-stack { position: relative; padding-left: 2.5rem; }
+.strata-progress {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: rgba(217, 142, 60, 0.14); border-radius: 2px; overflow: hidden;
+}
+.strata-progress-fill {
+  position: absolute; top: 0; left: 0; right: 0; height: 100%;
+  background: linear-gradient(var(--amber), var(--copper));
+  transform: scaleY(1); transform-origin: top;
+}
+
+.layer-row {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 3rem;
+  align-items: center;
+  padding: 2.5rem 0;
+}
+.layer-core { display: flex; flex-direction: column; align-items: center; gap: 0.9rem; }
+.layer-core-face {
+  width: 170px; height: 170px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.5), transparent 42%),
+    radial-gradient(circle at 70% 75%, rgba(0, 0, 0, 0.55), transparent 60%),
+    var(--layer);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), inset 0 0 40px rgba(0, 0, 0, 0.35);
+  transform: perspective(700px) rotateY(-20deg) rotateX(6deg);
+}
+.layer-depth {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+  letter-spacing: 0.1em; color: var(--muted);
+}
+.layer-index {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+  color: var(--amber); margin-bottom: 0.4rem;
+}
+.layer-name {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: 1.6rem; margin: 0 0 0.9rem;
+}
+.layer-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.layer-tags span {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
+  letter-spacing: 0.05em; padding: 0.3rem 0.6rem; border-radius: 999px;
+  background: rgba(242, 232, 216, 0.06); border: 1px solid rgba(242, 232, 216, 0.12);
+  color: rgba(242, 232, 216, 0.75);
+}
+.layer-fact { font-size: 1rem; line-height: 1.65; color: rgba(242, 232, 216, 0.7); margin: 0; max-width: 40ch; }
+
+/* --- Rock cycle ----------------------------------------------------------- */
+
+.geo-section-rock { background: var(--geo-bg2); max-width: none; }
+.geo-section-rock > .geo-section-head,
+.geo-section-rock > .rock-grid { max-width: 1100px; margin-left: auto; margin-right: auto; }
+.rock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+.rock-card {
+  border: 1px solid rgba(242, 232, 216, 0.1);
+  border-top: 3px solid var(--accent);
+  border-radius: 14px;
+  background: rgba(20, 16, 11, 0.6);
+  padding: 1.75rem;
+}
+.rock-card-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.75rem; }
+.rock-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.3rem; margin: 0; }
+.rock-origin { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.rock-formation { font-size: 0.92rem; line-height: 1.6; color: rgba(242, 232, 216, 0.66); margin: 0 0 1.25rem; }
+.rock-swatches { display: flex; gap: 0.75rem; }
+.rock-swatch { margin: 0; flex: 1; text-align: center; }
+.rock-swatch canvas {
+  width: 100%; aspect-ratio: 1; border-radius: 10px; display: block;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); image-rendering: auto;
+}
+.rock-swatch figcaption {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; letter-spacing: 0.04em;
+  color: var(--muted); margin-top: 0.45rem;
+}
+
+/* --- Geologic timeline ---------------------------------------------------- */
+
+.timeline { position: relative; max-width: 880px; margin: 0 auto; }
+.timeline-spine {
+  position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(rgba(217, 142, 60, 0.05), rgba(217, 142, 60, 0.4), rgba(217, 142, 60, 0.05));
+}
+.time-row { position: relative; display: flex; margin-bottom: 2.5rem; }
+.time-left { justify-content: flex-start; }
+.time-right { justify-content: flex-end; }
+.time-node {
+  position: absolute; left: 50%; top: 1.6rem; width: 16px; height: 16px;
+  border-radius: 50%; transform: translateX(-50%);
+  box-shadow: 0 0 0 4px var(--geo-bg), 0 0 16px 2px currentColor;
+}
+.time-card {
+  width: 44%;
+  border: 1px solid rgba(242, 232, 216, 0.1);
+  border-left: 3px solid var(--accent);
+  border-radius: 12px;
+  background: rgba(20, 16, 11, 0.6);
+  padding: 1.25rem 1.4rem;
+}
+.time-span { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; letter-spacing: 0.08em; color: var(--accent); }
+.time-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.2rem; margin: 0.2rem 0 0.5rem; }
+.time-event { font-size: 0.9rem; line-height: 1.55; color: rgba(242, 232, 216, 0.66); margin: 0; }
+
+/* --- End ------------------------------------------------------------------ */
+
+.geo-end {
+  text-align: center; padding: 6rem 2rem 7rem;
+  background: var(--geo-bg2);
+}
+.geo-end p { font-size: 1.1rem; color: rgba(242, 232, 216, 0.7); margin: 0 0 1.5rem; }
+.geo-end-cta {
+  display: inline-block;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 500;
+  color: var(--geo-bg); background: var(--amber);
+  padding: 0.7rem 1.4rem; border-radius: 10px; text-decoration: none;
+  transition: filter 0.2s, transform 0.2s;
+}
+.geo-end-cta:hover { filter: brightness(1.08); transform: translateY(-2px); }
+
+/* --- Scroll-driven motion (progressive enhancement) ----------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .layer-row,
+    .rock-card,
+    .time-row {
+      opacity: 0;
+      animation: geo-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 4% cover 26%;
+    }
+    .time-left { animation-name: geo-reveal-left; }
+    .time-right { animation-name: geo-reveal-right; }
+
+    .strata-stack { view-timeline-name: --strata; }
+    .strata-progress-fill {
+      transform: scaleY(0);
+      animation: geo-grow linear both;
+      animation-timeline: --strata;
+      animation-range: entry 30% exit 70%;
+    }
+  }
+
+  @supports (animation-timeline: scroll()) {
+    .geo-hero-far { animation: geo-par-far linear both; animation-timeline: scroll(root block); }
+    .geo-hero-mid { animation: geo-par-mid linear both; animation-timeline: scroll(root block); }
+    .geo-hero-near { animation: geo-par-near linear both; animation-timeline: scroll(root block); }
+    .geo-scrollcue { animation: geo-fade-cue linear both; animation-timeline: scroll(root block); animation-range: 0 18vh; }
+  }
+}
+
+@keyframes geo-reveal { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+@keyframes geo-reveal-left { from { opacity: 0; transform: translateX(-36px); } to { opacity: 1; transform: none; } }
+@keyframes geo-reveal-right { from { opacity: 0; transform: translateX(36px); } to { opacity: 1; transform: none; } }
+@keyframes geo-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes geo-par-far { to { transform: translateZ(-10px) scale(1.9) translateY(80px); } }
+@keyframes geo-par-mid { to { transform: translateZ(-6px) scale(1.5) translateY(140px); } }
+@keyframes geo-par-near { to { transform: translateZ(-2px) scale(1.2) translateY(220px); } }
+@keyframes geo-fade-cue { to { opacity: 0; } }
+
+/* --- Mineral Lab ----------------------------------------------------------- */
+
+.mineral-root {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(80% 60% at 50% 35%, #221b13 0%, #14110d 70%);
+  color: var(--stone);
+  font-family: 'Inter', system-ui, sans-serif;
+  --geo-bg: #14110d;
+  --stone: #f2e8d8;
+  --amber: #d98e3c;
+  --muted: rgba(242, 232, 216, 0.55);
+}
+
+.mineral-stage {
+  position: absolute;
+  inset: 48px 0 96px 0;
+  cursor: grab;
+}
+.mineral-stage:active { cursor: grabbing; }
+.mineral-stage canvas { display: block; }
+
+.mineral-hint {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 104px;
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.mineral-tray {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 88px;
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0 1.5rem;
+  overflow-x: auto;
+  background: rgba(20, 17, 13, 0.7);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(217, 142, 60, 0.18);
+  scrollbar-width: thin;
+  scrollbar-color: var(--amber) transparent;
+}
+.mineral-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(242, 232, 216, 0.16);
+  background: rgba(242, 232, 216, 0.04);
+  color: rgba(242, 232, 216, 0.78);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.mineral-chip:hover { border-color: var(--amber); color: var(--stone); }
+.mineral-chip-active {
+  border-color: var(--amber);
+  background: rgba(217, 142, 60, 0.16);
+  color: var(--stone);
+}
+.mineral-chip-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+}
+
+/* CSS3D floating mineral panel */
+.mineral-panel {
+  width: 280px;
+  background: rgba(20, 16, 11, 0.9);
+  border: 1px solid rgba(217, 142, 60, 0.3);
+  border-left: 3px solid var(--amber);
+  border-radius: 12px;
+  padding: 18px;
+  font-family: 'Inter', sans-serif;
+}
+.mineral-panel-formula {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; letter-spacing: 0.08em; color: #d98e3c; margin-bottom: 4px;
+}
+.mineral-panel-name {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: 26px; color: #f2e8d8; margin-bottom: 14px;
+}
+.mineral-panel-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  border-top: 1px solid rgba(242, 232, 216, 0.1);
+  padding-top: 12px; margin-bottom: 12px;
+}
+.mp-k {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: rgba(242, 232, 216, 0.4);
+  margin-bottom: 2px;
+}
+.mp-v { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #f2e8d8; }
+.mineral-panel-blurb {
+  font-size: 12px; line-height: 1.6; color: rgba(242, 232, 216, 0.62);
+  border-top: 1px solid rgba(242, 232, 216, 0.1); padding-top: 12px;
+}
+.mineral-panel-uses {
+  display: flex; flex-direction: column; gap: 2px; margin-top: 10px;
+}
+.mp-uses-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--jade, #4fa88b);
+}
+.mp-uses-text { font-size: 11px; line-height: 1.5; color: rgba(242, 232, 216, 0.6); }
+
+/* --- Responsive ----------------------------------------------------------- */
+
+@media (max-width: 760px) {
+  .layer-row { grid-template-columns: 1fr; gap: 1.5rem; justify-items: start; }
+  .timeline-spine { left: 12px; }
+  .time-node { left: 12px; }
+  .time-card { width: 100%; margin-left: 2rem; }
+  .time-left, .time-right { justify-content: flex-start; }
+}

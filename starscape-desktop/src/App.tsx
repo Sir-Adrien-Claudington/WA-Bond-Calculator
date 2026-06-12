@@ -30,6 +30,12 @@ const ScrollJourney = lazy(() =>
 const GamesHub = lazy(() =>
   import('@screens/GamesHub').then((m) => ({ default: m.GamesHub }))
 );
+const StrataJourney = lazy(() =>
+  import('@screens/geology/StrataJourney').then((m) => ({ default: m.StrataJourney }))
+);
+const MineralLab = lazy(() =>
+  import('@screens/geology/MineralLab').then((m) => ({ default: m.MineralLab }))
+);
 
 type Tier = 'beginner' | 'intermediate' | 'knowledgeable';
 const VALID_TIERS: Tier[] = ['beginner', 'intermediate', 'knowledgeable'];
@@ -126,6 +132,18 @@ export function App() {
         <GamesHub level={level} embed={embed} />
       </Suspense>
     );
+  } else if (pathname === '/geology') {
+    view = (
+      <Suspense fallback={viewFallback}>
+        <StrataJourney pathname={pathname} onNavigate={navigate} />
+      </Suspense>
+    );
+  } else if (pathname === '/minerals') {
+    view = (
+      <Suspense fallback={viewFallback}>
+        <MineralLab pathname={pathname} onNavigate={navigate} />
+      </Suspense>
+    );
   } else {
     view = (
       <main
@@ -164,9 +182,12 @@ export function App() {
     );
   }
 
+  // GeoScape routes carry their own (GeoNav) chrome — don't stack the space nav.
+  const isGeo = pathname === '/geology' || pathname === '/minerals';
+
   return (
     <>
-      {!embed && <TopNav pathname={pathname} onNavigate={navigate} />}
+      {!embed && !isGeo && <TopNav pathname={pathname} onNavigate={navigate} />}
       {view}
     </>
   );
