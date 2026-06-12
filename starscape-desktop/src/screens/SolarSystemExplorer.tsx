@@ -27,12 +27,14 @@ import {
   type DeepSpaceObject,
 } from '@data/deepSpace';
 import {
-  planetTexture,
-  cloudTexture,
+  createPlanetJob,
+  createCloudJob,
+  createSunJob,
   ringTexture,
   glowTexture,
-  sunTexture,
+  roundPointTexture,
   accretionTexture,
+  type TexJob,
 } from '@utils/textures';
 import '../styles/cosmos.css';
 
@@ -202,10 +204,11 @@ export function SolarSystemExplorer() {
 
     const billboards: CSS3DObject[] = []; // everything that must face the camera
 
-    // Procedural textures are streamed in one-per-tick after first paint so
-    // generation never produces a long main-thread task (keeps TBT near zero).
-    // Surfaces start as flat colours and upgrade as their texture lands.
-    const texQueue: Array<() => void> = [];
+    // Procedural surface textures are produced as time-sliced jobs: the rAF
+    // loop spends a few ms per frame filling them, so high-res detail streams
+    // in progressively and never produces a long main-thread task.
+    const texJobs: TexJob[] = [];
+    const roundPoint = track(roundPointTexture());
 
     // --- lights ---------------------------------------------------------------------
     scene.add(new THREE.PointLight(0xfff5e0, 3.2, 0, 0));
@@ -232,11 +235,14 @@ export function SolarSystemExplorer() {
       geo.setAttribute('color', new THREE.BufferAttribute(colArr, 3));
       const mat = track(
         new THREE.PointsMaterial({
-          size: 1.6,
+          size: 2.2,
           sizeAttenuation: false,
           vertexColors: true,
+          map: roundPoint,
           transparent: true,
-          opacity: 0.85,
+          alphaTest: 0.02,
+          depthWrite: false,
+          opacity: 0.9,
         })
       );
       scene.add(new THREE.Points(geo, mat));
@@ -244,13 +250,16 @@ export function SolarSystemExplorer() {
 
     // --- the Sun -----------------------------------------------------------------------
     const sunMat = track(new THREE.MeshBasicMaterial({ color: 0xffb347 }));
-    const sun = new THREE.Mesh(track(new THREE.SphereGeometry(4.5, 48, 48)), sunMat);
+    const sun = new THREE.Mesh(track(new THREE.SphereGeometry(4.5, 64, 64)), sunMat);
     scene.add(sun);
-    texQueue.push(() => {
-      sunMat.map = track(sunTexture());
+    {
+      const job = createSunJob();
+      track(job.map);
+      sunMat.map = job.map;
       sunMat.color.set(0xffffff);
       sunMat.needsUpdate = true;
-    });
+      texJobs.push(job);
+    }
 
     const sunGlowTex = track(glowTexture('#FFB347'));
     const sunGlow = new THREE.Sprite(
@@ -309,15 +318,22 @@ export function SolarSystemExplorer() {
         new THREE.MeshStandardMaterial({ color: planet.color, roughness: 0.85, metalness: 0.02 })
       );
       const mesh = new THREE.Mesh(
-        track(new THREE.SphereGeometry(planet.radius, 36, 36)),
+        track(new THREE.SphereGeometry(planet.radius, 64, 64)),
         surfMat
       );
       tiltGroup.add(mesh);
-      texQueue.push(() => {
-        surfMat.map = track(planetTexture(planet.id, planet.color));
+      {
+        const rocky = planet.type === 'Terrestrial';
+        const job = createPlanetJob(planet.id, planet.color, 1024, 512, rocky);
+        track(job.map);
+        if (job.bump) track(job.bump);
+        surfMat.map = job.map;
+        surfMat.bumpMap = job.bump;
+        surfMat.bumpScale = 0.08;
         surfMat.color.set(0xffffff);
         surfMat.needsUpdate = true;
-      });
+        texJobs.push(job);
+      }
 
       const ent: PlanetEntity = { planet, group, mesh, angle: Math.random() * Math.PI * 2 };
 
@@ -326,15 +342,16 @@ export function SolarSystemExplorer() {
           new THREE.MeshStandardMaterial({ transparent: true, depthWrite: false, roughness: 1 })
         );
         const clouds = new THREE.Mesh(
-          track(new THREE.SphereGeometry(planet.radius * 1.02, 36, 36)),
+          track(new THREE.SphereGeometry(planet.radius * 1.02, 48, 48)),
           cloudMat
         );
-        clouds.visible = false; // shown once the cloud texture lands
-        texQueue.push(() => {
-          cloudMat.map = track(cloudTexture());
+        {
+          const job = createCloudJob();
+          track(job.map);
+          cloudMat.map = job.map;
           cloudMat.needsUpdate = true;
-          clouds.visible = true;
-        });
+          texJobs.push(job);
+        }
         tiltGroup.add(clouds);
         ent.clouds = clouds;
         tiltGroup.add(makeAtmosphere(planet.radius * 1.07, '#4FA8FF', 0.85));
@@ -343,12 +360,18 @@ export function SolarSystemExplorer() {
         const moonMat = track(
           new THREE.MeshStandardMaterial({ color: 0x9c9890, roughness: 0.95 })
         );
-        const moon = new THREE.Mesh(track(new THREE.SphereGeometry(0.27, 24, 24)), moonMat);
-        texQueue.push(() => {
-          moonMat.map = track(planetTexture('mercury', '#9C9890'));
+        const moon = new THREE.Mesh(track(new THREE.SphereGeometry(0.27, 48, 48)), moonMat);
+        {
+          const job = createPlanetJob('mercury', '#9C9890', 512, 256);
+          track(job.map);
+          if (job.bump) track(job.bump);
+          moonMat.map = job.map;
+          moonMat.bumpMap = job.bump;
+          moonMat.bumpScale = 0.04;
           moonMat.color.set(0xffffff);
           moonMat.needsUpdate = true;
-        });
+          texJobs.push(job);
+        }
         moon.position.set(2.4, 0.2, 0);
         moonOrbit.add(moon);
         group.add(moonOrbit);
@@ -423,12 +446,18 @@ export function SolarSystemExplorer() {
     // --- Pluto + Kuiper Belt -------------------------------------------------------------
     const plutoGroup = new THREE.Group();
     const plutoMat = track(new THREE.MeshStandardMaterial({ color: 0xc9b29b, roughness: 0.9 }));
-    const plutoMesh = new THREE.Mesh(track(new THREE.SphereGeometry(0.32, 28, 28)), plutoMat);
-    texQueue.push(() => {
-      plutoMat.map = track(planetTexture('mercury', '#C9B29B'));
+    const plutoMesh = new THREE.Mesh(track(new THREE.SphereGeometry(0.32, 48, 48)), plutoMat);
+    {
+      const job = createPlanetJob('mercury', '#C9B29B', 512, 256);
+      track(job.map);
+      if (job.bump) track(job.bump);
+      plutoMat.map = job.map;
+      plutoMat.bumpMap = job.bump;
+      plutoMat.bumpScale = 0.04;
       plutoMat.color.set(0xffffff);
       plutoMat.needsUpdate = true;
-    });
+      texJobs.push(job);
+    }
     plutoGroup.add(plutoMesh);
     const plutoLabel = makeLabel('Pluto', 0.045);
     plutoLabel.position.set(0, 1.6, 0);
@@ -455,9 +484,11 @@ export function SolarSystemExplorer() {
       geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
       kuiperMat = track(
         new THREE.PointsMaterial({
-          color: 0x9fc4cc,
-          size: 0.7,
+          color: 0xbfe0e8,
+          size: 1.1,
+          map: roundPoint,
           transparent: true,
+          alphaTest: 0.02,
           opacity: 0,
           depthWrite: false,
         })
@@ -565,8 +596,9 @@ export function SolarSystemExplorer() {
       geo.setAttribute('color', new THREE.BufferAttribute(colArr, 3));
       galaxyMat = track(
         new THREE.PointsMaterial({
-          size: 2.4,
+          size: 3.2,
           vertexColors: true,
+          map: roundPoint,
           transparent: true,
           opacity: 0,
           depthWrite: false,
@@ -875,6 +907,10 @@ export function SolarSystemExplorer() {
       const delta = Math.min(clock.getDelta(), 0.05);
       const t = performance.now();
 
+      // fill one in-progress surface texture for a few ms — high-res detail
+      // streams in over a couple of seconds with no long task / no frame drop
+      if (texJobs.length > 0 && texJobs[0].run(3.5)) texJobs.shift();
+
       // inertia after drag release
       if (!dragging && Math.abs(spinVel) > 0.0001) {
         target.theta += spinVel * delta;
@@ -979,20 +1015,9 @@ export function SolarSystemExplorer() {
     };
     animate();
 
-    // stream procedural textures in after first paint, one per tick
-    let texTimer = 0;
-    const processTexQueue = () => {
-      const task = texQueue.shift();
-      if (!task) return;
-      task();
-      texTimer = window.setTimeout(processTexQueue, 24);
-    };
-    texTimer = window.setTimeout(processTexQueue, 150);
-
     // --- cleanup -------------------------------------------------------------------------------------
     return () => {
       cancelAnimationFrame(raf);
-      clearTimeout(texTimer);
       window.removeEventListener('resize', onResize);
       glEl.removeEventListener('pointerdown', onPointerDown);
       glEl.removeEventListener('pointermove', onPointerMove);
