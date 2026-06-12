@@ -1,13 +1,15 @@
 // ---------------------------------------------------------------------------
 // StarScape — Scroll Journey
 // ---------------------------------------------------------------------------
-// Pure CSS scroll-driven animation tour of the planets. All entrance
-// animations use `animation-timeline: view()` — zero JS scroll listeners.
-// In browsers without scroll-timeline support the elements simply render
-// in their final visible state (0s animation with fill: both).
+// Scroll-driven tour of the planets. Entrance animations use CSS
+// `animation-timeline: view()` (no JS scroll listeners); each planet is a real
+// interactive high-resolution 3D model (PlanetViewer) you can rotate, zoom,
+// and explore by topographic / atmospheric hotspot. Viewers init lazily as
+// each section nears view and tear down when it leaves.
 // ---------------------------------------------------------------------------
 
 import { PLANETS } from '@data/planets';
+import { PlanetViewer } from './journey/PlanetViewer';
 import '../styles/journey.css';
 
 export function ScrollJourney() {
@@ -21,15 +23,7 @@ export function ScrollJourney() {
       {PLANETS.map((p, i) => (
         <section className="journey-section" key={p.id} aria-label={p.name}>
           <div className="section-visual">
-            <div
-              className="css-sphere"
-              style={{
-                background: p.displayColor,
-                width: `${Math.min(320, 90 + p.radius * 75)}px`,
-              }}
-            >
-              {p.hasRings && <div className="css-ring" aria-hidden="true" />}
-            </div>
+            <PlanetViewer planet={p} />
           </div>
 
           <div className="section-text">
