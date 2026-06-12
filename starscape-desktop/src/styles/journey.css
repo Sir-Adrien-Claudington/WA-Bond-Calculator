@@ -12,6 +12,13 @@
   color: #fff8e7;
   scrollbar-width: thin;
   scrollbar-color: #00bfa5 #050714;
+  scroll-behavior: smooth;
+  scroll-snap-type: y proximity;
+}
+
+.journey-section,
+.journey-hero {
+  scroll-snap-align: start;
 }
 
 /* --- Hero ------------------------------------------------------------------- */
@@ -67,6 +74,15 @@
 }
 
 /* CSS-only sphere — inset shadows give depth, no gradients */
+@keyframes sphere-float {
+  from {
+    transform: translateY(-8px);
+  }
+  to {
+    transform: translateY(8px);
+  }
+}
+
 .css-sphere {
   aspect-ratio: 1;
   border-radius: 50%;
@@ -74,6 +90,7 @@
   box-shadow:
     inset -36px -24px 70px rgba(0, 0, 0, 0.6),
     inset 12px 12px 45px rgba(255, 255, 255, 0.14);
+  animation: sphere-float 5.5s ease-in-out infinite alternate;
 }
 
 .css-ring {
