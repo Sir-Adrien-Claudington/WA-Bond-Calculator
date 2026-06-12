@@ -139,6 +139,7 @@ type JumpTarget = 'earth' | 'system' | 'belt' | 'galaxy';
 interface SceneApi {
   selectPlanet: (id: string | null) => void;
   jumpTo: (target: JumpTarget) => void;
+  releaseFocus: () => void;
 }
 
 const DEEP_LOOKUP: Record<string, DeepSpaceObject> = Object.fromEntries(
@@ -637,6 +638,9 @@ export function SolarSystemExplorer() {
     let panelObj: CSS3DObject | null = null;
     let panelHost: THREE.Group | null = null;
     let followEntity: PlanetEntity | null = null;
+    // A deliberately-selected deep object stays lit regardless of zoom (the
+    // ambient distance-fade is only for discovery). null = nothing forced.
+    let focusedDeepId: string | null = null;
 
     const clearPanel = () => {
       if (panelObj && panelHost) {
@@ -652,6 +656,7 @@ export function SolarSystemExplorer() {
     const selectPlanet = (id: string | null) => {
       clearPanel();
       followEntity = null;
+      focusedDeepId = null;
       if (!id) {
         pivotTarget.set(0, 0, 0);
         return;
@@ -670,14 +675,27 @@ export function SolarSystemExplorer() {
 
     const focusPoint = (p: THREE.Vector3, radius: number) => {
       followEntity = null;
+      focusedDeepId = null;
       pivotTarget.copy(p);
       target.radius = radius;
+    };
+
+    // Release any locked focus and return the camera toward the Sun, keeping
+    // the current zoom so the user can keep scrolling outward.
+    const releaseFocus = () => {
+      clearPanel();
+      followEntity = null;
+      focusedDeepId = null;
+      onPickRef.current(null);
+      onDeepRef.current(null);
+      pivotTarget.set(0, 0, 0);
     };
 
     const jumpTo = (j: JumpTarget) => {
       clearPanel();
       onDeepRef.current(null);
       onPickRef.current(null);
+      focusedDeepId = null;
       if (j === 'earth') {
         const earth = entities.find((e) => e.planet.id === 'earth');
         if (earth) {
@@ -693,7 +711,7 @@ export function SolarSystemExplorer() {
       }
     };
 
-    apiRef.current = { selectPlanet, jumpTo };
+    apiRef.current = { selectPlanet, jumpTo, releaseFocus };
 
     // --- pointer input: drag-rotate with inertia, exponential wheel zoom -----------------------------
     let dragging = false;
@@ -787,7 +805,8 @@ export function SolarSystemExplorer() {
         onDeepRef.current('sag-a');
         const wp = new THREE.Vector3();
         bhCore.getWorldPosition(wp);
-        focusPoint(wp, 170);
+        focusPoint(wp, 140); // frames the accretion disk; forced-visible below
+        focusedDeepId = 'sag-a';
         return;
       }
       const deep = deepEntities.find((d) => d.hit === obj);
@@ -795,7 +814,9 @@ export function SolarSystemExplorer() {
         clearPanel();
         onPickRef.current(null);
         onDeepRef.current(deep.data.id);
-        focusPoint(deep.sprite.position.clone(), 90);
+        // frame the sprite up close, then keep it lit regardless of zoom band
+        focusPoint(deep.sprite.position.clone(), Math.max((deep.data.size ?? 18) * 3.2, 55));
+        focusedDeepId = deep.data.id;
       }
     };
 
@@ -809,12 +830,19 @@ export function SolarSystemExplorer() {
       dragging = false;
     };
 
+    // Escape releases a locked focus and recentres on the Sun (without
+    // leaving the view — App's global Esc is suppressed on /explorer).
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') releaseFocus();
+    };
+
     const glEl = renderer.domElement;
     glEl.addEventListener('pointerdown', onPointerDown);
     glEl.addEventListener('pointermove', onPointerMove);
     glEl.addEventListener('pointerup', onPointerUp);
     glEl.addEventListener('pointerleave', onPointerLeave);
     glEl.addEventListener('wheel', onWheel, { passive: false });
+    window.addEventListener('keydown', onKeyDown);
 
     const onResize = () => {
       width = container.clientWidth;
@@ -897,25 +925,30 @@ export function SolarSystemExplorer() {
       kuiperMat.opacity = 0.55 * smoothstep(55, 130, r) * (1 - smoothstep(900, 1500, r));
       kuiperPoints.visible = kuiperMat.opacity > 0.004;
       const galaxyVis = smoothstep(420, 1100, r);
-      galaxyGroup.visible = galaxyVis > 0.004;
+      const bhFocused = focusedDeepId === 'sag-a';
+      galaxyGroup.visible = galaxyVis > 0.004 || bhFocused;
       galaxyMat.opacity = 0.85 * galaxyVis;
-      diskMat.opacity = galaxyVis * 0.9;
-      bhGlowMat.opacity = galaxyVis * 0.55;
+      // disk/glow/label stay lit when the black hole is the chosen target,
+      // even though we zoom inside the galaxy-points fade band to frame it
+      diskMat.opacity = Math.max(galaxyVis, bhFocused ? 0.95 : 0) * 0.9;
+      bhGlowMat.opacity = Math.max(galaxyVis, bhFocused ? 1 : 0) * 0.55;
       youAreHereMat.opacity = galaxyVis * (0.5 + Math.sin(t * 0.003) * 0.3);
-      youAreHere.visible = galaxyGroup.visible;
+      youAreHere.visible = galaxyVis > 0.004;
       sunGlow.scale.setScalar(Math.max(26, r * 0.045));
 
       const deepVis = smoothstep(170, 380, r) * (1 - smoothstep(1300, 2000, r));
       const deepOn = deepVis > 0.004;
       deepEntities.forEach((d) => {
-        (d.sprite.material as THREE.SpriteMaterial).opacity = deepVis;
-        d.sprite.visible = deepOn;
-        d.hit.visible = deepOn;
-        d.labelEl.style.opacity = String(deepVis);
+        const focused = d.data.id === focusedDeepId;
+        const op = focused ? 1 : deepVis;
+        (d.sprite.material as THREE.SpriteMaterial).opacity = op;
+        d.sprite.visible = op > 0.004;
+        d.hit.visible = deepOn || focused;
+        d.labelEl.style.opacity = String(op);
       });
       const planetLabelVis = smoothstep(20, 42, r) * (1 - smoothstep(320, 520, r));
       planetLabels.forEach((el) => (el.style.opacity = String(planetLabelVis)));
-      bhLabel.element.style.opacity = String(galaxyVis);
+      bhLabel.element.style.opacity = String(Math.max(galaxyVis, bhFocused ? 1 : 0));
 
       // zone readout
       if (zoneEl) {
@@ -966,6 +999,7 @@ export function SolarSystemExplorer() {
       glEl.removeEventListener('pointerup', onPointerUp);
       glEl.removeEventListener('pointerleave', onPointerLeave);
       glEl.removeEventListener('wheel', onWheel);
+      window.removeEventListener('keydown', onKeyDown);
       apiRef.current = null;
       disposables.forEach((d) => d.dispose());
       glEl.remove();
@@ -985,7 +1019,9 @@ export function SolarSystemExplorer() {
       {/* HUD — observatory readout + scale indicator */}
       <div className="cosmos-hud">
         <div className="hud-title">Sol Observatory</div>
-        <div className="hud-hint">drag to rotate · scroll to zoom — all the way to the galaxy</div>
+        <div className="hud-hint">
+          drag to rotate · scroll to zoom — all the way to the galaxy · Esc to release
+        </div>
         <div className="hud-zone" ref={zoneRef} aria-live="off">
           INNER SYSTEM · 5 AU
         </div>
@@ -1011,7 +1047,10 @@ export function SolarSystemExplorer() {
           <div className="panel-scanline" />
           <button
             className="deep-close"
-            onClick={() => setDeepObject(null)}
+            onClick={() => {
+              setDeepObject(null);
+              apiRef.current?.releaseFocus();
+            }}
             aria-label="Close panel"
           >
             ✕

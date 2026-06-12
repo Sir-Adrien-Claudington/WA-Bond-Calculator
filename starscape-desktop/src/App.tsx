@@ -67,7 +67,9 @@ export function App() {
           navigate('/journey');
           break;
         case 'escape':
-          navigate('/');
+          // In the explorer, Esc releases the focused object (handled there);
+          // elsewhere it returns to the home experience.
+          if (window.location.pathname !== '/explorer') navigate('/');
           break;
       }
     };
