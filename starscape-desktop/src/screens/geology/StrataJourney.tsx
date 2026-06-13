@@ -19,8 +19,22 @@ function RockSwatch({ kind, label }: { kind: RockKind; label: string }) {
   useEffect(() => {
     const c = ref.current;
     if (!c) return;
-    const ctx = c.getContext('2d');
-    if (ctx) paintRock(ctx, c.width, c.height, kind);
+    // Paint the procedural texture only once the swatch nears view — keeps the
+    // initial load free of a synchronous burst of canvas work (low TBT).
+    let painted = false;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting && !painted) {
+          const ctx = c.getContext('2d');
+          if (ctx) paintRock(ctx, c.width, c.height, kind);
+          painted = true;
+          io.disconnect();
+        }
+      },
+      { rootMargin: '250px' }
+    );
+    io.observe(c);
+    return () => io.disconnect();
   }, [kind]);
   return (
     <figure className="rock-swatch">
