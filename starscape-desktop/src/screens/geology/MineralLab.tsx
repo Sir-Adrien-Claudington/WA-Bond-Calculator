@@ -291,7 +291,29 @@ export function MineralLab({ pathname, onNavigate }: MineralLabProps) {
       <GeoNav pathname={pathname} onNavigate={onNavigate} />
       <div className="mineral-stage" ref={mountRef} aria-label={`3D model of ${selected.name}`} />
 
-      <div className="mineral-hint" aria-hidden="true">drag to rotate · scroll to zoom</div>
+      <div className="mineral-hint" aria-hidden="true">drag to rotate · pinch / scroll to zoom</div>
+
+      {/* 2D info card — shown on narrow screens where the 3D CSS3D panel
+          would fall outside the viewport. */}
+      <div className="mineral-card-2d">
+        <div className="m2d-formula">{selected.formula}</div>
+        <div className="m2d-name">{selected.name}</div>
+        <div className="m2d-grid">
+          <div>
+            <span>System</span>
+            <b>{selected.system}</b>
+          </div>
+          <div>
+            <span>Hardness</span>
+            <b>{selected.mohs} Mohs</b>
+          </div>
+          <div>
+            <span>Luster</span>
+            <b>{selected.luster}</b>
+          </div>
+        </div>
+        <p className="m2d-blurb">{selected.blurb}</p>
+      </div>
 
       <div className="mineral-tray" role="listbox" aria-label="Mineral specimens">
         {MINERALS.map((m) => (

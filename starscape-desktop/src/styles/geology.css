@@ -217,7 +217,7 @@
 .geo-section-rock { background: var(--geo-bg2); max-width: none; }
 .geo-section-rock > .geo-section-head,
 .geo-section-rock > .rock-grid { max-width: 1100px; margin-left: auto; margin-right: auto; }
-.rock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+.rock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 1.5rem; }
 .rock-card {
   border: 1px solid rgba(242, 232, 216, 0.1);
   border-top: 3px solid var(--accent);
@@ -345,6 +345,7 @@
   position: absolute;
   inset: 48px 0 96px 0;
   cursor: grab;
+  overflow: hidden; /* clip the CSS3D panel if it projects past the edge */
 }
 .mineral-stage:active { cursor: grabbing; }
 .mineral-stage canvas { display: block; }
@@ -446,10 +447,81 @@
 }
 .mp-uses-text { font-size: 11px; line-height: 1.5; color: rgba(242, 232, 216, 0.6); }
 
+/* 2D mineral info card — only on narrow screens (the CSS3D panel floats
+   outside a portrait viewport, so a fixed card guarantees readability). */
+.mineral-card-2d { display: none; }
+
+@media (max-width: 719px) {
+  .mineral-card-2d {
+    display: block;
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 96px;
+    max-height: 40vh;
+    overflow-y: auto;
+    background: rgba(20, 16, 11, 0.92);
+    border: 1px solid rgba(217, 142, 60, 0.3);
+    border-left: 3px solid #d98e3c;
+    border-radius: 12px;
+    padding: 14px 16px;
+    z-index: 15;
+  }
+}
+
+.m2d-formula {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #d98e3c;
+}
+.m2d-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  color: #f2e8d8;
+  margin-bottom: 10px;
+}
+.m2d-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  border-top: 1px solid rgba(242, 232, 216, 0.1);
+  padding-top: 10px;
+  margin-bottom: 10px;
+}
+.m2d-grid span {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(242, 232, 216, 0.4);
+}
+.m2d-grid b {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 400;
+  color: #f2e8d8;
+}
+.m2d-blurb {
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(242, 232, 216, 0.62);
+  margin: 0;
+}
+
 /* --- Responsive ----------------------------------------------------------- */
 
 @media (max-width: 760px) {
+  .geo-nav { padding: 0 1rem; }
+  .geo-nav-links { gap: 0.85rem; }
+  .geo-link { font-size: 0.62rem; }
+  .geo-wordmark { font-size: 0.82rem; letter-spacing: 0.08em; }
+  .geo-section { padding: 4.5rem 1.25rem; }
+  .geo-hero { padding: 0 0.5rem; }
+  .strata-stack { padding-left: 1.75rem; }
   .layer-row { grid-template-columns: 1fr; gap: 1.5rem; justify-items: start; }
+  .layer-core-face { width: 130px; height: 130px; }
   .timeline-spine { left: 12px; }
   .time-node { left: 12px; }
   .time-card { width: 100%; margin-left: 2rem; }

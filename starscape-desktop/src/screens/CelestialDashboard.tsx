@@ -49,7 +49,7 @@ export function CelestialDashboard() {
         minHeight: '100vh',
         background: '#050714',
         color: '#FFF8E7',
-        padding: '76px 2rem 4rem',
+        padding: '76px clamp(1rem, 4vw, 2rem) 4rem',
       }}
     >
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -139,7 +139,7 @@ export function CelestialDashboard() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))',
             gap: '1.25rem',
           }}
         >

@@ -27,8 +27,8 @@ export function TopNav({ pathname, onNavigate }: TopNavProps) {
         zIndex: 100,
         display: 'flex',
         alignItems: 'center',
-        gap: '1.5rem',
-        padding: '0 1.5rem',
+        gap: 'clamp(0.6rem, 3vw, 1.5rem)',
+        padding: '0 clamp(0.75rem, 3vw, 1.5rem)',
         background: 'rgba(5, 7, 20, 0.8)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
@@ -54,7 +54,7 @@ export function TopNav({ pathname, onNavigate }: TopNavProps) {
         StarScape
       </a>
 
-      <div style={{ display: 'flex', gap: '1.25rem', marginLeft: 'auto' }}>
+      <div style={{ display: 'flex', gap: 'clamp(0.55rem, 2.5vw, 1.25rem)', marginLeft: 'auto' }}>
         {ITEMS.map(([path, label, key]) => {
           const active = pathname === path;
           return (
