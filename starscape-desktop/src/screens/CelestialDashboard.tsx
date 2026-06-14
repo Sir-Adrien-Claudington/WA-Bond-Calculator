@@ -50,6 +50,9 @@ export function CelestialDashboard() {
         background: '#050714',
         color: '#FFF8E7',
         padding: '76px clamp(1rem, 4vw, 2rem) 4rem',
+        overflowX: 'hidden',
+        boxSizing: 'border-box',
+        width: '100%',
       }}
     >
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -163,12 +166,14 @@ export function CelestialDashboard() {
                 background: 'rgba(6,10,28,0.88)',
                 border: `1px solid ${b.visible ? 'rgba(0,191,165,0.5)' : 'rgba(0,191,165,0.18)'}`,
                 borderRadius: 12,
-                padding: '1.5rem',
+                padding: 'clamp(1rem, 4vw, 1.5rem)',
+                minWidth: 0,
+                overflow: 'hidden',
               }}
               role="article"
               aria-label={`${b.name} current position`}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
                 <span
                   style={{
                     fontFamily: "'Space Grotesk', sans-serif",
