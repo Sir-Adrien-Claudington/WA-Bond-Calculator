@@ -458,10 +458,9 @@
     </footer>
   </main>
 
-  <!-- jsPDF 2.5.1 — pinned version, SRI-verified. Do not change version or remove integrity attribute. -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
-          integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk"
-          crossorigin="anonymous"></script>
+  <!-- jsPDF 2.5.1 is loaded on demand by app.js (loadJsPDF) only when the user
+       exports a PDF, so the ~350 KB library never blocks initial page load.
+       Version + SRI hash are pinned in app.js; script-src CSP allows cdnjs. -->
   <script src="app.js"></script>
 </body>
 </html>

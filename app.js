@@ -932,10 +932,44 @@
     }
   }
 
+  // jsPDF is loaded on demand (only when the user exports) so the ~350 KB
+  // library never blocks initial page load. The version + SRI hash are pinned
+  // here; script-src CSP already permits cdnjs. The promise is cached so the
+  // script is injected at most once per session.
+  const JSPDF_SRC =
+    "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+  const JSPDF_SRI =
+    "sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk";
+  let jsPdfPromise = null;
+
+  function loadJsPDF() {
+    if (window.jspdf && window.jspdf.jsPDF) {
+      return Promise.resolve();
+    }
+    if (jsPdfPromise) {
+      return jsPdfPromise;
+    }
+    jsPdfPromise = new Promise(function (resolve, reject) {
+      const s = document.createElement("script");
+      s.src = JSPDF_SRC;
+      s.integrity = JSPDF_SRI;
+      s.crossOrigin = "anonymous";
+      s.onload = function () {
+        resolve();
+      };
+      s.onerror = function () {
+        jsPdfPromise = null; // allow a retry on the next export attempt
+        reject(new Error("Failed to load PDF library"));
+      };
+      document.head.appendChild(s);
+    });
+    return jsPdfPromise;
+  }
+
   // Builds and downloads a PDF of the calculation result entirely in the browser.
   // No data is sent anywhere — jsPDF triggers a direct client-side download.
   // Enforces session export limit and per-export cooldown before generating.
-  function generatePdf() {
+  async function generatePdf() {
     if (!lastCalculatedData) {
       return;
     }
@@ -945,6 +979,12 @@
     }
     if (Date.now() - lastExportTime < EXPORT_LIMITS.COOLDOWN_MS) {
       updateExportButtonState();
+      return;
+    }
+    try {
+      await loadJsPDF();
+    } catch (err) {
+      console.error("[wabcc] PDF export unavailable:", err.message);
       return;
     }
     if (!window.jspdf || !window.jspdf.jsPDF) {
@@ -1145,6 +1185,11 @@
   // Shows the email modal on first export; skips it for subsequent exports in
   // the same session once the email has been successfully submitted.
   function handleExportClick() {
+    // Warm the PDF library as soon as the user signals intent, so it is ready
+    // by the time they finish the email step (no perceived delay on generate).
+    loadJsPDF().catch(function () {
+      /* surfaced later by generatePdf if the export is actually attempted */
+    });
     if (!emailCaptured) {
       showEmailModal();
     } else {
