@@ -164,6 +164,108 @@ export function rockTexture(kind: RockKind, size = 1024): THREE.CanvasTexture {
   return tex;
 }
 
+// --- mineral surface maps -----------------------------------------------------
+
+function hex3(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+function mineralTex(canvas: HTMLCanvasElement, linear: boolean): THREE.CanvasTexture {
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = linear ? THREE.NoColorSpace : THREE.SRGBColorSpace;
+  tex.anisotropy = 16;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+/** Fine horizontal growth striations — bump map for prism faces. */
+export function striationBump(size = 512): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  if (!ctx) throw new Error('2D context unavailable');
+  const img = ctx.createImageData(size, size);
+  for (let y = 0; y < size; y++) {
+    const lines = Math.sin(y * 0.7) * 0.5 + Math.sin(y * 0.23 + 1.3) * 0.28 + Math.sin(y * 1.9) * 0.12;
+    for (let x = 0; x < size; x++) {
+      const n = fbm(x * 0.03, y * 0.14, 3.1, 3);
+      let v = 0.5 + lines * 0.2 + (n - 0.5) * 0.22;
+      v = Math.max(0, Math.min(1, v));
+      const i = (y * size + x) * 4;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v * 255;
+      img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return mineralTex(c, true);
+}
+
+/** Cellular mottle — bump map that breaks up perfectly flat metal faces. */
+export function mottleBump(size = 512): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  if (!ctx) throw new Error('2D context unavailable');
+  const img = ctx.createImageData(size, size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const n = fbm(x * 0.05, y * 0.05, 9.3, 4);
+      const fine = fbm(x * 0.22, y * 0.22, 4.1, 3);
+      let v = 0.5 + (n - 0.5) * 0.55 + (fine - 0.5) * 0.18;
+      v = Math.max(0, Math.min(1, v));
+      const i = (y * size + x) * 4;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v * 255;
+      img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return mineralTex(c, true);
+}
+
+/** Wavy concentric colour banding — botryoidal minerals (malachite, rhodochrosite). */
+export function bandedColor(colors: [string, string, string], size = 512): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  if (!ctx) throw new Error('2D context unavailable');
+  const img = ctx.createImageData(size, size);
+  const [a, b, d] = colors.map(hex3);
+  const lerp = (p: number[], q: number[], t: number) => [
+    p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, p[2] + (q[2] - p[2]) * t,
+  ];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const wav = fbm(x * 0.012, y * 0.03, 5.5, 4) * 4.5;
+      const p = (Math.sin(y * 0.09 + wav) + 1) / 2; // 0..1
+      const col = p < 0.5 ? lerp(a, b, p * 2) : lerp(b, d, (p - 0.5) * 2);
+      const grain = 0.92 + fbm(x * 0.3, y * 0.3, 2.2, 2) * 0.16;
+      const i = (y * size + x) * 4;
+      img.data[i] = Math.min(255, col[0] * grain);
+      img.data[i + 1] = Math.min(255, col[1] * grain);
+      img.data[i + 2] = Math.min(255, col[2] * grain);
+      img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return mineralTex(c, false);
+}
+
+/** Soft radial contact-shadow sprite for grounding a specimen. */
+export function contactShadow(size = 256): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  if (!ctx) throw new Error('2D context unavailable');
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0, 'rgba(0,0,0,0.55)');
+  g.addColorStop(0.45, 'rgba(0,0,0,0.32)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  return mineralTex(c, false);
+}
+
 // --- decorative sedimentary strata (parallax layer) ---------------------------
 
 export function paintStrata(ctx: CanvasRenderingContext2D, w: number, h: number): void {
