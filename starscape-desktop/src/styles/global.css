@@ -61,6 +61,7 @@ canvas {
    top nav, so the fixed full-screen views reclaim the 44px nav strip. */
 body.embed-mode .cosmos-explorer,
 body.embed-mode .journey-scroll,
-body.embed-mode .games-root {
+body.embed-mode .games-root,
+body.embed-mode .sky-root {
   inset: 0;
 }

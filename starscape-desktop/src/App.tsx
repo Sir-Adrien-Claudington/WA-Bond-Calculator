@@ -36,6 +36,9 @@ const StrataJourney = lazy(() =>
 const MineralLab = lazy(() =>
   import('@screens/geology/MineralLab').then((m) => ({ default: m.MineralLab }))
 );
+const SkyCompass = lazy(() =>
+  import('@screens/SkyCompass').then((m) => ({ default: m.SkyCompass }))
+);
 
 type Tier = 'beginner' | 'intermediate' | 'knowledgeable';
 const VALID_TIERS: Tier[] = ['beginner', 'intermediate', 'knowledgeable'];
@@ -94,6 +97,9 @@ export function App() {
         case 'g':
           navigate('/games');
           break;
+        case 'k':
+          navigate('/sky');
+          break;
         case 'escape':
           // In the explorer, Esc releases the focused object (handled there);
           // elsewhere it returns to the home experience.
@@ -130,6 +136,12 @@ export function App() {
     view = (
       <Suspense fallback={viewFallback}>
         <GamesHub level={level} embed={embed} />
+      </Suspense>
+    );
+  } else if (pathname === '/sky') {
+    view = (
+      <Suspense fallback={viewFallback}>
+        <SkyCompass />
       </Suspense>
     );
   } else if (pathname === '/geology') {

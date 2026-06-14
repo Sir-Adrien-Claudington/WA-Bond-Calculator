@@ -1,0 +1,195 @@
+/* ---------------------------------------------------------------------------
+   StarScape — Sky Compass
+--------------------------------------------------------------------------- */
+
+.sky-root {
+  position: fixed;
+  inset: 44px 0 0 0;
+  background: #05060d;
+  color: #e8f4fd;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.sky-stage {
+  position: absolute;
+  inset: 0;
+  cursor: grab;
+  touch-action: none;
+}
+.sky-stage:active { cursor: grabbing; }
+.sky-stage canvas { display: block; }
+
+/* --- projected labels ----------------------------------------------------- */
+
+.sky-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  font-family: 'JetBrains Mono', monospace;
+  transition: opacity 0.2s linear;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.9);
+  will-change: transform, opacity;
+}
+.sky-planet {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: #ffe8a8;
+  font-weight: 500;
+}
+.sky-const {
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(120, 170, 230, 0.85);
+}
+.sky-star {
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+  color: rgba(232, 244, 253, 0.75);
+}
+.sky-cardinal {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(79, 200, 170, 0.95);
+  text-shadow: 0 0 10px rgba(42, 143, 122, 0.6);
+}
+
+/* --- reticle -------------------------------------------------------------- */
+
+.sky-reticle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5;
+}
+.sky-reticle-ring {
+  width: 64px;
+  height: 64px;
+  border: 1.5px solid rgba(76, 201, 240, 0.55);
+  border-radius: 50%;
+}
+.sky-reticle-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  background: #4cc9f0;
+  border-radius: 50%;
+  box-shadow: 0 0 8px 2px rgba(76, 201, 240, 0.6);
+}
+
+/* --- readout + hints ------------------------------------------------------ */
+
+.sky-readout {
+  position: absolute;
+  top: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  background: rgba(6, 10, 28, 0.82);
+  border: 1px solid rgba(76, 201, 240, 0.3);
+  border-radius: 999px;
+  padding: 0.5rem 1.1rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: #e8f4fd;
+  white-space: nowrap;
+  max-width: 92vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sky-hint {
+  position: absolute;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(232, 244, 253, 0.5);
+  text-align: center;
+  width: 90%;
+}
+
+.sky-note {
+  position: absolute;
+  bottom: 3rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  background: rgba(217, 142, 60, 0.14);
+  border: 1px solid rgba(217, 142, 60, 0.4);
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.72rem;
+  color: #f0d6a8;
+  max-width: 90%;
+  text-align: center;
+}
+
+/* --- intro overlay -------------------------------------------------------- */
+
+.sky-intro {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: radial-gradient(80% 60% at 50% 40%, #0c1226 0%, #05060d 75%);
+}
+.sky-intro-card {
+  max-width: 26rem;
+  text-align: center;
+  background: rgba(6, 10, 28, 0.7);
+  border: 1px solid rgba(76, 201, 240, 0.2);
+  border-radius: 18px;
+  padding: 2.25rem 1.75rem;
+}
+.sky-intro-icon { font-size: 3rem; }
+.sky-intro h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1.9rem;
+  letter-spacing: 0.04em;
+  margin: 0.5rem 0 0.75rem;
+}
+.sky-intro p {
+  color: rgba(232, 244, 253, 0.7);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0 0 1.25rem;
+}
+.sky-start {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #05060d;
+  background: #4cc9f0;
+  border: none;
+  border-radius: 12px;
+  padding: 0.8rem 2.4rem;
+  cursor: pointer;
+  transition: filter 0.2s, transform 0.2s;
+}
+.sky-start:hover { filter: brightness(1.08); transform: translateY(-2px); }
+.sky-intro-fine {
+  font-size: 0.72rem !important;
+  color: rgba(232, 244, 253, 0.4) !important;
+  margin: 1.25rem 0 0 !important;
+}
