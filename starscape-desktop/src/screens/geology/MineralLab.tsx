@@ -216,6 +216,18 @@ function buildPanel(m: Mineral): HTMLDivElement {
   root.className = 'mineral-panel';
   root.appendChild(el('div', 'mineral-panel-formula', m.formula));
   root.appendChild(el('div', 'mineral-panel-name', m.name));
+  if (m.photo) {
+    const photoWrap = el('div', 'mineral-panel-photo');
+    const img = document.createElement('img');
+    img.src = m.photo;
+    img.className = 'mineral-panel-img';
+    img.alt = `${m.name} specimen`;
+    img.loading = 'lazy';
+    img.addEventListener('error', () => { photoWrap.style.display = 'none'; });
+    photoWrap.appendChild(img);
+    root.appendChild(photoWrap);
+    root.appendChild(el('div', 'mineral-panel-credit', 'Photo: Wikimedia Commons (CC BY-SA)'));
+  }
   const grid = el('div', 'mineral-panel-grid');
   const rows: Array<[string, string]> = [
     ['System', m.system], ['Hardness', `${m.mohs} Mohs`],
@@ -452,6 +464,17 @@ export function MineralLab({ pathname, onNavigate }: MineralLabProps) {
           </div>
         </div>
         <p className="m2d-blurb">{selected.blurb}</p>
+        {selected.photo && (
+          <div className="m2d-photo">
+            <img
+              src={selected.photo}
+              alt={`${selected.name} specimen`}
+              loading="lazy"
+              onError={(e) => { const p = e.currentTarget.parentElement; if (p) p.style.display = 'none'; }}
+            />
+            <span className="m2d-credit">Photo: Wikimedia Commons (CC BY-SA)</span>
+          </div>
+        )}
       </div>
 
       <div className="mineral-tray" role="listbox" aria-label="Mineral specimens">

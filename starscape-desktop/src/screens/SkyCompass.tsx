@@ -56,6 +56,8 @@ type Phase = 'intro' | 'live';
 export function SkyCompass() {
   const mountRef = useRef<HTMLDivElement>(null);
   const readoutRef = useRef<HTMLDivElement>(null);
+  const compassRoseRef = useRef<SVGGElement>(null);
+  const compassHdgRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<Phase>('intro');
   const [mode, setMode] = useState<'sensor' | 'drag'>('drag');
   const [note, setNote] = useState('');
@@ -362,6 +364,12 @@ export function SkyCompass() {
         readoutRef.current.textContent =
           `${best ?? '—'}  ·  ${COMPASS16[Math.round(azLook / 22.5) % 16]} ${Math.round(azLook)}°  ·  alt ${Math.round(altLook)}°`;
       }
+      if (compassRoseRef.current) {
+        compassRoseRef.current.setAttribute('transform', `rotate(${-azLook}, 46, 46)`);
+      }
+      if (compassHdgRef.current) {
+        compassHdgRef.current.textContent = `${COMPASS16[Math.round(azLook / 22.5) % 16]} ${Math.round(azLook)}°`;
+      }
 
       renderer.render(scene, camera);
     };
@@ -410,6 +418,93 @@ export function SkyCompass() {
               : 'Drag to look around the sky'}
           </div>
           {note && <div className="sky-note">{note}</div>}
+
+          {/* Atlas compass rose — bottom right, rotates with heading */}
+          <svg
+            className="sky-atlas-compass"
+            viewBox="0 0 92 92"
+            aria-label="Compass heading indicator"
+            aria-hidden="true"
+          >
+            {/* outer decorative ring */}
+            <circle cx="46" cy="46" r="43" stroke="#d4a14e" strokeWidth="1" fill="none" opacity="0.35" />
+            <circle cx="46" cy="46" r="39" stroke="#d4a14e" strokeWidth="0.5" fill="none" opacity="0.2" />
+            {/* tick marks every 10° — static outer ring */}
+            {Array.from({ length: 36 }, (_, i) => {
+              const a = (i * 10 * Math.PI) / 180;
+              const r1 = 38, r2 = i % 9 === 0 ? 33 : 36;
+              return (
+                <line
+                  key={i}
+                  x1={46 + r1 * Math.sin(a)} y1={46 - r1 * Math.cos(a)}
+                  x2={46 + r2 * Math.sin(a)} y2={46 - r2 * Math.cos(a)}
+                  stroke="#d4a14e"
+                  strokeWidth={i % 9 === 0 ? 1.2 : 0.6}
+                  opacity={i % 9 === 0 ? 0.7 : 0.3}
+                />
+              );
+            })}
+
+            {/* rotating compass rose — driven by compassRoseRef */}
+            <g ref={compassRoseRef}>
+              {/* intercardinal points — subtle diamond spears */}
+              {[45, 135, 225, 315].map((deg) => {
+                const a = (deg * Math.PI) / 180;
+                const mid = 30, tip = 14;
+                const tx = 46 + Math.sin(a) * tip, ty = 46 - Math.cos(a) * tip;
+                const mx = 46 + Math.sin(a) * mid, my = 46 - Math.cos(a) * mid;
+                const px = 46 + Math.cos(a) * 5, py = 46 + Math.sin(a) * 5;
+                const nx2 = 46 - Math.cos(a) * 5, ny2 = 46 - Math.sin(a) * 5;
+                return (
+                  <path
+                    key={deg}
+                    d={`M${tx},${ty} L${px},${py} L${mx},${my} L${nx2},${ny2} Z`}
+                    fill="rgba(212,161,78,0.45)"
+                  />
+                );
+              })}
+
+              {/* S arm — silver */}
+              <path
+                d="M46,46 L43,52 L46,82 L49,52 Z"
+                fill="rgba(220,230,240,0.7)"
+              />
+              {/* E arm */}
+              <path
+                d="M46,46 L52,43 L82,46 L52,49 Z"
+                fill="rgba(212,161,78,0.65)"
+              />
+              {/* W arm */}
+              <path
+                d="M46,46 L40,49 L10,46 L40,43 Z"
+                fill="rgba(212,161,78,0.55)"
+              />
+              {/* N arm — red/amber, prominent */}
+              <path
+                d="M46,46 L43,38 L46,8 L49,38 Z"
+                fill="#e85444"
+              />
+              {/* Fleur-de-lis shoulders on N */}
+              <path d="M43,38 L46,8 L40,22 Z" fill="#c0382a" opacity="0.6" />
+              <path d="M49,38 L46,8 L52,22 Z" fill="#c0382a" opacity="0.6" />
+
+              {/* cardinal labels */}
+              <text x="46" y="22" textAnchor="middle" dominantBaseline="middle"
+                fill="#f07060" fontSize="8" fontFamily="'JetBrains Mono', monospace"
+                fontWeight="700" letterSpacing="0">N</text>
+              <text x="46" y="72" textAnchor="middle" dominantBaseline="middle"
+                fill="rgba(220,230,240,0.7)" fontSize="7" fontFamily="'JetBrains Mono', monospace">S</text>
+              <text x="72" y="46" textAnchor="middle" dominantBaseline="middle"
+                fill="rgba(212,161,78,0.8)" fontSize="7" fontFamily="'JetBrains Mono', monospace">E</text>
+              <text x="20" y="46" textAnchor="middle" dominantBaseline="middle"
+                fill="rgba(212,161,78,0.8)" fontSize="7" fontFamily="'JetBrains Mono', monospace">W</text>
+
+              {/* center pivot — dark circle with amber ring */}
+              <circle cx="46" cy="46" r="5" fill="#08091a" stroke="#d4a14e" strokeWidth="1.5" />
+              <circle cx="46" cy="46" r="2" fill="#d4a14e" />
+            </g>
+          </svg>
+          <div className="sky-compass-hdg" ref={compassHdgRef} aria-live="polite" />
         </>
       )}
 

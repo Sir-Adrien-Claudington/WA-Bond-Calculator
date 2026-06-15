@@ -193,3 +193,34 @@
   color: rgba(232, 244, 253, 0.4) !important;
   margin: 1.25rem 0 0 !important;
 }
+
+/* --- atlas compass (bottom-right) ----------------------------------------- */
+
+.sky-atlas-compass {
+  position: absolute;
+  bottom: 3rem;    /* above the hint text */
+  right: 1.25rem;
+  width: 92px;
+  height: 92px;
+  z-index: 6;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.8));
+  opacity: 0.94;
+  transition: opacity 0.3s;
+}
+
+/* heading badge shown below compass */
+.sky-compass-hdg {
+  position: absolute;
+  bottom: 1rem;
+  right: 1.25rem;
+  width: 92px;
+  text-align: center;
+  z-index: 6;
+  pointer-events: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: rgba(212, 161, 78, 0.85);
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.9);
+}

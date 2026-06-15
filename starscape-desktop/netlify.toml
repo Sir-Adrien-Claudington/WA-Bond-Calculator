@@ -24,7 +24,7 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(self), camera=(), microphone=()"
     Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.open-meteo.com; img-src 'self' data: blob:; font-src 'self'; worker-src blob:; frame-ancestors 'self' https://edutrack-production-2a6d.up.railway.app;"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.open-meteo.com; img-src 'self' data: blob: https://upload.wikimedia.org; font-src 'self'; worker-src blob:; frame-ancestors 'self' https://edutrack-production-2a6d.up.railway.app;"
 
 # Cache static assets aggressively
 [[headers]]

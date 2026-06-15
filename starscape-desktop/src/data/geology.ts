@@ -133,6 +133,8 @@ export interface Mineral {
   surface?: SurfaceStyle; // procedural surface detail
   termination?: 'pyramid' | 'flat'; // for prisms
   bandColors?: [string, string, string]; // for banded surfaces
+  // Real specimen photo (Wikimedia Commons, read-only URL — no local download)
+  photo?: string;
 }
 
 export const MINERALS: Mineral[] = [
@@ -143,6 +145,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'The second most abundant mineral in Earth’s crust. Six-sided prisms striated across the faces, tipped with a six-faced point.',
     habit: 'hexPrism', termination: 'pyramid', surface: 'striated',
     color: '#eaf4fb', metalness: 0, roughness: 0.03, transmission: 0.93, ior: 1.544, dispersion: 0.013,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Quartz_Br%C3%A9sil.jpg',
   },
   {
     id: 'amethyst', name: 'Amethyst', formula: 'SiO₂', system: 'Hexagonal', mohs: '7',
@@ -150,6 +153,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'Quartz coloured violet by trace iron and natural irradiation — February’s birthstone.',
     habit: 'hexPrism', termination: 'pyramid', surface: 'striated',
     color: '#9b5fc0', metalness: 0, roughness: 0.05, transmission: 0.85, ior: 1.544, dispersion: 0.013,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/b/b5/Amatista_Laye_2.jpg',
   },
   {
     id: 'citrine', name: 'Citrine', formula: 'SiO₂', system: 'Hexagonal', mohs: '7',
@@ -157,6 +161,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'Quartz tinted gold by traces of iron — most natural citrine is pale; deep tones are often heat-treated amethyst.',
     habit: 'hexPrism', termination: 'pyramid', surface: 'striated',
     color: '#e3a83a', metalness: 0, roughness: 0.05, transmission: 0.85, ior: 1.544, dispersion: 0.013,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/d/d0/Citrine_taillee.jpg',
   },
   // --- Gemstone silicates & oxides -------------------------------------------
   {
@@ -165,6 +170,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'The green gem variety of beryl, coloured by chromium. Grows as flat-topped hexagonal prisms — May’s birthstone.',
     habit: 'hexPrism', termination: 'flat',
     color: '#1f9e63', metalness: 0, roughness: 0.07, transmission: 0.68, ior: 1.577,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/d/df/B%C3%A9ryl_var._%C3%A9meraude_sur_gangue_%28Muzo_Mine_Boyaca_-_Colombie%29_2.jpg',
   },
   {
     id: 'ruby', name: 'Ruby', formula: 'Al₂O₃', system: 'Trigonal', mohs: '9',
@@ -172,6 +178,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'Red corundum, coloured by chromium. Second only to diamond in hardness — July’s birthstone.',
     habit: 'bipyramid', surface: 'smooth',
     color: '#c41f39', metalness: 0, roughness: 0.06, transmission: 0.5, ior: 1.77,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/1/17/Corundum-215330.jpg',
   },
   {
     id: 'sapphire', name: 'Sapphire', formula: 'Al₂O₃', system: 'Trigonal', mohs: '9',
@@ -179,6 +186,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'Corundum in any colour but red — blue from traces of iron and titanium. September’s birthstone.',
     habit: 'bipyramid', surface: 'smooth',
     color: '#1f4fb5', metalness: 0, roughness: 0.06, transmission: 0.5, ior: 1.77,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/8/87/Logan_Sapphire_10956420_cropped.png',
   },
   {
     id: 'topaz', name: 'Topaz', formula: 'Al₂SiO₄(F,OH)₂', system: 'Orthorhombic', mohs: '8',
@@ -186,6 +194,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'Forms long prisms with lengthwise striations and a chisel-like top — colourless to sky-blue or imperial gold.',
     habit: 'prismSquare', termination: 'pyramid', surface: 'striated',
     color: '#a9d6e8', metalness: 0, roughness: 0.05, transmission: 0.78, ior: 1.62,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Topaze%2C_quartz_fum%C3%A9_1.jpg/640px-Topaze%2C_quartz_fum%C3%A9_1.jpg',
   },
   {
     id: 'tourmaline', name: 'Tourmaline', formula: '(Na,Ca)(Li,Mg,Al)₆…', system: 'Trigonal', mohs: '7 – 7.5',
@@ -193,6 +202,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'Rounded triangular prisms deeply grooved along their length, often colour-zoned green-to-pink (“watermelon”).',
     habit: 'prismTrig', surface: 'striated',
     color: '#2f9158', metalness: 0, roughness: 0.07, transmission: 0.52, ior: 1.62,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/0/00/Tourmaline-121240.jpg',
   },
   {
     id: 'peridot', name: 'Peridot', formula: '(Mg,Fe)₂SiO₄', system: 'Orthorhombic', mohs: '6.5 – 7',
@@ -200,6 +210,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'The olive-green gem form of olivine — one of the few gems found in just one colour, born deep in the mantle.',
     habit: 'prismSquare', termination: 'flat', surface: 'smooth',
     color: '#9ac43a', metalness: 0, roughness: 0.08, transmission: 0.6, ior: 1.65,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/a/ad/Forsterite-Olivine-tmu14a.jpg',
   },
   {
     id: 'diamond', name: 'Diamond', formula: 'C', system: 'Cubic', mohs: '10',
@@ -207,6 +218,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'Pure carbon crystallised under immense pressure — the hardest natural material, with intense dispersion (“fire”). April’s birthstone.',
     habit: 'octahedron', surface: 'smooth',
     color: '#f4f8ff', metalness: 0, roughness: 0.02, transmission: 0.95, ior: 2.418, dispersion: 0.044,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/b/b7/Rough_Diamond.jpg',
   },
   // --- Halides & carbonates ---------------------------------------------------
   {
@@ -215,6 +227,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'Defines hardness 4 on the Mohs scale and gave the word “fluorescence” to science. Often green or purple octahedra.',
     habit: 'octahedron', surface: 'smooth',
     color: '#5fc0a8', metalness: 0, roughness: 0.05, transmission: 0.82, ior: 1.434,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/0/0d/3192M-fluorite1.jpg',
   },
   {
     id: 'halite', name: 'Halite', formula: 'NaCl', system: 'Cubic', mohs: '2.5',
@@ -222,6 +235,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'Common table salt as a mineral. Grows as glassy cubes, sometimes blushed pink by trapped algae or impurities.',
     habit: 'cube', surface: 'smooth',
     color: '#f6e3ea', metalness: 0, roughness: 0.06, transmission: 0.82, ior: 1.544,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/8/89/Halit_%28NaCl%29_-_Kopalnia_soli_Wieliczka%2C_Polska.jpg',
   },
   {
     id: 'calcite', name: 'Calcite', formula: 'CaCO₃', system: 'Trigonal', mohs: '3',
@@ -229,6 +243,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'Cleaves into slanted rhombs and splits light into a double image — “double refraction.”',
     habit: 'rhomb', surface: 'smooth',
     color: '#f3ecd9', metalness: 0, roughness: 0.07, transmission: 0.72, ior: 1.49,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Calcite_Variation.png/640px-Calcite_Variation.png',
   },
   {
     id: 'rhodochrosite', name: 'Rhodochrosite', formula: 'MnCO₃', system: 'Trigonal', mohs: '3.5 – 4',
@@ -236,6 +251,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'A rose-pink carbonate famous for concentric rosy-and-white banding in its massive form.',
     habit: 'cluster', surface: 'banded', bandColors: ['#d24a6a', '#f0b9c8', '#a83253'],
     color: '#d24a6a', metalness: 0, roughness: 0.25, transmission: 0,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Rhodochrosite_on_Matrix_-_Peru.jpg/640px-Rhodochrosite_on_Matrix_-_Peru.jpg',
   },
   {
     id: 'malachite', name: 'Malachite', formula: 'Cu₂CO₃(OH)₂', system: 'Monoclinic', mohs: '3.5 – 4',
@@ -243,6 +259,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'Bubbly, botryoidal masses with vivid concentric green banding — a weathering product of copper deposits.',
     habit: 'cluster', surface: 'banded', bandColors: ['#1f7a52', '#3fae74', '#0e4a30'],
     color: '#1f7a52', metalness: 0, roughness: 0.4, transmission: 0, sheen: 0.5,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/5/55/Malachite%2C_Zaire.jpg',
   },
   {
     id: 'azurite', name: 'Azurite', formula: 'Cu₃(CO₃)₂(OH)₂', system: 'Monoclinic', mohs: '3.5 – 4',
@@ -250,6 +267,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'An intense azure-blue copper carbonate that slowly alters to green malachite over geological time.',
     habit: 'cluster', surface: 'smooth',
     color: '#1b4ea8', metalness: 0, roughness: 0.18, transmission: 0.15, ior: 1.73,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Azurite_-_New_Nevada_Lode%2C_La_Sal%2C_Utah%2C_USA.jpg/640px-Azurite_-_New_Nevada_Lode%2C_La_Sal%2C_Utah%2C_USA.jpg',
   },
   // --- Sulfides & ores --------------------------------------------------------
   {
@@ -258,6 +276,7 @@ export const MINERALS: Mineral[] = [
     blurb: '“Fool’s Gold.” Forms astonishingly perfect brassy cubes, their faces grooved with fine striations.',
     habit: 'cube', surface: 'metallic',
     color: '#d4af52', metalness: 1, roughness: 0.3, transmission: 0,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Pyrite_-_Huanzala_mine%2C_Huallanca%2C_Bolognesi%2C_Ancash%2C_Peru.jpg/640px-Pyrite_-_Huanzala_mine%2C_Huallanca%2C_Bolognesi%2C_Ancash%2C_Peru.jpg',
   },
   {
     id: 'galena', name: 'Galena', formula: 'PbS', system: 'Cubic', mohs: '2.5',
@@ -265,6 +284,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'Heavy, silvery lead ore that cleaves into perfect cubes with mirror-bright faces.',
     habit: 'cube', surface: 'metallic',
     color: '#9aa3ad', metalness: 1, roughness: 0.16, transmission: 0,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Galena_-_Huallanca%2C_Bologesi%2C_Ancash%2C_Peru.jpg/640px-Galena_-_Huallanca%2C_Bologesi%2C_Ancash%2C_Peru.jpg',
   },
   {
     id: 'sulfur', name: 'Sulfur', formula: 'S', system: 'Orthorhombic', mohs: '1.5 – 2.5',
@@ -272,6 +292,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'Vivid lemon-yellow native sulphur, forming dipyramids around volcanic vents and hot springs.',
     habit: 'bipyramid', surface: 'smooth',
     color: '#f2dd2e', metalness: 0, roughness: 0.22, transmission: 0.4, ior: 1.96,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Sulfur_-_El_Desierto_mine%2C_San_Pablo_de_Napa%2C_Daniel_Campos_Province%2C_Potos%C3%AD%2C_Bolivia.jpg/640px-Sulfur_-_El_Desierto_mine%2C_San_Pablo_de_Napa%2C_Daniel_Campos_Province%2C_Potos%C3%AD%2C_Bolivia.jpg',
   },
   // --- Oxides & native metals -------------------------------------------------
   {
@@ -280,6 +301,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'The most magnetic natural mineral on Earth, crystallising as gleaming black octahedra.',
     habit: 'octahedron', surface: 'metallic',
     color: '#2b2e33', metalness: 0.9, roughness: 0.36, transmission: 0,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/8/86/Magnetite-118736.jpg',
   },
   {
     id: 'hematite', name: 'Hematite', formula: 'Fe₂O₃', system: 'Trigonal', mohs: '5.5 – 6.5',
@@ -287,6 +309,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'Steel-grey metallic plates that always leave a blood-red streak — the main source of the world’s iron.',
     habit: 'tabular', surface: 'metallic',
     color: '#6a4f4f', metalness: 0.85, roughness: 0.32, transmission: 0,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/1/19/WLA_hmns_Hematite.jpg',
   },
   {
     id: 'gold', name: 'Gold', formula: 'Au', system: 'Cubic', mohs: '2.5 – 3',
@@ -294,6 +317,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'A native metal so unreactive it stays bright forever — found as nuggets, wires and dendritic crystals.',
     habit: 'nativeMass', surface: 'metallic',
     color: '#ffd76a', metalness: 1, roughness: 0.26, transmission: 0, anisotropy: 0.4,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Gold-crystals.jpg/640px-Gold-crystals.jpg',
   },
   {
     id: 'copper', name: 'Copper', formula: 'Cu', system: 'Cubic', mohs: '2.5 – 3',
@@ -301,6 +325,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'One of the first metals worked by humans — found native as twisted, branching dendritic masses.',
     habit: 'nativeMass', surface: 'metallic',
     color: '#c8642f', metalness: 1, roughness: 0.32, transmission: 0, anisotropy: 0.4,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/9/91/Copper-21991.jpg',
   },
   // --- Evaporites -------------------------------------------------------------
   {
@@ -309,6 +334,7 @@ export const MINERALS: Mineral[] = [
     blurb: 'Soft enough to scratch with a fingernail. The clear variety, selenite, grows as glassy striated blades.',
     habit: 'bladed', surface: 'striated',
     color: '#eef0ea', metalness: 0, roughness: 0.12, transmission: 0.72, ior: 1.52,
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/b/bb/Gypse_Caresse.jpg',
   },
 ];
 

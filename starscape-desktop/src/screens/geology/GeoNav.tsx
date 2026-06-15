@@ -10,6 +10,7 @@ interface GeoNavProps {
 const ITEMS: Array<[string, string]> = [
   ['/geology', 'Strata Journey'],
   ['/minerals', 'Mineral Lab'],
+  ['/mine-game', 'Mine Game'],
 ];
 
 export function GeoNav({ pathname, onNavigate }: GeoNavProps) {

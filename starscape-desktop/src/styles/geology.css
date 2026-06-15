@@ -509,6 +509,386 @@
   color: rgba(242, 232, 216, 0.62);
   margin: 0;
 }
+.mineral-panel-photo {
+  width: 100%;
+  margin: 0 0 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  aspect-ratio: 4/3;
+  background: rgba(255, 255, 255, 0.04);
+}
+.mineral-panel-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.mineral-panel-credit {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  color: rgba(242, 232, 216, 0.28);
+  text-align: right;
+  margin: -8px 0 12px;
+}
+.m2d-photo {
+  margin-top: 10px;
+  border-radius: 7px;
+  overflow: hidden;
+}
+.m2d-photo img {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  display: block;
+}
+.m2d-credit {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  color: rgba(242, 232, 216, 0.28);
+  text-align: right;
+  margin-top: 4px;
+}
+
+/* --- Mine Game ------------------------------------------------------------ */
+
+.mine-root {
+  position: fixed;
+  inset: 0;
+  background: #0e0c07;
+  color: var(--stone, #f2e8d8);
+  font-family: 'Inter', system-ui, sans-serif;
+  --stone: #f2e8d8;
+  --amber: #d98e3c;
+}
+
+/* Map */
+.mine-map-wrap {
+  position: absolute;
+  inset: 48px 0 0 0;
+  overflow: hidden;
+}
+.mine-map-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Mine site dot markers */
+.mine-dot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.mine-dot-ring {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--mc, #d4af52);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15), 0 0 12px 3px var(--mc, #d4af52);
+  animation: dotPulse 2s ease-in-out infinite;
+  transition: transform 0.15s;
+}
+.mine-dot:hover .mine-dot-ring { transform: scale(1.5); }
+.mine-dot-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: rgba(242, 232, 216, 0.85);
+  text-shadow: 0 0 6px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.8);
+  white-space: nowrap;
+  pointer-events: none;
+}
+@keyframes dotPulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(255,255,255,0.12), 0 0 10px 2px var(--mc, #d4af52); }
+  50%       { box-shadow: 0 0 0 5px rgba(255,255,255,0.06), 0 0 20px 6px var(--mc, #d4af52); }
+}
+
+/* Zoom transition circle */
+.mine-zoom-circle {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: mineZoomIn 0.48s cubic-bezier(0.55, 0, 0.8, 0.8) forwards;
+  z-index: 20;
+  opacity: 0.92;
+}
+@keyframes mineZoomIn {
+  from { width: 18px; height: 18px; }
+  to   { width: 220vmax; height: 220vmax; }
+}
+
+/* Map title overlay */
+.mine-map-title {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
+  color: rgba(242, 232, 216, 0.9);
+  text-shadow: 0 0 20px rgba(0,0,0,0.8);
+  pointer-events: none;
+}
+.mine-map-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber);
+  font-weight: 400;
+}
+
+/* Mine interior */
+.mine-interior {
+  position: absolute;
+  inset: 48px 0 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.mine-cave-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 120% 70% at 50% 0%, #2a1f0e 0%, #0e0c07 60%),
+    radial-gradient(ellipse 60% 40% at 20% 80%, #1a1208 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 90%, #141008 0%, transparent 60%);
+}
+.mine-strata {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0px,
+    transparent 28px,
+    rgba(217, 142, 60, 0.04) 28px,
+    rgba(217, 142, 60, 0.04) 30px,
+    transparent 30px,
+    transparent 80px,
+    rgba(122, 78, 44, 0.06) 80px,
+    rgba(122, 78, 44, 0.06) 83px
+  );
+}
+.mine-interior-header {
+  position: relative;
+  z-index: 2;
+  padding: 1.25rem 1.5rem 0.75rem;
+  text-align: center;
+}
+.mine-interior-site {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 0.4rem;
+}
+.mine-interior-desc {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: rgba(242, 232, 216, 0.6);
+  margin: 0;
+  max-width: 46rem;
+  margin: 0 auto;
+}
+
+/* Shaft */
+.mine-shaft {
+  position: relative;
+  flex: 1;
+  margin: 1rem 1.5rem;
+  border: 1px solid rgba(217, 142, 60, 0.2);
+  border-radius: 12px;
+  background: rgba(10, 8, 4, 0.5);
+  overflow: hidden;
+}
+.mine-shaft-label {
+  position: absolute;
+  top: 0.6rem;
+  left: 1rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  color: rgba(217, 142, 60, 0.45);
+  z-index: 2;
+}
+
+/* Mineral veins */
+.mine-vein {
+  position: absolute;
+  border-radius: 60% 40% 70% 30% / 40% 60% 50% 50%;
+  border: none;
+  cursor: crosshair;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  transition: transform 0.18s, filter 0.18s;
+  animation: veinGlow 3s ease-in-out infinite alternate;
+  z-index: 2;
+}
+.mine-vein:nth-child(2) { border-radius: 40% 60% 30% 70% / 60% 40% 55% 45%; animation-delay: 1s; }
+.mine-vein:nth-child(3) { border-radius: 70% 30% 50% 50% / 30% 70% 40% 60%; animation-delay: 2s; }
+.mine-vein:hover { transform: scale(1.08); filter: brightness(1.35); }
+.mine-vein:active { transform: scale(0.96); }
+@keyframes veinGlow {
+  from { filter: brightness(0.85); }
+  to   { filter: brightness(1.1); }
+}
+.mine-vein-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  pointer-events: none;
+}
+.mine-vein-hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.5rem;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+}
+
+.mine-back-btn {
+  position: relative;
+  z-index: 4;
+  align-self: flex-start;
+  margin: 0.75rem 1.5rem 1rem;
+  background: rgba(217, 142, 60, 0.12);
+  border: 1px solid rgba(217, 142, 60, 0.35);
+  border-radius: 8px;
+  color: var(--amber);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.mine-back-btn:hover { background: rgba(217, 142, 60, 0.24); color: var(--stone); }
+
+/* Popup */
+.mine-popup-overlay {
+  position: absolute;
+  inset: 48px 0 0 0;
+  background: rgba(8, 6, 2, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 30;
+}
+.mine-popup {
+  width: min(480px, 100%);
+  background: rgba(20, 16, 11, 0.96);
+  border: 1px solid rgba(217, 142, 60, 0.3);
+  border-top: 3px solid var(--amber);
+  border-radius: 16px;
+  padding: 1.75rem;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+.mine-popup-gem {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+  box-shadow: 0 0 30px 8px currentColor;
+}
+.mine-popup-formula {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--amber);
+  margin-bottom: 0.25rem;
+}
+.mine-popup-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 2rem;
+  margin: 0 0 0.75rem;
+}
+.mine-popup-blurb {
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: rgba(242, 232, 216, 0.7);
+  margin: 0 0 1.25rem;
+  border-bottom: 1px solid rgba(242, 232, 216, 0.1);
+  padding-bottom: 1.25rem;
+}
+.mine-popup-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.mine-popup-grid div { display: flex; flex-direction: column; gap: 2px; }
+.mine-popup-grid span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(242, 232, 216, 0.38);
+}
+.mine-popup-grid b {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+.mine-popup-uses {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: rgba(242, 232, 216, 0.55);
+  margin: 0 0 1.5rem;
+  border-top: 1px solid rgba(242, 232, 216, 0.08);
+  padding-top: 0.75rem;
+}
+.mine-popup-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+.mine-action-btn {
+  flex: 1;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(217, 142, 60, 0.3);
+  background: rgba(217, 142, 60, 0.08);
+  color: rgba(242, 232, 216, 0.78);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.mine-action-btn:hover { background: rgba(217, 142, 60, 0.18); color: var(--stone); }
+.mine-action-primary {
+  background: rgba(217, 142, 60, 0.2);
+  border-color: rgba(217, 142, 60, 0.55);
+  color: var(--amber);
+}
+.mine-action-primary:hover { background: rgba(217, 142, 60, 0.35); color: var(--stone); }
 
 /* --- Responsive ----------------------------------------------------------- */
 
