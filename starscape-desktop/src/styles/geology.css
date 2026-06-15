@@ -344,11 +344,11 @@
 .mineral-stage {
   position: absolute;
   inset: 48px 0 96px 0;
-  cursor: grab;
-  overflow: hidden; /* clip the CSS3D panel if it projects past the edge */
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  overflow: hidden;
 }
-.mineral-stage:active { cursor: grabbing; }
-.mineral-stage canvas { display: block; }
 
 .mineral-hint {
   position: absolute;
@@ -405,149 +405,192 @@
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
 }
 
-/* CSS3D floating mineral panel */
-.mineral-panel {
-  width: 280px;
-  background: rgba(20, 16, 11, 0.9);
-  border: 1px solid rgba(217, 142, 60, 0.3);
-  border-left: 3px solid var(--amber);
-  border-radius: 12px;
-  padding: 18px;
-  font-family: 'Inter', sans-serif;
-}
-.mineral-panel-formula {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px; letter-spacing: 0.08em; color: #d98e3c; margin-bottom: 4px;
-}
-.mineral-panel-name {
-  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
-  font-size: 26px; color: #f2e8d8; margin-bottom: 14px;
-}
-.mineral-panel-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-  border-top: 1px solid rgba(242, 232, 216, 0.1);
-  padding-top: 12px; margin-bottom: 12px;
-}
-.mp-k {
-  font-family: 'JetBrains Mono', monospace; font-size: 9px;
-  letter-spacing: 0.1em; text-transform: uppercase; color: rgba(242, 232, 216, 0.4);
-  margin-bottom: 2px;
-}
-.mp-v { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #f2e8d8; }
-.mineral-panel-blurb {
-  font-size: 12px; line-height: 1.6; color: rgba(242, 232, 216, 0.62);
-  border-top: 1px solid rgba(242, 232, 216, 0.1); padding-top: 12px;
-}
-.mineral-panel-uses {
-  display: flex; flex-direction: column; gap: 2px; margin-top: 10px;
-}
-.mp-uses-label {
-  font-family: 'JetBrains Mono', monospace; font-size: 9px;
-  letter-spacing: 0.1em; text-transform: uppercase; color: var(--jade, #4fa88b);
-}
-.mp-uses-text { font-size: 11px; line-height: 1.5; color: rgba(242, 232, 216, 0.6); }
+/* ---- CSS 3D photo stage ---- */
 
-/* 2D mineral info card — only on narrow screens (the CSS3D panel floats
-   outside a portrait viewport, so a fixed card guarantees readability). */
-.mineral-card-2d { display: none; }
+.mineral-photo-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1100px;
+  cursor: grab;
+  overflow: hidden;
+}
+.mineral-photo-stage:active { cursor: grabbing; }
 
-@media (max-width: 719px) {
-  .mineral-card-2d {
-    display: block;
-    position: absolute;
-    left: 0.75rem;
-    right: 0.75rem;
-    bottom: 96px;
-    max-height: 40vh;
-    overflow-y: auto;
-    background: rgba(20, 16, 11, 0.92);
-    border: 1px solid rgba(217, 142, 60, 0.3);
-    border-left: 3px solid #d98e3c;
-    border-radius: 12px;
-    padding: 14px 16px;
-    z-index: 15;
-  }
+.mineral-photo-card {
+  width: min(360px, 82%);
+  aspect-ratio: 4/3;
+  transform-style: preserve-3d;
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.65);
+  position: relative;
+  will-change: transform;
+  user-select: none;
 }
 
-.m2d-formula {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: #d98e3c;
+/* Front: specimen photo */
+.mineral-specimen-img {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  border-radius: 14px;
+  display: block;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  pointer-events: none;
 }
-.m2d-name {
+
+/* Front: colour swatch fallback */
+.mineral-swatch {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.mineral-swatch-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at 30% 24%, rgba(255,255,255,0.42), transparent 64%);
+  pointer-events: none;
+}
+.mineral-swatch-name {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 700;
-  font-size: 20px;
-  color: #f2e8d8;
-  margin-bottom: 10px;
+  font-size: 1.5rem;
+  color: rgba(255,255,255,0.88);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+  position: relative;
 }
-.m2d-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  border-top: 1px solid rgba(242, 232, 216, 0.1);
-  padding-top: 10px;
-  margin-bottom: 10px;
+
+/* Back face */
+.mineral-card-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background: linear-gradient(135deg, #1d1710 0%, #0e0b07 100%);
+  border: 1px solid rgba(217,142,60,0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
 }
-.m2d-grid span {
-  display: block;
+.mineral-card-back-formula {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 8px;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  color: var(--amber);
+}
+.mineral-card-back-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--stone);
+  text-align: center;
+}
+
+/* ---- Info panel (right side) ---- */
+
+.mineral-info-panel {
+  width: 296px;
+  flex-shrink: 0;
+  padding: 1.5rem 1.25rem 1.5rem 1.5rem;
+  border-left: 1px solid rgba(217,142,60,0.14);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(217,142,60,0.3) transparent;
+}
+.mip-formula {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--amber);
+}
+.mip-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1.65rem;
+  margin: 0;
+  line-height: 1.1;
+}
+.mip-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  border-top: 1px solid rgba(242,232,216,0.1);
+  padding-top: 0.75rem;
+}
+.mip-grid div { display: flex; flex-direction: column; gap: 2px; }
+.mip-grid span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(242, 232, 216, 0.4);
+  color: rgba(242,232,216,0.38);
 }
-.m2d-grid b {
+.mip-grid b {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: 0.78rem;
   font-weight: 400;
-  color: #f2e8d8;
 }
-.m2d-blurb {
-  font-size: 12px;
-  line-height: 1.5;
-  color: rgba(242, 232, 216, 0.62);
+.mip-blurb {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: rgba(242,232,216,0.65);
   margin: 0;
+  border-top: 1px solid rgba(242,232,216,0.1);
+  padding-top: 0.75rem;
 }
-.mineral-panel-photo {
-  width: 100%;
-  margin: 0 0 12px;
-  border-radius: 6px;
-  overflow: hidden;
-  aspect-ratio: 4/3;
-  background: rgba(255, 255, 255, 0.04);
+.mip-uses {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
-.mineral-panel-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.mineral-panel-credit {
+.mip-uses-label {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 8px;
-  color: rgba(242, 232, 216, 0.28);
-  text-align: right;
-  margin: -8px 0 12px;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #4fa88b;
 }
-.m2d-photo {
-  margin-top: 10px;
-  border-radius: 7px;
-  overflow: hidden;
+.mip-uses-text {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: rgba(242,232,216,0.6);
 }
-.m2d-photo img {
-  width: 100%;
-  aspect-ratio: 16/9;
-  object-fit: cover;
-  display: block;
-}
-.m2d-credit {
-  display: block;
+.mip-credit {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 8px;
-  color: rgba(242, 232, 216, 0.28);
-  text-align: right;
-  margin-top: 4px;
+  font-size: 0.6rem;
+  color: rgba(242,232,216,0.25);
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+@media (max-width: 719px) {
+  .mineral-stage { flex-direction: column; }
+  .mineral-photo-stage { flex: 0 0 42%; }
+  .mineral-photo-card { width: min(300px, 70%); }
+  .mineral-info-panel {
+    width: auto;
+    flex: 1;
+    border-left: none;
+    border-top: 1px solid rgba(217,142,60,0.14);
+    padding: 1rem 1.25rem;
+  }
 }
 
 /* --- Mine Game ------------------------------------------------------------ */
@@ -656,118 +699,77 @@
   font-weight: 400;
 }
 
-/* Mine interior */
-.mine-interior {
+/* ---- Cave tap-game interior ---- */
+
+.mine-cave-root {
   position: absolute;
   inset: 48px 0 0 0;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-.mine-cave-bg {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 120% 70% at 50% 0%, #2a1f0e 0%, #0e0c07 60%),
-    radial-gradient(ellipse 60% 40% at 20% 80%, #1a1208 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 90%, #141008 0%, transparent 60%);
-}
-.mine-strata {
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    180deg,
-    transparent 0px,
-    transparent 28px,
-    rgba(217, 142, 60, 0.04) 28px,
-    rgba(217, 142, 60, 0.04) 30px,
-    transparent 30px,
-    transparent 80px,
-    rgba(122, 78, 44, 0.06) 80px,
-    rgba(122, 78, 44, 0.06) 83px
-  );
-}
-.mine-interior-header {
-  position: relative;
-  z-index: 2;
-  padding: 1.25rem 1.5rem 0.75rem;
-  text-align: center;
-}
-.mine-interior-site {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--amber);
-  margin-bottom: 0.4rem;
-}
-.mine-interior-desc {
-  font-size: 0.88rem;
-  line-height: 1.55;
-  color: rgba(242, 232, 216, 0.6);
-  margin: 0;
-  max-width: 46rem;
-  margin: 0 auto;
+  overflow: hidden;
+  background: #0d0a06;
 }
 
-/* Shaft */
-.mine-shaft {
-  position: relative;
-  flex: 1;
-  margin: 1rem 1.5rem;
-  border: 1px solid rgba(217, 142, 60, 0.2);
-  border-radius: 12px;
-  background: rgba(10, 8, 4, 0.5);
-  overflow: hidden;
-}
-.mine-shaft-label {
+.mine-cave-hud {
   position: absolute;
   top: 0.6rem;
-  left: 1rem;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.58rem;
-  letter-spacing: 0.2em;
-  color: rgba(217, 142, 60, 0.45);
-  z-index: 2;
-}
-
-/* Mineral veins */
-.mine-vein {
-  position: absolute;
-  border-radius: 60% 40% 70% 30% / 40% 60% 50% 50%;
-  border: none;
-  cursor: crosshair;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 3px;
-  transition: transform 0.18s, filter 0.18s;
-  animation: veinGlow 3s ease-in-out infinite alternate;
-  z-index: 2;
-}
-.mine-vein:nth-child(2) { border-radius: 40% 60% 30% 70% / 60% 40% 55% 45%; animation-delay: 1s; }
-.mine-vein:nth-child(3) { border-radius: 70% 30% 50% 50% / 30% 70% 40% 60%; animation-delay: 2s; }
-.mine-vein:hover { transform: scale(1.08); filter: brightness(1.35); }
-.mine-vein:active { transform: scale(0.96); }
-@keyframes veinGlow {
-  from { filter: brightness(0.85); }
-  to   { filter: brightness(1.1); }
-}
-.mine-vein-label {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.9);
-  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  gap: 2px;
+  z-index: 10;
   pointer-events: none;
+  text-align: center;
+  max-width: 90vw;
 }
-.mine-vein-hint {
+.mine-cave-site {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.5rem;
-  letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber);
+  text-shadow: 0 0 12px rgba(0,0,0,0.9);
+}
+.mine-cave-sub {
+  font-size: 0.75rem;
+  color: rgba(242,232,216,0.45);
+  text-shadow: 0 0 8px rgba(0,0,0,0.9);
+  line-height: 1.4;
+}
+
+.mine-cave-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* Pickaxe overlay — bottom-right corner, FPS-weapon style */
+.mine-pickaxe {
+  position: absolute;
+  bottom: 52px;
+  right: 28px;
+  font-size: 3.4rem;
+  transform-origin: 90% 90%;
   pointer-events: none;
+  z-index: 12;
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,0.7));
+  line-height: 1;
+  user-select: none;
+}
+.mine-pickaxe-swing {
+  animation: pickaxeSwing 0.2s ease-out forwards;
+}
+@keyframes pickaxeSwing {
+  0%   { transform: rotate(0deg); }
+  25%  { transform: rotate(18deg); }
+  65%  { transform: rotate(-52deg); }
+  100% { transform: rotate(0deg); }
 }
 
 .mine-back-btn {

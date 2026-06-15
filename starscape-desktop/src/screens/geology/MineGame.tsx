@@ -1,132 +1,403 @@
 // ---------------------------------------------------------------------------
 // GeoScape — Mine Game
 // ---------------------------------------------------------------------------
-// Phase machine: Australia map → zoom transition → mine interior → mineral popup.
-// Canvas renders the AU map; mine interior is pure CSS/HTML for performance.
-// All mine site data is public scientific fact; no personal or auth data used.
+// Phase machine: Australia map → zoom → first-person cave tap game → popup.
+// Map uses real Natural Earth 1:110m coastline with cos-latitude correction.
+// Cave is canvas-rendered: animated rock face, embedded ore deposits, pickaxe
+// overlay, progressive tap-to-mine mechanic with particle feedback.
 // ---------------------------------------------------------------------------
 
 import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react';
 import { MINERALS, type Mineral } from '@data/geology';
+import { AU_COAST, TAS_COAST } from '@data/australiaCoast';
 import { GeoNav } from './GeoNav';
 
-// --- Data -------------------------------------------------------------------
+// ---- Mine site data -------------------------------------------------------
 
 interface MineSite {
-  id: string;
-  name: string;
-  lat: number;
-  lon: number;
-  minerals: string[]; // mineral IDs from geology.ts
-  state: string;
-  desc: string;
+  id: string; name: string; lat: number; lon: number;
+  minerals: string[]; state: string; desc: string;
 }
 
 const MINE_SITES: MineSite[] = [
-  {
-    id: 'kalgoorlie', name: 'Kalgoorlie', lat: -30.75, lon: 121.46,
+  { id: 'kalgoorlie', name: 'Kalgoorlie', lat: -30.75, lon: 121.46,
     minerals: ['gold', 'pyrite'], state: 'WA',
-    desc: 'Super Pit — one of the world\'s largest open-cut gold mines, over 3.5 km long.',
-  },
-  {
-    id: 'broken-hill', name: 'Broken Hill', lat: -31.95, lon: 141.47,
-    minerals: ['galena', 'pyrite', 'magnetite'], state: 'NSW',
-    desc: 'The Line of Lode — silver, lead and zinc ore body discovered in 1883, still producing.',
-  },
-  {
-    id: 'mount-isa', name: 'Mount Isa', lat: -20.73, lon: 139.49,
-    minerals: ['copper', 'galena', 'hematite'], state: 'QLD',
-    desc: 'One of the most productive copper, lead, zinc and silver mines in the world.',
-  },
-  {
-    id: 'newman', name: 'Mount Whaleback', lat: -23.35, lon: 119.73,
+    desc: "Super Pit — one of the world's largest open-cut gold mines, over 3.5 km long." },
+  { id: 'broken-hill', name: 'Broken Hill', lat: -31.95, lon: 141.47,
+    minerals: ['galena', 'pyrite'], state: 'NSW',
+    desc: 'The Line of Lode — silver, lead and zinc ore body discovered in 1883, still producing.' },
+  { id: 'mount-isa', name: 'Mount Isa', lat: -20.73, lon: 139.49,
+    minerals: ['copper', 'galena'], state: 'QLD',
+    desc: 'One of the most productive copper, lead, zinc and silver mines in the world.' },
+  { id: 'newman', name: 'Mount Whaleback', lat: -23.35, lon: 119.73,
     minerals: ['hematite', 'magnetite'], state: 'WA',
-    desc: 'Pilbara iron ore — the largest single-pit open-cut iron ore mine in the world.',
-  },
-  {
-    id: 'argyle', name: 'Argyle Mine', lat: -16.71, lon: 128.39,
-    minerals: ['diamond', 'ruby'], state: 'WA',
-    desc: 'World\'s leading producer of pink diamonds — now underground after pit exhaustion.',
-  },
-  {
-    id: 'olympic-dam', name: 'Olympic Dam', lat: -30.44, lon: 136.87,
-    minerals: ['copper', 'gold', 'hematite'], state: 'SA',
-    desc: 'The world\'s largest known uranium deposit — also rich in copper and gold.',
-  },
-  {
-    id: 'mount-lyell', name: 'Mount Lyell', lat: -42.10, lon: 145.73,
-    minerals: ['pyrite', 'copper', 'malachite'], state: 'TAS',
-    desc: 'Over a century of copper extraction in the rugged West Coast wilderness of Tasmania.',
-  },
+    desc: 'Pilbara iron ore — the largest single-pit open-cut iron ore mine in the world.' },
+  { id: 'argyle', name: 'Argyle Mine', lat: -16.71, lon: 128.39,
+    minerals: ['diamond'], state: 'WA',
+    desc: "World's leading producer of pink diamonds — now underground after pit exhaustion." },
+  { id: 'olympic-dam', name: 'Olympic Dam', lat: -30.44, lon: 136.87,
+    minerals: ['copper', 'gold'], state: 'SA',
+    desc: "The world's largest known uranium deposit — also rich in copper and gold." },
+  { id: 'mount-lyell', name: 'Mount Lyell', lat: -42.10, lon: 145.73,
+    minerals: ['pyrite', 'copper'], state: 'TAS',
+    desc: 'Over a century of copper extraction in the rugged West Coast wilderness of Tasmania.' },
 ];
 
-// Simplified AU coastline — clockwise from Cape York (lat, lon)
-const AU_COAST: [number, number][] = [
-  [-10.7, 142.5], [-16.9, 145.8], [-19.3, 146.8], [-24.5, 152.0],
-  [-27.5, 153.5], [-33.9, 151.2], [-37.8, 149.5], [-38.7, 146.2],
-  [-38.4, 144.4], [-37.8, 140.8], [-35.5, 138.5], [-34.9, 137.6],
-  [-33.5, 137.0], [-33.5, 134.5], [-31.5, 128.0], [-34.4, 115.1],
-  [-31.9, 115.8], [-29.5, 114.6], [-26.0, 114.0], [-24.9, 113.6],
-  [-21.5, 114.1], [-20.3, 118.9], [-17.9, 122.2], [-15.0, 128.0],
-  [-12.5, 130.9], [-11.5, 131.8], [-12.0, 133.5], [-14.5, 135.6],
-  [-16.5, 136.2], [-17.0, 139.0], [-14.5, 139.6], [-12.5, 141.0],
-  [-10.7, 142.5],
-];
+// ---- Map projection (cos-latitude correction for accurate AU shape) -------
 
-const TAS_COAST: [number, number][] = [
-  [-40.7, 145.3], [-41.6, 148.3], [-43.6, 146.9], [-42.5, 145.0], [-40.7, 145.3],
-];
-
-// Map projection bounds
 const AU_N = -9.5, AU_S = -43.8, AU_W = 113.0, AU_E = 153.8;
+const COS_CORR = Math.cos(26 * Math.PI / 180); // ~0.899
 
 function projectCoord(lat: number, lon: number, w: number, h: number): [number, number] {
-  const pad = Math.min(w, h) * 0.06;
-  const x = ((lon - AU_W) / (AU_E - AU_W)) * (w - 2 * pad) + pad;
-  const y = ((AU_N - lat) / (AU_N - AU_S)) * (h - 2 * pad) + pad;
-  return [x, y];
+  const pad  = Math.min(w, h) * 0.05;
+  const lonExt = (AU_E - AU_W) * COS_CORR;
+  const latExt = Math.abs(AU_N - AU_S);
+  const availW = w - 2 * pad;
+  const availH = h - 2 * pad;
+  const sc = Math.min(availW / lonExt, availH / latExt);
+  const ox = pad + (availW - lonExt * sc) / 2;
+  const oy = pad + (availH - latExt * sc) / 2;
+  return [
+    ox + (lon - AU_W) * COS_CORR * sc,
+    oy + (AU_N - lat) * sc,
+  ];
 }
 
-// Vein layout per mine slot (relative x%, y%, w%, h%)
-const VEIN_SLOTS: Array<[number, number, number, number]> = [
-  [12, 35, 18, 14],
-  [40, 55, 20, 12],
-  [68, 32, 16, 16],
+// ---- Cave game types + helpers --------------------------------------------
+
+interface CaveDeposit {
+  id: string;
+  mineral: Mineral;
+  cx: number; cy: number;  // center as fraction of canvas 0-1
+  rx: number; ry: number;  // radii as fraction of canvas 0-1
+  hp: number; maxHp: number;
+  blob: [number, number][];           // organic outline vertices (ellipse space)
+  cracks: [number, number][][];       // crack segment paths (ellipse space)
+  sparkles: [number, number][];       // sparkle positions (ellipse space)
+  extracted: boolean;
+}
+
+interface Particle {
+  x: number; y: number; vx: number; vy: number;
+  color: string; alpha: number; size: number;
+}
+
+interface Stal { x: number; w: number; h: number; shade: number; }
+
+function seededRng(seed: number): () => number {
+  let s = seed | 0;
+  return () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+}
+
+function makeBlob(n: number, rng: () => number): [number, number][] {
+  return Array.from({ length: n }, (_, i) => {
+    const a = (i / n) * Math.PI * 2;
+    const r = 0.72 + rng() * 0.56;
+    return [Math.cos(a) * r, Math.sin(a) * r] as [number, number];
+  });
+}
+
+function makeCracks(count: number, rng: () => number): [number, number][][] {
+  return Array.from({ length: count }, (_, i) => {
+    let angle = (i / count) * Math.PI * 2 + (rng() - 0.5) * 0.6;
+    const len = 0.32 + rng() * 0.5;
+    const segs: [number, number][] = [];
+    let rem = len;
+    while (rem > 0.05) {
+      const segLen = Math.min(rem, 0.08 + rng() * 0.12);
+      angle += (rng() - 0.5) * 0.9;
+      segs.push([Math.cos(angle) * segLen, Math.sin(angle) * segLen]);
+      rem -= segLen;
+    }
+    return segs;
+  });
+}
+
+function makeSparkles(count: number, rng: () => number): [number, number][] {
+  return Array.from({ length: count }, () => {
+    const a = rng() * Math.PI * 2;
+    const r = 0.15 + rng() * 0.55;
+    return [Math.cos(a) * r, Math.sin(a) * r] as [number, number];
+  });
+}
+
+function createDeposit(
+  mineral: Mineral, cx: number, cy: number, rx: number, ry: number, hp: number
+): CaveDeposit {
+  const rng = seededRng(Math.floor(cx * 7919 + cy * 6271));
+  return {
+    id: `${mineral.id}-${(cx * 1000) | 0}`,
+    mineral, cx, cy, rx, ry, hp, maxHp: hp,
+    blob: makeBlob(12, rng),
+    cracks: makeCracks(8, rng),
+    sparkles: makeSparkles(7, rng),
+    extracted: false,
+  };
+}
+
+// Deposit layout for 1 / 2 / 3 minerals: [cx, cy, rx, ry]
+const DEPOSIT_LAYOUTS: [number, number, number, number][][] = [
+  [[0.50, 0.42, 0.13, 0.15]],
+  [[0.30, 0.40, 0.11, 0.12], [0.70, 0.42, 0.11, 0.13]],
+  [[0.22, 0.38, 0.10, 0.11], [0.52, 0.44, 0.11, 0.12], [0.78, 0.40, 0.10, 0.11]],
 ];
 
-// --- Types ------------------------------------------------------------------
+// Pre-computed stable stalactites (module-level, never changes)
+const STALS: Stal[] = (() => {
+  const rng = seededRng(55721);
+  const stals: Stal[] = [];
+  let x = 0.01;
+  while (x < 1.0) {
+    const w = 0.03 + rng() * 0.08;
+    stals.push({ x: x + w * 0.3, w, h: 0.04 + rng() * 0.16, shade: rng() });
+    x += w * 0.55 + rng() * 0.05;
+  }
+  return stals;
+})();
 
-type GamePhase = 'map' | 'zoom' | 'mine' | 'popup';
-
-interface DotPos { id: string; x: number; y: number }
-
-// --- Component --------------------------------------------------------------
-
-interface MineGameProps {
-  pathname: string;
-  onNavigate: (path: string) => void;
+function hexToRgb(hex: string): [number, number, number] {
+  const c = parseInt(hex.replace('#', ''), 16);
+  return [(c >> 16) & 0xff, (c >> 8) & 0xff, c & 0xff];
 }
 
+// ---- Canvas rendering functions ------------------------------------------
+
+function drawCaveBackground(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  // Base rock gradient
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0,    '#0d0a06');
+  bg.addColorStop(0.12, '#1d1610');
+  bg.addColorStop(0.3,  '#2a1f14');
+  bg.addColorStop(0.62, '#311e12');
+  bg.addColorStop(0.86, '#251508');
+  bg.addColorStop(1,    '#180e06');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Subtle rock strata lines
+  for (let i = 0; i < 6; i++) {
+    const y = h * (0.18 + i * 0.12);
+    ctx.fillStyle = `rgba(${170 + i * 8},${100 + i * 6},${50 + i * 4},${0.035 + i * 0.008})`;
+    ctx.fillRect(0, y, w, 1 + (i % 2) * 2);
+  }
+
+  // Stalactites
+  STALS.forEach(s => {
+    const sx = s.x * w, sw = s.w * w, sh = s.h * h;
+    const v = (s.shade * 28) | 0;
+    ctx.beginPath();
+    ctx.moveTo(sx - sw / 2, 0);
+    ctx.lineTo(sx + sw / 2, 0);
+    ctx.lineTo(sx + sw * 0.12, sh * 0.84);
+    ctx.lineTo(sx, sh);
+    ctx.lineTo(sx - sw * 0.12, sh * 0.84);
+    ctx.closePath();
+    ctx.fillStyle = `rgb(${10 + v},${7 + ((v * 2 / 3) | 0)},${4 + (v / 2) | 0})`;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(217,142,60,0.10)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  });
+
+  // Top ceiling darkening
+  const ceil = ctx.createLinearGradient(0, 0, 0, h * 0.20);
+  ceil.addColorStop(0, 'rgba(0,0,0,0.90)');
+  ceil.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = ceil;
+  ctx.fillRect(0, 0, w, h * 0.20);
+
+  // Perspective floor trapezoid
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.05, h);
+  ctx.lineTo(w * 1.05, h);
+  ctx.lineTo(w * 0.63, h * 0.78);
+  ctx.lineTo(w * 0.37, h * 0.78);
+  ctx.closePath();
+  const fg = ctx.createLinearGradient(0, h * 0.78, 0, h);
+  fg.addColorStop(0, '#180e06');
+  fg.addColorStop(1, '#0c0704');
+  ctx.fillStyle = fg;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(w * 0.37, h * 0.78);
+  ctx.lineTo(w * 0.63, h * 0.78);
+  ctx.strokeStyle = 'rgba(217,142,60,0.10)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Side vignettes
+  const vL = ctx.createLinearGradient(0, 0, w * 0.22, 0);
+  vL.addColorStop(0, 'rgba(0,0,0,0.72)');
+  vL.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = vL;
+  ctx.fillRect(0, 0, w, h);
+
+  const vR = ctx.createLinearGradient(w, 0, w * 0.78, 0);
+  vR.addColorStop(0, 'rgba(0,0,0,0.72)');
+  vR.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = vR;
+  ctx.fillRect(0, 0, w, h);
+}
+
+function drawDeposits(
+  ctx: CanvasRenderingContext2D, w: number, h: number,
+  deposits: CaveDeposit[], frame: number
+) {
+  deposits.forEach(dep => {
+    const cx = dep.cx * w, cy = dep.cy * h;
+    const rx = dep.rx * w, ry = dep.ry * h;
+
+    if (dep.extracted) {
+      // Empty dark cavity where the ore was
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx * 0.9, ry * 0.9, 0, 0, Math.PI * 2);
+      const eg = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry));
+      eg.addColorStop(0, 'rgba(0,0,0,0.75)');
+      eg.addColorStop(1, 'rgba(0,0,0,0.15)');
+      ctx.fillStyle = eg;
+      ctx.fill();
+      return;
+    }
+
+    // Draw organic ore blob
+    ctx.save();
+    ctx.beginPath();
+    const blob = dep.blob;
+    const bn = blob.length;
+    const [bsx, bsy] = [(blob[bn - 1][0] + blob[0][0]) / 2, (blob[bn - 1][1] + blob[0][1]) / 2];
+    ctx.moveTo(cx + bsx * rx, cy + bsy * ry);
+    for (let i = 0; i < bn; i++) {
+      const [px, py] = blob[i];
+      const [nx, ny] = blob[(i + 1) % bn];
+      ctx.quadraticCurveTo(
+        cx + px * rx, cy + py * ry,
+        cx + (px + nx) / 2 * rx, cy + (py + ny) / 2 * ry
+      );
+    }
+    ctx.closePath();
+
+    // Rock embedding shadow
+    ctx.shadowColor = 'rgba(0,0,0,0.9)';
+    ctx.shadowBlur = 16;
+
+    // Metallic radial gradient
+    const [cr, cg, cb] = hexToRgb(dep.mineral.color);
+    const hiCol = `rgb(${Math.min(255, cr + 80)},${Math.min(255, cg + 60)},${Math.min(255, cb + 40)})`;
+    const loCol = `rgb(${Math.max(0, cr - 60)},${Math.max(0, cg - 40)},${Math.max(0, cb - 30)})`;
+    const grd = ctx.createRadialGradient(cx - rx * 0.28, cy - ry * 0.32, 0, cx, cy, Math.max(rx, ry));
+    grd.addColorStop(0, hiCol);
+    grd.addColorStop(0.5, dep.mineral.color);
+    grd.addColorStop(1, loCol);
+    ctx.fillStyle = grd;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Ore rim highlight
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
+
+    // Twinkling sparkles
+    dep.sparkles.forEach(([spx, spy], si) => {
+      if ((frame + si * 7) % 14 > 6) return;
+      ctx.beginPath();
+      ctx.arc(cx + spx * rx, cy + spy * ry, 1.8, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.88)';
+      ctx.fill();
+    });
+
+    // Progressive cracks
+    const damage = 1 - dep.hp / dep.maxHp;
+    const crackCount = Math.ceil(damage * dep.cracks.length);
+    dep.cracks.slice(0, crackCount).forEach(segs => {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      let ccx = cx, ccy = cy;
+      segs.forEach(([ddx, ddy]) => {
+        ccx += ddx * rx;
+        ccy += ddy * ry;
+        ctx.lineTo(ccx, ccy);
+      });
+      ctx.strokeStyle = 'rgba(0,0,0,0.80)';
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,240,200,0.18)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    });
+
+    // Mineral name
+    const fontSize = Math.max(11, Math.min(rx * 0.38, 16));
+    ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.shadowColor = 'rgba(0,0,0,0.9)';
+    ctx.shadowBlur = 7;
+    ctx.fillText(dep.mineral.name, cx, cy + ry * 0.08);
+    ctx.shadowBlur = 0;
+
+    if (dep.hp === dep.maxHp) {
+      ctx.font = `${Math.max(9, (fontSize * 0.62) | 0)}px JetBrains Mono, monospace`;
+      ctx.fillStyle = 'rgba(255,255,255,0.42)';
+      ctx.fillText('tap to mine', cx, cy + ry * 0.48);
+    } else {
+      // HP bar above the deposit
+      const barW = rx * 1.6, barH = 5;
+      const barX = cx - barW / 2, barY = cy - ry - 13;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(barX, barY, barW, barH);
+      ctx.fillStyle = `rgba(${cr},${cg},${cb},0.88)`;
+      ctx.fillRect(barX, barY, barW * (dep.hp / dep.maxHp), barH);
+    }
+  });
+}
+
+function drawParticles(ctx: CanvasRenderingContext2D, particles: Particle[]) {
+  particles.forEach(p => {
+    ctx.globalAlpha = Math.max(0, p.alpha);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ---- Phase types ----------------------------------------------------------
+
+type GamePhase = 'map' | 'zoom' | 'cave' | 'popup';
+interface DotPos { id: string; x: number; y: number }
+
+// ---- Component ------------------------------------------------------------
+
+interface MineGameProps { pathname: string; onNavigate: (path: string) => void; }
+
 export function MineGame({ pathname, onNavigate }: MineGameProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [phase, setPhase] = useState<GamePhase>('map');
-  const [activeSite, setActiveSite] = useState<MineSite | null>(null);
-  const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
-  const [zoomColor, setZoomColor] = useState('#d4af52');
-  const [dotPositions, setDotPositions] = useState<DotPos[]>([]);
-  const [selectedMineral, setSelectedMineral] = useState<Mineral | null>(null);
+  const mapCanvasRef  = useRef<HTMLCanvasElement>(null);
+  const caveCanvasRef = useRef<HTMLCanvasElement>(null);
+  const rafRef        = useRef(0);
+  const depositsRef   = useRef<CaveDeposit[]>([]);
+  const particlesRef  = useRef<Particle[]>([]);
+  const frameRef      = useRef(0);
+  const phaseRef      = useRef<GamePhase>('map');
 
-  // --- Map canvas drawing ---------------------------------------------------
+  const [phase,          setPhase]          = useState<GamePhase>('map');
+  const [activeSite,     setActiveSite]     = useState<MineSite | null>(null);
+  const [zoomPos,        setZoomPos]        = useState({ x: 0, y: 0 });
+  const [zoomColor,      setZoomColor]      = useState('#d4af52');
+  const [dotPositions,   setDotPositions]   = useState<DotPos[]>([]);
+  const [selectedMineral,setSelectedMineral]= useState<Mineral | null>(null);
+  const [pickaxeSwing,   setPickaxeSwing]   = useState(false);
 
+  // ---- Map drawing -------------------------------------------------------
   const drawMap = useCallback(() => {
-    const canvas = canvasRef.current;
+    const canvas = mapCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    const w = canvas.width;
-    const h = canvas.height;
-
+    const w = canvas.width, h = canvas.height;
     ctx.clearRect(0, 0, w, h);
 
     const drawPoly = (coords: [number, number][], fill: string, stroke: string) => {
@@ -146,93 +417,199 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
     drawPoly(AU_COAST, '#2a2215', '#d98e3c');
     drawPoly(TAS_COAST, '#2a2215', '#d98e3c');
 
-    // State labels (approximate centres)
-    ctx.fillStyle = 'rgba(242, 232, 216, 0.22)';
+    // State labels
+    ctx.fillStyle = 'rgba(242,232,216,0.22)';
     ctx.font = `${Math.max(9, w * 0.015)}px JetBrains Mono, monospace`;
     ctx.textAlign = 'center';
-    const stateLabels: [string, number, number][] = [
-      ['WA', -25.0, 121.0], ['NT', -19.0, 133.5], ['QLD', -22.0, 143.0],
+    const labels: [string, number, number][] = [
+      ['WA', -25.0, 121.0], ['NT', -19.0, 133.5], ['QLD', -22.0, 143.5],
       ['SA', -31.0, 135.0], ['NSW', -33.0, 146.0], ['VIC', -37.0, 144.5],
     ];
-    stateLabels.forEach(([label, lat, lon]) => {
+    labels.forEach(([label, lat, lon]) => {
       const [x, y] = projectCoord(lat, lon, w, h);
       ctx.fillText(label, x, y);
     });
 
-    // Recompute dot positions from current canvas size
     setDotPositions(
-      MINE_SITES.map((s) => {
+      MINE_SITES.map(s => {
         const [x, y] = projectCoord(s.lat, s.lon, w, h);
         return { id: s.id, x, y };
       })
     );
   }, []);
 
-  // Draw on mount and on resize
   useEffect(() => {
-    const canvas = canvasRef.current;
+    const canvas = mapCanvasRef.current;
     if (!canvas) return;
-
     const resize = () => {
-      canvas.width = canvas.clientWidth;
+      canvas.width  = canvas.clientWidth;
       canvas.height = canvas.clientHeight;
       drawMap();
     };
-
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
     return () => ro.disconnect();
   }, [drawMap]);
 
-  // Redraw when returning to map
-  useEffect(() => {
-    if (phase === 'map') drawMap();
-  }, [phase, drawMap]);
+  useEffect(() => { if (phase === 'map') drawMap(); }, [phase, drawMap]);
 
-  // --- Interaction ----------------------------------------------------------
+  // ---- Cave rAF loop -----------------------------------------------------
+  const startCave = useCallback((canvas: HTMLCanvasElement) => {
+    cancelAnimationFrame(rafRef.current);
 
-  const handleSiteClick = (site: MineSite, x: number, y: number) => {
-    const primary = MINERALS.find((m) => m.id === site.minerals[0]);
+    const tick = () => {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w; canvas.height = h;
+      }
+
+      particlesRef.current = particlesRef.current
+        .map(p => ({ ...p, x: p.x + p.vx, y: p.y + p.vy, vy: p.vy + 0.15, alpha: p.alpha * 0.94 }))
+        .filter(p => p.alpha > 0.03);
+
+      drawCaveBackground(ctx, w, h);
+      drawDeposits(ctx, w, h, depositsRef.current, frameRef.current);
+      drawParticles(ctx, particlesRef.current);
+      frameRef.current++;
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    tick();
+  }, []);
+
+  // ---- Site click → zoom → cave -----------------------------------------
+  const handleSiteClick = useCallback((site: MineSite, x: number, y: number) => {
+    const primary = MINERALS.find(m => m.id === site.minerals[0]);
     setActiveSite(site);
     setZoomPos({ x, y });
     setZoomColor(primary?.color ?? '#d4af52');
     setPhase('zoom');
-  };
+    phaseRef.current = 'zoom';
+  }, []);
 
-  const handleVeinClick = (mineralId: string) => {
-    const m = MINERALS.find((min) => min.id === mineralId);
-    if (m) { setSelectedMineral(m); setPhase('popup'); }
-  };
+  const onZoomEnd = useCallback(() => {
+    if (!activeSite) return;
+    const minerals = activeSite.minerals
+      .slice(0, 3)
+      .map(id => MINERALS.find(m => m.id === id))
+      .filter((m): m is Mineral => !!m);
+    const n = Math.min(minerals.length, 3);
+    const layout = DEPOSIT_LAYOUTS[n - 1] ?? DEPOSIT_LAYOUTS[0];
+    depositsRef.current = minerals.map((m, i) => {
+      const [cx, cy, rx, ry] = layout[i] ?? layout[0];
+      return createDeposit(m, cx, cy, rx, ry, 8);
+    });
+    particlesRef.current = [];
+    frameRef.current = 0;
+    setPhase('cave');
+    phaseRef.current = 'cave';
+  }, [activeSite]);
+
+  useEffect(() => {
+    if (phase === 'cave') {
+      const canvas = caveCanvasRef.current;
+      if (canvas) startCave(canvas);
+    }
+    if (phase !== 'cave') cancelAnimationFrame(rafRef.current);
+  }, [phase, startCave]);
+
+  // ---- Tap / click mechanic ---------------------------------------------
+  const onCaveTap = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = caveCanvasRef.current;
+    if (!canvas || phaseRef.current !== 'cave') return;
+    const rect = canvas.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / canvas.clientWidth;
+    const py = (e.clientY - rect.top)  / canvas.clientHeight;
+
+    for (const dep of depositsRef.current) {
+      if (dep.extracted) continue;
+      const dx = (px - dep.cx) / dep.rx;
+      const dy = (py - dep.cy) / dep.ry;
+      if (dx * dx + dy * dy > 1.6) continue; // generous ellipse hit test
+
+      dep.hp = Math.max(0, dep.hp - 1);
+
+      // Rock-chip particles at tap point
+      const hitX = e.clientX - rect.left;
+      const hitY = e.clientY - rect.top;
+      const [pr, pg, pb] = hexToRgb(dep.mineral.color);
+      for (let i = 0; i < 8; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1.5 + Math.random() * 3;
+        particlesRef.current.push({
+          x: hitX, y: hitY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 2,
+          color: `rgb(${pr},${pg},${pb})`,
+          alpha: 0.9 + Math.random() * 0.1,
+          size: 2 + Math.random() * 3,
+        });
+      }
+
+      setPickaxeSwing(true);
+      setTimeout(() => setPickaxeSwing(false), 200);
+
+      if (dep.hp === 0) {
+        dep.extracted = true;
+        // Big extraction burst
+        const cw = canvas.clientWidth, ch = canvas.clientHeight;
+        for (let i = 0; i < 26; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 2 + Math.random() * 6;
+          particlesRef.current.push({
+            x: dep.cx * cw, y: dep.cy * ch,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 3,
+            color: i % 3 === 0 ? '#fff' : `rgb(${pr},${pg},${pb})`,
+            alpha: 1, size: 1.5 + Math.random() * 4,
+          });
+        }
+        const mineral = dep.mineral;
+        setTimeout(() => {
+          cancelAnimationFrame(rafRef.current);
+          setSelectedMineral(mineral);
+          setPhase('popup');
+          phaseRef.current = 'popup';
+        }, 750);
+      }
+      break;
+    }
+  }, []);
 
   const goToMap = () => {
+    cancelAnimationFrame(rafRef.current);
     setActiveSite(null);
     setSelectedMineral(null);
     setPhase('map');
+    phaseRef.current = 'map';
   };
 
-  const goToMine = () => {
+  const goToCave = () => {
     setSelectedMineral(null);
-    setPhase('mine');
+    depositsRef.current.forEach(d => { if (d.extracted) { d.extracted = false; d.hp = d.maxHp; } });
+    setPhase('cave');
+    phaseRef.current = 'cave';
   };
 
-  // --- Render ---------------------------------------------------------------
+  useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
 
+  // ---- Render ------------------------------------------------------------
   return (
     <div className="mine-root">
       <GeoNav pathname={pathname} onNavigate={onNavigate} />
 
-      {/* ---- MAP PHASE ---- */}
+      {/* MAP + ZOOM phases */}
       <div
         className="mine-map-wrap"
-        style={{ visibility: phase === 'mine' || phase === 'popup' ? 'hidden' : 'visible' }}
+        style={{ visibility: phase === 'cave' || phase === 'popup' ? 'hidden' : 'visible' }}
       >
-        <canvas ref={canvasRef} className="mine-map-canvas" />
+        <canvas ref={mapCanvasRef} className="mine-map-canvas" />
 
-        {/* Site markers */}
         {phase === 'map' && dotPositions.map(({ id, x, y }) => {
-          const site = MINE_SITES.find((s) => s.id === id)!;
-          const color = MINERALS.find((m) => m.id === site.minerals[0])?.color ?? '#d4af52';
+          const site = MINE_SITES.find(s => s.id === id)!;
+          const color = MINERALS.find(m => m.id === site.minerals[0])?.color ?? '#d4af52';
           return (
             <button
               key={id}
@@ -247,12 +624,11 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
           );
         })}
 
-        {/* Zoom circle overlay */}
         {phase === 'zoom' && (
           <div
             className="mine-zoom-circle"
             style={{ left: zoomPos.x, top: zoomPos.y, background: zoomColor } as CSSProperties}
-            onAnimationEnd={() => setPhase('mine')}
+            onAnimationEnd={onZoomEnd}
           />
         )}
 
@@ -262,50 +638,36 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
         </div>
       </div>
 
-      {/* ---- MINE INTERIOR ---- */}
-      {(phase === 'mine' || phase === 'popup') && activeSite && (
-        <div className="mine-interior">
-          {/* Cave background layers */}
-          <div className="mine-cave-bg">
-            <div className="mine-strata" />
+      {/* CAVE phase — first-person canvas */}
+      {(phase === 'cave' || phase === 'popup') && activeSite && (
+        <div className="mine-cave-root">
+          <div className="mine-cave-hud">
+            <span className="mine-cave-site">{activeSite.name} — {activeSite.state}</span>
+            <span className="mine-cave-sub">{activeSite.desc}</span>
           </div>
 
-          <div className="mine-interior-header">
-            <div className="mine-interior-site">{activeSite.name} — {activeSite.state}</div>
-            <p className="mine-interior-desc">{activeSite.desc}</p>
-          </div>
-
-          <div className="mine-shaft">
-            <div className="mine-shaft-label">MINE SHAFT — {activeSite.name.toUpperCase()}</div>
-            {activeSite.minerals.slice(0, 3).map((mId, i) => {
-              const m = MINERALS.find((min) => min.id === mId);
-              if (!m) return null;
-              const [vx, vy, vw, vh] = VEIN_SLOTS[i] ?? [20 + i * 25, 40, 18, 14];
-              return (
-                <button
-                  key={mId}
-                  className="mine-vein"
-                  style={{
-                    left: `${vx}%`, top: `${vy}%`,
-                    width: `${vw}%`, height: `${vh}%`,
-                    background: `radial-gradient(ellipse, ${m.color}cc 0%, ${m.color}55 60%, transparent 100%)`,
-                    boxShadow: `0 0 24px 6px ${m.color}44`,
-                  } as CSSProperties}
-                  onClick={() => handleVeinClick(mId)}
-                  aria-label={`Mine ${m.name} vein`}
-                >
-                  <span className="mine-vein-label">{m.name}</span>
-                  <span className="mine-vein-hint">tap to mine</span>
-                </button>
-              );
-            })}
-          </div>
+          {phase === 'cave' && (
+            <>
+              <canvas
+                ref={caveCanvasRef}
+                className="mine-cave-canvas"
+                onPointerDown={onCaveTap}
+                style={{ touchAction: 'none' }}
+              />
+              <div
+                className={`mine-pickaxe${pickaxeSwing ? ' mine-pickaxe-swing' : ''}`}
+                aria-hidden="true"
+              >
+                ⛏️
+              </div>
+            </>
+          )}
 
           <button className="mine-back-btn" onClick={goToMap}>← Back to Map</button>
         </div>
       )}
 
-      {/* ---- POPUP ---- */}
+      {/* POPUP phase */}
       {phase === 'popup' && selectedMineral && (
         <div className="mine-popup-overlay" role="dialog" aria-label={`Mineral info: ${selectedMineral.name}`}>
           <div className="mine-popup">
@@ -317,26 +679,14 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
             <h2 className="mine-popup-name">{selectedMineral.name}</h2>
             <p className="mine-popup-blurb">{selectedMineral.blurb}</p>
             <div className="mine-popup-grid">
-              <div>
-                <span>Hardness</span>
-                <b>{selectedMineral.mohs} Mohs</b>
-              </div>
-              <div>
-                <span>System</span>
-                <b>{selectedMineral.system}</b>
-              </div>
-              <div>
-                <span>Luster</span>
-                <b>{selectedMineral.luster}</b>
-              </div>
-              <div>
-                <span>Class</span>
-                <b>{selectedMineral.group}</b>
-              </div>
+              <div><span>Hardness</span><b>{selectedMineral.mohs} Mohs</b></div>
+              <div><span>System</span><b>{selectedMineral.system}</b></div>
+              <div><span>Luster</span><b>{selectedMineral.luster}</b></div>
+              <div><span>Class</span><b>{selectedMineral.group}</b></div>
             </div>
             <p className="mine-popup-uses">{selectedMineral.uses}</p>
             <div className="mine-popup-actions">
-              <button className="mine-action-btn mine-action-primary" onClick={goToMine}>Mine More</button>
+              <button className="mine-action-btn mine-action-primary" onClick={goToCave}>Mine More</button>
               <button className="mine-action-btn" onClick={goToMap}>New Site</button>
             </div>
           </div>
