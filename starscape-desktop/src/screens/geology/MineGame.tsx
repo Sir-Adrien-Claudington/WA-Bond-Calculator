@@ -3,8 +3,9 @@
 // ---------------------------------------------------------------------------
 // Phase machine: Australia map → zoom → first-person cave tap game → popup.
 // Map uses real Natural Earth 1:110m coastline with cos-latitude correction.
-// Cave is canvas-rendered: animated rock face, embedded ore deposits, pickaxe
-// overlay, progressive tap-to-mine mechanic with particle feedback.
+// Cave: animated rock face, mineralogically-styled ore deposits (per-mineral
+// crystal facets, specular highlights, glow), pickaxe overlay, score/combo
+// system, particle feedback, and a rarity-tagged geological popup.
 // ---------------------------------------------------------------------------
 
 import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react';
@@ -43,37 +44,32 @@ const MINE_SITES: MineSite[] = [
     desc: 'Over a century of copper extraction in the rugged West Coast wilderness of Tasmania.' },
 ];
 
-// ---- Map projection (cos-latitude correction for accurate AU shape) -------
+// ---- Map projection -------------------------------------------------------
 
 const AU_N = -9.5, AU_S = -43.8, AU_W = 113.0, AU_E = 153.8;
-const COS_CORR = Math.cos(26 * Math.PI / 180); // ~0.899
+const COS_CORR = Math.cos(26 * Math.PI / 180);
 
 function projectCoord(lat: number, lon: number, w: number, h: number): [number, number] {
-  const pad  = Math.min(w, h) * 0.05;
+  const pad    = Math.min(w, h) * 0.05;
   const lonExt = (AU_E - AU_W) * COS_CORR;
   const latExt = Math.abs(AU_N - AU_S);
-  const availW = w - 2 * pad;
-  const availH = h - 2 * pad;
-  const sc = Math.min(availW / lonExt, availH / latExt);
-  const ox = pad + (availW - lonExt * sc) / 2;
-  const oy = pad + (availH - latExt * sc) / 2;
-  return [
-    ox + (lon - AU_W) * COS_CORR * sc,
-    oy + (AU_N - lat) * sc,
-  ];
+  const avW    = w - 2 * pad;
+  const avH    = h - 2 * pad;
+  const sc     = Math.min(avW / lonExt, avH / latExt);
+  const ox     = pad + (avW - lonExt * sc) / 2;
+  const oy     = pad + (avH - latExt * sc) / 2;
+  return [ox + (lon - AU_W) * COS_CORR * sc, oy + (AU_N - lat) * sc];
 }
 
 // ---- Cave game types + helpers --------------------------------------------
 
 interface CaveDeposit {
-  id: string;
-  mineral: Mineral;
-  cx: number; cy: number;  // center as fraction of canvas 0-1
-  rx: number; ry: number;  // radii as fraction of canvas 0-1
+  id: string; mineral: Mineral;
+  cx: number; cy: number; rx: number; ry: number;
   hp: number; maxHp: number;
-  blob: [number, number][];           // organic outline vertices (ellipse space)
-  cracks: [number, number][][];       // crack segment paths (ellipse space)
-  sparkles: [number, number][];       // sparkle positions (ellipse space)
+  blob:     [number, number][];
+  cracks:   [number, number][][];
+  sparkles: [number, number][];
   extracted: boolean;
 }
 
@@ -100,7 +96,7 @@ function makeBlob(n: number, rng: () => number): [number, number][] {
 function makeCracks(count: number, rng: () => number): [number, number][][] {
   return Array.from({ length: count }, (_, i) => {
     let angle = (i / count) * Math.PI * 2 + (rng() - 0.5) * 0.6;
-    const len = 0.32 + rng() * 0.5;
+    const len  = 0.32 + rng() * 0.5;
     const segs: [number, number][] = [];
     let rem = len;
     while (rem > 0.05) {
@@ -128,21 +124,19 @@ function createDeposit(
   return {
     id: `${mineral.id}-${(cx * 1000) | 0}`,
     mineral, cx, cy, rx, ry, hp, maxHp: hp,
-    blob: makeBlob(12, rng),
-    cracks: makeCracks(8, rng),
+    blob:     makeBlob(12, rng),
+    cracks:   makeCracks(8, rng),
     sparkles: makeSparkles(7, rng),
     extracted: false,
   };
 }
 
-// Deposit layout for 1 / 2 / 3 minerals: [cx, cy, rx, ry]
 const DEPOSIT_LAYOUTS: [number, number, number, number][][] = [
   [[0.50, 0.42, 0.13, 0.15]],
   [[0.30, 0.40, 0.11, 0.12], [0.70, 0.42, 0.11, 0.13]],
   [[0.22, 0.38, 0.10, 0.11], [0.52, 0.44, 0.11, 0.12], [0.78, 0.40, 0.10, 0.11]],
 ];
 
-// Pre-computed stable stalactites (module-level, never changes)
 const STALS: Stal[] = (() => {
   const rng = seededRng(55721);
   const stals: Stal[] = [];
@@ -160,10 +154,53 @@ function hexToRgb(hex: string): [number, number, number] {
   return [(c >> 16) & 0xff, (c >> 8) & 0xff, c & 0xff];
 }
 
-// ---- Canvas rendering functions ------------------------------------------
+// Mineral scoring and rarity -----------------------------------------------
+
+const MINERAL_PTS: Record<string, number> = {
+  diamond: 200, ruby: 180, sapphire: 160, emerald: 150, topaz: 130,
+  tourmaline: 110, amethyst: 90, citrine: 85, peridot: 80,
+  gold: 120, copper: 55, pyrite: 50, galena: 60,
+  hematite: 45, magnetite: 40, fluorite: 35,
+  malachite: 30, azurite: 30, rhodochrosite: 25,
+  halite: 15, calcite: 18, gypsum: 12, sulfur: 20,
+};
+
+function mineralPts(id: string): number { return MINERAL_PTS[id] ?? 30; }
+
+function getRarity(m: Mineral): { label: string; color: string } {
+  const mohs = parseFloat(m.mohs);
+  if (m.luster === 'Adamantine' || mohs >= 9)    return { label: 'Legendary', color: '#f4e8b3' };
+  if (mohs >= 7   || m.transmission > 0.5)       return { label: 'Rare',      color: '#c77dff' };
+  if (mohs >= 5   || m.metalness > 0.8)          return { label: 'Uncommon',  color: '#4cc9f0' };
+  return { label: 'Common', color: '#8ecae6' };
+}
+
+// ---- Canvas helpers -------------------------------------------------------
+
+function traceBlobPath(
+  ctx: CanvasRenderingContext2D,
+  cx: number, cy: number, rx: number, ry: number,
+  blob: [number, number][]
+) {
+  const n = blob.length;
+  const bsx = (blob[n - 1][0] + blob[0][0]) / 2;
+  const bsy = (blob[n - 1][1] + blob[0][1]) / 2;
+  ctx.beginPath();
+  ctx.moveTo(cx + bsx * rx, cy + bsy * ry);
+  for (let i = 0; i < n; i++) {
+    const [px, py] = blob[i];
+    const [nx, ny] = blob[(i + 1) % n];
+    ctx.quadraticCurveTo(
+      cx + px * rx, cy + py * ry,
+      cx + (px + nx) / 2 * rx, cy + (py + ny) / 2 * ry
+    );
+  }
+  ctx.closePath();
+}
+
+// ---- Cave background ------------------------------------------------------
 
 function drawCaveBackground(ctx: CanvasRenderingContext2D, w: number, h: number) {
-  // Base rock gradient
   const bg = ctx.createLinearGradient(0, 0, 0, h);
   bg.addColorStop(0,    '#0d0a06');
   bg.addColorStop(0.12, '#1d1610');
@@ -174,7 +211,7 @@ function drawCaveBackground(ctx: CanvasRenderingContext2D, w: number, h: number)
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
 
-  // Subtle rock strata lines
+  // Rock strata
   for (let i = 0; i < 6; i++) {
     const y = h * (0.18 + i * 0.12);
     ctx.fillStyle = `rgba(${170 + i * 8},${100 + i * 6},${50 + i * 4},${0.035 + i * 0.008})`;
@@ -192,21 +229,21 @@ function drawCaveBackground(ctx: CanvasRenderingContext2D, w: number, h: number)
     ctx.lineTo(sx, sh);
     ctx.lineTo(sx - sw * 0.12, sh * 0.84);
     ctx.closePath();
-    ctx.fillStyle = `rgb(${10 + v},${7 + ((v * 2 / 3) | 0)},${4 + (v / 2) | 0})`;
+    ctx.fillStyle = `rgb(${10 + v},${7 + ((v * 2 / 3) | 0)},${4 + ((v / 2) | 0)})`;
     ctx.fill();
     ctx.strokeStyle = 'rgba(217,142,60,0.10)';
     ctx.lineWidth = 0.5;
     ctx.stroke();
   });
 
-  // Top ceiling darkening
+  // Ceiling darkening
   const ceil = ctx.createLinearGradient(0, 0, 0, h * 0.20);
   ceil.addColorStop(0, 'rgba(0,0,0,0.90)');
   ceil.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = ceil;
   ctx.fillRect(0, 0, w, h * 0.20);
 
-  // Perspective floor trapezoid
+  // Perspective floor
   ctx.beginPath();
   ctx.moveTo(-w * 0.05, h);
   ctx.lineTo(w * 1.05, h);
@@ -239,6 +276,8 @@ function drawCaveBackground(ctx: CanvasRenderingContext2D, w: number, h: number)
   ctx.fillRect(0, 0, w, h);
 }
 
+// ---- Deposit rendering ----------------------------------------------------
+
 function drawDeposits(
   ctx: CanvasRenderingContext2D, w: number, h: number,
   deposits: CaveDeposit[], frame: number
@@ -248,67 +287,175 @@ function drawDeposits(
     const rx = dep.rx * w, ry = dep.ry * h;
 
     if (dep.extracted) {
-      // Empty dark cavity where the ore was
       ctx.beginPath();
       ctx.ellipse(cx, cy, rx * 0.9, ry * 0.9, 0, 0, Math.PI * 2);
       const eg = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry));
-      eg.addColorStop(0, 'rgba(0,0,0,0.75)');
+      eg.addColorStop(0, 'rgba(0,0,0,0.80)');
       eg.addColorStop(1, 'rgba(0,0,0,0.15)');
       ctx.fillStyle = eg;
       ctx.fill();
       return;
     }
 
-    // Draw organic ore blob
-    ctx.save();
-    ctx.beginPath();
-    const blob = dep.blob;
-    const bn = blob.length;
-    const [bsx, bsy] = [(blob[bn - 1][0] + blob[0][0]) / 2, (blob[bn - 1][1] + blob[0][1]) / 2];
-    ctx.moveTo(cx + bsx * rx, cy + bsy * ry);
-    for (let i = 0; i < bn; i++) {
-      const [px, py] = blob[i];
-      const [nx, ny] = blob[(i + 1) % bn];
-      ctx.quadraticCurveTo(
-        cx + px * rx, cy + py * ry,
-        cx + (px + nx) / 2 * rx, cy + (py + ny) / 2 * ry
-      );
-    }
-    ctx.closePath();
-
-    // Rock embedding shadow
-    ctx.shadowColor = 'rgba(0,0,0,0.9)';
-    ctx.shadowBlur = 16;
-
-    // Metallic radial gradient
     const [cr, cg, cb] = hexToRgb(dep.mineral.color);
-    const hiCol = `rgb(${Math.min(255, cr + 80)},${Math.min(255, cg + 60)},${Math.min(255, cb + 40)})`;
-    const loCol = `rgb(${Math.max(0, cr - 60)},${Math.max(0, cg - 40)},${Math.max(0, cb - 30)})`;
-    const grd = ctx.createRadialGradient(cx - rx * 0.28, cy - ry * 0.32, 0, cx, cy, Math.max(rx, ry));
-    grd.addColorStop(0, hiCol);
-    grd.addColorStop(0.5, dep.mineral.color);
-    grd.addColorStop(1, loCol);
-    ctx.fillStyle = grd;
+    const hiCol = `rgb(${Math.min(255, cr + 85)},${Math.min(255, cg + 65)},${Math.min(255, cb + 45)})`;
+    const loCol = `rgb(${Math.max(0, cr - 65)},${Math.max(0, cg - 45)},${Math.max(0, cb - 35)})`;
+
+    // 1. Rock matrix shadow (embedded-in-rock look)
+    ctx.save();
+    traceBlobPath(ctx, cx + 2, cy + 4, rx * 1.14, ry * 1.14, dep.blob);
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.shadowColor = 'rgba(0,0,0,0.95)';
+    ctx.shadowBlur = 12;
     ctx.fill();
     ctx.shadowBlur = 0;
+    ctx.restore();
 
-    // Ore rim highlight
+    // 2. Main ore blob with radial gradient
+    ctx.save();
+    traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+    const grd = ctx.createRadialGradient(cx - rx * 0.28, cy - ry * 0.32, 0, cx, cy, Math.max(rx, ry));
+    grd.addColorStop(0, hiCol);
+    grd.addColorStop(0.48, dep.mineral.color);
+    grd.addColorStop(1,   loCol);
+    ctx.fillStyle = grd;
+    ctx.fill();
+
+    // 3. Ore rim highlight
     ctx.strokeStyle = 'rgba(255,255,255,0.18)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.restore();
 
-    // Twinkling sparkles
+    // 4. Type-specific surface detail
+    const isMetallic   = dep.mineral.metalness > 0.5;
+    const isGem        = dep.mineral.transmission > 0.3;
+    const isAdamantine = dep.mineral.luster === 'Adamantine';
+
+    if (isMetallic) {
+      // Metallic sheen band + cubic/hexagonal facet lines
+      ctx.save();
+      traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+      ctx.clip();
+
+      // Horizontal specular band
+      const sheen = ctx.createLinearGradient(cx - rx, cy - ry * 0.18, cx + rx, cy + ry * 0.18);
+      sheen.addColorStop(0,    'rgba(255,255,255,0)');
+      sheen.addColorStop(0.35, 'rgba(255,255,255,0.18)');
+      sheen.addColorStop(0.5,  'rgba(255,255,255,0.32)');
+      sheen.addColorStop(0.65, 'rgba(255,255,255,0.18)');
+      sheen.addColorStop(1,    'rgba(255,255,255,0)');
+      ctx.fillStyle = sheen;
+      ctx.fillRect(cx - rx, cy - ry, rx * 2, ry * 2);
+
+      // Crystal facet lines (cubic for cube habit, hexagonal otherwise)
+      const facetN = dep.mineral.habit === 'cube' ? 4 : 6;
+      ctx.globalAlpha = 0.28;
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.lineWidth = 0.8;
+      for (let i = 0; i < facetN; i++) {
+        const ang = (i / facetN) * Math.PI;
+        const cos = Math.cos(ang), sin = Math.sin(ang);
+        ctx.beginPath();
+        ctx.moveTo(cx - cos * rx * 0.85, cy - sin * ry * 0.85);
+        ctx.lineTo(cx + cos * rx * 0.85, cy + sin * ry * 0.85);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    if (isGem) {
+      // Gem facet star + inner glow
+      ctx.save();
+      traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+      ctx.clip();
+
+      // Inner glow
+      const glow = ctx.createRadialGradient(cx - rx*0.25, cy - ry*0.3, 0, cx, cy, Math.max(rx, ry) * 0.9);
+      glow.addColorStop(0, `rgba(${Math.min(255, cr + 120)},${Math.min(255, cg + 120)},${Math.min(255, cb + 120)},0.35)`);
+      glow.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(cx - rx, cy - ry, rx * 2, ry * 2);
+
+      // Facet lines (more for adamantine / diamond)
+      const fN = isAdamantine ? 8 : 6;
+      ctx.globalAlpha = 0.3;
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+      ctx.lineWidth = 0.7;
+      for (let i = 0; i < fN; i++) {
+        const ang = (i / fN) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(ang) * rx * 0.82, cy + Math.sin(ang) * ry * 0.82);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    if (isAdamantine) {
+      // Rainbow prismatic rays radiating from center
+      const rainbowColors = ['#ff4444', '#ff9933', '#ffee22', '#33dd55', '#3399ff', '#9944ff'];
+      ctx.save();
+      traceBlobPath(ctx, cx, cy, rx * 1.15, ry * 1.15, dep.blob);
+      ctx.clip();
+      ctx.globalAlpha = 0.18;
+      ctx.lineWidth = 3;
+      rainbowColors.forEach((col, i) => {
+        const ang = (i / rainbowColors.length) * Math.PI * 2 + frame * 0.012;
+        ctx.strokeStyle = col;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(ang) * rx * 1.1, cy + Math.sin(ang) * ry * 1.1);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    // 5. Bright specular highlight spot (top-left)
+    ctx.save();
+    traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+    ctx.clip();
+    const spec = ctx.createRadialGradient(cx - rx * 0.32, cy - ry * 0.38, 0, cx - rx * 0.1, cy - ry * 0.1, rx * 0.7);
+    spec.addColorStop(0, 'rgba(255,255,255,0.55)');
+    spec.addColorStop(0.3, 'rgba(255,255,255,0.12)');
+    spec.addColorStop(1,   'rgba(255,255,255,0)');
+    ctx.fillStyle = spec;
+    ctx.fillRect(cx - rx, cy - ry, rx * 2, ry * 2);
+    ctx.restore();
+
+    // 6. Vein tendrils into surrounding rock
+    const rng2 = seededRng(Math.floor(dep.cx * 9337 + dep.cy * 8191));
+    ctx.save();
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.22)`;
+    ctx.lineWidth = 1;
+    for (let v = 0; v < 4; v++) {
+      const ang  = rng2() * Math.PI * 2;
+      const len  = 0.25 + rng2() * 0.3;
+      const bx   = cx + Math.cos(ang) * rx;
+      const by   = cy + Math.sin(ang) * ry;
+      const ex   = bx + Math.cos(ang) * rx * len;
+      const ey   = by + Math.sin(ang) * ry * len;
+      const kx   = (bx + ex) / 2 + (rng2() - 0.5) * rx * 0.5;
+      const ky   = (by + ey) / 2 + (rng2() - 0.5) * ry * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.quadraticCurveTo(kx, ky, ex, ey);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // 7. Twinkling sparkles
     dep.sparkles.forEach(([spx, spy], si) => {
       if ((frame + si * 7) % 14 > 6) return;
+      const sx = cx + spx * rx, sy = cy + spy * ry;
       ctx.beginPath();
-      ctx.arc(cx + spx * rx, cy + spy * ry, 1.8, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.88)';
+      ctx.arc(sx, sy, isAdamantine ? 2.5 : 1.8, 0, Math.PI * 2);
+      ctx.fillStyle = isAdamantine ? `hsl(${(frame * 3 + si * 60) % 360},90%,90%)` : 'rgba(255,255,255,0.88)';
       ctx.fill();
     });
 
-    // Progressive cracks
-    const damage = 1 - dep.hp / dep.maxHp;
+    // 8. Progressive cracks
+    const damage    = 1 - dep.hp / dep.maxHp;
     const crackCount = Math.ceil(damage * dep.cracks.length);
     dep.cracks.slice(0, crackCount).forEach(segs => {
       ctx.beginPath();
@@ -327,7 +474,7 @@ function drawDeposits(
       ctx.stroke();
     });
 
-    // Mineral name
+    // 9. Mineral name label
     const fontSize = Math.max(11, Math.min(rx * 0.38, 16));
     ctx.font = `bold ${fontSize}px Inter, sans-serif`;
     ctx.textAlign = 'center';
@@ -343,7 +490,7 @@ function drawDeposits(
       ctx.fillStyle = 'rgba(255,255,255,0.42)';
       ctx.fillText('tap to mine', cx, cy + ry * 0.48);
     } else {
-      // HP bar above the deposit
+      // HP bar
       const barW = rx * 1.6, barH = 5;
       const barX = cx - barW / 2, barY = cy - ry - 13;
       ctx.fillStyle = 'rgba(0,0,0,0.55)';
@@ -369,6 +516,7 @@ function drawParticles(ctx: CanvasRenderingContext2D, particles: Particle[]) {
 
 type GamePhase = 'map' | 'zoom' | 'cave' | 'popup';
 interface DotPos { id: string; x: number; y: number }
+interface ExtractFlash { text: string; x: number; y: number; key: number }
 
 // ---- Component ------------------------------------------------------------
 
@@ -383,13 +531,24 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
   const frameRef      = useRef(0);
   const phaseRef      = useRef<GamePhase>('map');
 
-  const [phase,          setPhase]          = useState<GamePhase>('map');
-  const [activeSite,     setActiveSite]     = useState<MineSite | null>(null);
-  const [zoomPos,        setZoomPos]        = useState({ x: 0, y: 0 });
-  const [zoomColor,      setZoomColor]      = useState('#d4af52');
-  const [dotPositions,   setDotPositions]   = useState<DotPos[]>([]);
-  const [selectedMineral,setSelectedMineral]= useState<Mineral | null>(null);
-  const [pickaxeSwing,   setPickaxeSwing]   = useState(false);
+  // Game state
+  const scoreRef    = useRef(0);
+  const comboRef    = useRef(1);
+  const lastTapRef  = useRef(0);
+  const lastPtsRef  = useRef(0);
+
+  const [phase,           setPhase]           = useState<GamePhase>('map');
+  const [activeSite,      setActiveSite]       = useState<MineSite | null>(null);
+  const [zoomPos,         setZoomPos]          = useState({ x: 0, y: 0 });
+  const [zoomColor,       setZoomColor]        = useState('#d4af52');
+  const [dotPositions,    setDotPositions]     = useState<DotPos[]>([]);
+  const [selectedMineral, setSelectedMineral]  = useState<Mineral | null>(null);
+  const [pickaxeSwing,    setPickaxeSwing]     = useState(false);
+  const [score,           setScore]            = useState(0);
+  const [combo,           setCombo]            = useState(1);
+  const [comboAnim,       setComboAnim]        = useState(false);
+  const [extractFlash,    setExtractFlash]     = useState<ExtractFlash | null>(null);
+  const [lastPts,         setLastPts]          = useState(0);
 
   // ---- Map drawing -------------------------------------------------------
   const drawMap = useCallback(() => {
@@ -417,7 +576,6 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
     drawPoly(AU_COAST, '#2a2215', '#d98e3c');
     drawPoly(TAS_COAST, '#2a2215', '#d98e3c');
 
-    // State labels
     ctx.fillStyle = 'rgba(242,232,216,0.22)';
     ctx.font = `${Math.max(9, w * 0.015)}px JetBrains Mono, monospace`;
     ctx.textAlign = 'center';
@@ -495,7 +653,7 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
       .slice(0, 3)
       .map(id => MINERALS.find(m => m.id === id))
       .filter((m): m is Mineral => !!m);
-    const n = Math.min(minerals.length, 3);
+    const n      = Math.min(minerals.length, 3);
     const layout = DEPOSIT_LAYOUTS[n - 1] ?? DEPOSIT_LAYOUTS[0];
     depositsRef.current = minerals.map((m, i) => {
       const [cx, cy, rx, ry] = layout[i] ?? layout[0];
@@ -503,6 +661,10 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
     });
     particlesRef.current = [];
     frameRef.current = 0;
+    // Reset combo on new cave
+    comboRef.current  = 1;
+    lastTapRef.current = 0;
+    setCombo(1);
     setPhase('cave');
     phaseRef.current = 'cave';
   }, [activeSite]);
@@ -515,7 +677,7 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
     if (phase !== 'cave') cancelAnimationFrame(rafRef.current);
   }, [phase, startCave]);
 
-  // ---- Tap / click mechanic ---------------------------------------------
+  // ---- Tap / click mechanic with score + combo --------------------------
   const onCaveTap = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = caveCanvasRef.current;
     if (!canvas || phaseRef.current !== 'cave') return;
@@ -527,11 +689,25 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
       if (dep.extracted) continue;
       const dx = (px - dep.cx) / dep.rx;
       const dy = (py - dep.cy) / dep.ry;
-      if (dx * dx + dy * dy > 1.6) continue; // generous ellipse hit test
+      if (dx * dx + dy * dy > 1.6) continue;
+
+      // Combo logic
+      const now = Date.now();
+      if (now - lastTapRef.current < 600) {
+        comboRef.current = Math.min(comboRef.current + 1, 8);
+      } else {
+        comboRef.current = 1;
+      }
+      lastTapRef.current = now;
+      setCombo(comboRef.current);
+      if (comboRef.current > 1) {
+        setComboAnim(true);
+        setTimeout(() => setComboAnim(false), 220);
+      }
 
       dep.hp = Math.max(0, dep.hp - 1);
 
-      // Rock-chip particles at tap point
+      // Rock-chip particles
       const hitX = e.clientX - rect.left;
       const hitY = e.clientY - rect.top;
       const [pr, pg, pb] = hexToRgb(dep.mineral.color);
@@ -548,31 +724,49 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
         });
       }
 
+      // Tap points
+      const tapPts = Math.ceil(parseFloat(dep.mineral.mohs) / 3) * comboRef.current;
+      scoreRef.current += tapPts;
+      setScore(scoreRef.current);
+
       setPickaxeSwing(true);
       setTimeout(() => setPickaxeSwing(false), 200);
 
       if (dep.hp === 0) {
         dep.extracted = true;
-        // Big extraction burst
         const cw = canvas.clientWidth, ch = canvas.clientHeight;
-        for (let i = 0; i < 26; i++) {
+
+        // Extraction burst particles
+        for (let i = 0; i < 30; i++) {
           const angle = Math.random() * Math.PI * 2;
-          const speed = 2 + Math.random() * 6;
+          const speed = 2 + Math.random() * 6.5;
           particlesRef.current.push({
             x: dep.cx * cw, y: dep.cy * ch,
             vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed - 3,
+            vy: Math.sin(angle) * speed - 3.5,
             color: i % 3 === 0 ? '#fff' : `rgb(${pr},${pg},${pb})`,
-            alpha: 1, size: 1.5 + Math.random() * 4,
+            alpha: 1, size: 1.5 + Math.random() * 4.5,
           });
         }
+
+        // Extraction bonus
+        const extractPts = mineralPts(dep.mineral.id) * Math.max(1, comboRef.current - 1);
+        scoreRef.current += extractPts;
+        lastPtsRef.current = extractPts;
+        setScore(scoreRef.current);
+        setLastPts(extractPts);
+
+        // "EXTRACTED!" flash text
+        setExtractFlash({ text: 'EXTRACTED!', x: dep.cx * cw, y: dep.cy * ch, key: Date.now() });
+        setTimeout(() => setExtractFlash(null), 1100);
+
         const mineral = dep.mineral;
         setTimeout(() => {
           cancelAnimationFrame(rafRef.current);
           setSelectedMineral(mineral);
           setPhase('popup');
           phaseRef.current = 'popup';
-        }, 750);
+        }, 800);
       }
       break;
     }
@@ -608,7 +802,7 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
         <canvas ref={mapCanvasRef} className="mine-map-canvas" />
 
         {phase === 'map' && dotPositions.map(({ id, x, y }) => {
-          const site = MINE_SITES.find(s => s.id === id)!;
+          const site  = MINE_SITES.find(s => s.id === id)!;
           const color = MINERALS.find(m => m.id === site.minerals[0])?.color ?? '#d4af52';
           return (
             <button
@@ -636,15 +830,34 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
           <span>Australian Mine Sites</span>
           <span className="mine-map-sub">Click a site to explore</span>
         </div>
+
+        {/* Persistent score display on map */}
+        {score > 0 && (
+          <div className="mine-map-score">{score} pts</div>
+        )}
       </div>
 
       {/* CAVE phase — first-person canvas */}
       {(phase === 'cave' || phase === 'popup') && activeSite && (
         <div className="mine-cave-root">
+          {/* HUD — site info */}
           <div className="mine-cave-hud">
             <span className="mine-cave-site">{activeSite.name} — {activeSite.state}</span>
             <span className="mine-cave-sub">{activeSite.desc}</span>
           </div>
+
+          {/* Score + combo (top right) */}
+          {phase === 'cave' && (
+            <div className="mine-cave-score">
+              <span className="mine-score-val">{score}</span>
+              <span className="mine-score-label">pts</span>
+              {combo > 1 && (
+                <span className={`mine-combo${comboAnim ? ' mine-combo-pop' : ''}`}>
+                  ×{combo}
+                </span>
+              )}
+            </div>
+          )}
 
           {phase === 'cave' && (
             <>
@@ -654,6 +867,16 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
                 onPointerDown={onCaveTap}
                 style={{ touchAction: 'none' }}
               />
+              {/* "EXTRACTED!" float text */}
+              {extractFlash && (
+                <div
+                  key={extractFlash.key}
+                  className="mine-extract-flash"
+                  style={{ left: extractFlash.x, top: extractFlash.y }}
+                >
+                  {extractFlash.text}
+                </div>
+              )}
               <div
                 className={`mine-pickaxe${pickaxeSwing ? ' mine-pickaxe-swing' : ''}`}
                 aria-hidden="true"
@@ -668,30 +891,41 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
       )}
 
       {/* POPUP phase */}
-      {phase === 'popup' && selectedMineral && (
-        <div className="mine-popup-overlay" role="dialog" aria-label={`Mineral info: ${selectedMineral.name}`}>
-          <div className="mine-popup">
-            <div
-              className="mine-popup-gem"
-              style={{ background: `radial-gradient(ellipse at 35% 30%, ${selectedMineral.color}ee, ${selectedMineral.color}55)` }}
-            />
-            <div className="mine-popup-formula">{selectedMineral.formula}</div>
-            <h2 className="mine-popup-name">{selectedMineral.name}</h2>
-            <p className="mine-popup-blurb">{selectedMineral.blurb}</p>
-            <div className="mine-popup-grid">
-              <div><span>Hardness</span><b>{selectedMineral.mohs} Mohs</b></div>
-              <div><span>System</span><b>{selectedMineral.system}</b></div>
-              <div><span>Luster</span><b>{selectedMineral.luster}</b></div>
-              <div><span>Class</span><b>{selectedMineral.group}</b></div>
-            </div>
-            <p className="mine-popup-uses">{selectedMineral.uses}</p>
-            <div className="mine-popup-actions">
-              <button className="mine-action-btn mine-action-primary" onClick={goToCave}>Mine More</button>
-              <button className="mine-action-btn" onClick={goToMap}>New Site</button>
+      {phase === 'popup' && selectedMineral && (() => {
+        const rarity = getRarity(selectedMineral);
+        return (
+          <div className="mine-popup-overlay" role="dialog" aria-label={`Mineral info: ${selectedMineral.name}`}>
+            <div className="mine-popup">
+              <div
+                className="mine-popup-gem"
+                style={{ background: `radial-gradient(ellipse at 35% 30%, ${selectedMineral.color}ee, ${selectedMineral.color}55)` }}
+              />
+              <div className="mine-popup-formula">{selectedMineral.formula}</div>
+              <div className="mine-popup-rarity" style={{ color: rarity.color }}>{rarity.label}</div>
+              <h2 className="mine-popup-name">{selectedMineral.name}</h2>
+              {lastPts > 0 && (
+                <div className="mine-popup-pts">+{lastPts} extraction bonus</div>
+              )}
+              <p className="mine-popup-blurb">{selectedMineral.blurb}</p>
+              <div className="mine-popup-grid">
+                <div><span>Hardness</span><b>{selectedMineral.mohs} Mohs</b></div>
+                <div><span>System</span><b>{selectedMineral.system}</b></div>
+                <div><span>Luster</span><b>{selectedMineral.luster}</b></div>
+                <div><span>Class</span><b>{selectedMineral.group}</b></div>
+              </div>
+              <p className="mine-popup-uses">{selectedMineral.uses}</p>
+              <div className="mine-popup-score-total">
+                <span>Total Score</span>
+                <strong>{score} pts</strong>
+              </div>
+              <div className="mine-popup-actions">
+                <button className="mine-action-btn mine-action-primary" onClick={goToCave}>Mine More</button>
+                <button className="mine-action-btn" onClick={goToMap}>New Site</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

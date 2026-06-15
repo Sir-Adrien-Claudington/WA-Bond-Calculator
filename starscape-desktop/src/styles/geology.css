@@ -405,99 +405,20 @@
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
 }
 
-/* ---- CSS 3D photo stage ---- */
+/* ---- Three.js 3D crystal stage ---- */
 
-.mineral-photo-stage {
+.mineral-3d-wrap {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  perspective: 1100px;
-  cursor: grab;
+  position: relative;
   overflow: hidden;
+  cursor: grab;
+  min-height: 0;
 }
-.mineral-photo-stage:active { cursor: grabbing; }
-
-.mineral-photo-card {
-  width: min(360px, 82%);
-  aspect-ratio: 4/3;
-  transform-style: preserve-3d;
-  border-radius: 14px;
-  box-shadow: 0 24px 70px rgba(0,0,0,0.65);
-  position: relative;
-  will-change: transform;
-  user-select: none;
-}
-
-/* Front: specimen photo */
-.mineral-specimen-img {
-  position: absolute;
-  inset: 0;
-  width: 100%; height: 100%;
-  object-fit: cover;
-  border-radius: 14px;
+.mineral-3d-wrap:active { cursor: grabbing; }
+.mineral-3d-wrap canvas {
   display: block;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  pointer-events: none;
-}
-
-/* Front: colour swatch fallback */
-.mineral-swatch {
-  position: absolute;
-  inset: 0;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-.mineral-swatch-shine {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(ellipse at 30% 24%, rgba(255,255,255,0.42), transparent 64%);
-  pointer-events: none;
-}
-.mineral-swatch-name {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  font-size: 1.5rem;
-  color: rgba(255,255,255,0.88);
-  text-shadow: 0 2px 8px rgba(0,0,0,0.7);
-  position: relative;
-}
-
-/* Back face */
-.mineral-card-back {
-  position: absolute;
-  inset: 0;
-  border-radius: 14px;
-  transform: rotateY(180deg);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  background: linear-gradient(135deg, #1d1710 0%, #0e0b07 100%);
-  border: 1px solid rgba(217,142,60,0.25);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 1.5rem;
-}
-.mineral-card-back-formula {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.82rem;
-  letter-spacing: 0.12em;
-  color: var(--amber);
-}
-.mineral-card-back-name {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  font-size: 1.5rem;
-  color: var(--stone);
-  text-align: center;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 /* ---- Info panel (right side) ---- */
@@ -572,6 +493,15 @@
   line-height: 1.5;
   color: rgba(242,232,216,0.6);
 }
+.mip-photo {
+  width: 100%;
+  border-radius: 8px;
+  object-fit: cover;
+  aspect-ratio: 4 / 3;
+  display: block;
+  opacity: 0.82;
+  border: 1px solid rgba(242,232,216,0.1);
+}
 .mip-credit {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.6rem;
@@ -582,8 +512,7 @@
 
 @media (max-width: 719px) {
   .mineral-stage { flex-direction: column; }
-  .mineral-photo-stage { flex: 0 0 42%; }
-  .mineral-photo-card { width: min(300px, 70%); }
+  .mineral-3d-wrap { flex: 0 0 42%; min-height: 220px; }
   .mineral-info-panel {
     width: auto;
     flex: 1;
@@ -891,6 +820,122 @@
   color: var(--amber);
 }
 .mine-action-primary:hover { background: rgba(217, 142, 60, 0.35); color: var(--stone); }
+
+/* ---- Score & combo HUD ---- */
+
+.mine-cave-score {
+  position: absolute;
+  top: 0.55rem;
+  right: 1.25rem;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+.mine-score-val {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--amber);
+  text-shadow: 0 0 14px rgba(0,0,0,0.95);
+}
+.mine-score-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(242,232,216,0.38);
+}
+.mine-combo {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #c77dff;
+  text-shadow: 0 0 12px rgba(199,125,255,0.65);
+  margin-top: 2px;
+}
+.mine-combo-pop {
+  animation: comboPop 0.22s ease-out;
+}
+@keyframes comboPop {
+  0%   { transform: scale(1.5); }
+  100% { transform: scale(1); }
+}
+
+/* Persistent score shown on map after first mine */
+.mine-map-score {
+  position: absolute;
+  top: 0.75rem;
+  right: 1.25rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--amber);
+  text-shadow: 0 0 10px rgba(0,0,0,0.9);
+  pointer-events: none;
+}
+
+/* ---- Extraction flash text ---- */
+
+.mine-extract-flash {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 20;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1.45rem;
+  color: #ffd76a;
+  text-shadow: 0 0 22px rgba(255,215,80,0.85), 0 2px 4px rgba(0,0,0,0.8);
+  white-space: nowrap;
+  animation: extractFloat 1.05s ease-out forwards;
+}
+@keyframes extractFloat {
+  0%   { transform: translate(-50%, -50%) scale(0.75); opacity: 1; }
+  35%  { transform: translate(-50%, -72%) scale(1.12); opacity: 1; }
+  100% { transform: translate(-50%, -145%) scale(1); opacity: 0; }
+}
+
+/* ---- Popup rarity + extraction score ---- */
+
+.mine-popup-rarity {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin: 0.1rem 0 0.45rem;
+}
+.mine-popup-pts {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+  margin-bottom: 1rem;
+}
+.mine-popup-score-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(242,232,216,0.1);
+  padding-top: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.mine-popup-score-total span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(242,232,216,0.4);
+}
+.mine-popup-score-total strong {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--amber);
+}
 
 /* --- Responsive ----------------------------------------------------------- */
 
