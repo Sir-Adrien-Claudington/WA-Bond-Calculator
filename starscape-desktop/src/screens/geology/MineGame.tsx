@@ -867,10 +867,18 @@ function drawDeposits(
     }
 
     // Geological ore body rendering
+    const [cr, cg, cb] = hexToRgb(dep.mineral.color);
     drawOreBody(ctx, dep, cx, cy, rx, ry, frame);
 
+    // Breathing pulse glow — animates under cave lighting
+    const pulse = 0.08 + 0.06 * Math.sin(frame * 0.055 + dep.cx * 13.7);
+    ctx.save();
+    traceBlobPath(ctx, cx, cy, rx * 1.03, ry * 1.03, dep.blob);
+    ctx.fillStyle = `rgba(${cr},${cg},${cb},${pulse.toFixed(3)})`;
+    ctx.fill();
+    ctx.restore();
+
     // Vein tendrils into surrounding rock
-    const [cr, cg, cb] = hexToRgb(dep.mineral.color);
     const rng2 = seededRng(Math.floor(dep.cx * 9337 + dep.cy * 8191));
     ctx.save();
     ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.20)`;
@@ -1058,9 +1066,13 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
         .map(p => ({ ...p, x: p.x + p.vx, y: p.y + p.vy, vy: p.vy + 0.15, alpha: p.alpha * 0.94 }))
         .filter(p => p.alpha > 0.03);
 
-      drawCaveBackground(ctx, w, h);
-      drawDeposits(ctx, w, h, depositsRef.current, frameRef.current);
-      drawParticles(ctx, particlesRef.current);
+      try {
+        drawCaveBackground(ctx, w, h);
+        drawDeposits(ctx, w, h, depositsRef.current, frameRef.current);
+        drawParticles(ctx, particlesRef.current);
+      } catch (err) {
+        console.error('[MineGame] render error:', err);
+      }
       frameRef.current++;
       rafRef.current = requestAnimationFrame(tick);
     };

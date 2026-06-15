@@ -1121,6 +1121,11 @@
   100% { opacity: 0.38; }
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 .mine-beaker-reagent {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.72rem;
