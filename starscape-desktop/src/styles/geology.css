@@ -937,6 +937,243 @@
   color: var(--amber);
 }
 
+/* --- Chemical test lab (MineGame) ---------------------------------------- */
+
+.mine-test-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 7, 4, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  animation: fadeIn 0.3s ease;
+}
+
+.mine-test-panel {
+  width: min(92vw, 680px);
+  background: linear-gradient(160deg, #1e1810, #120e08);
+  border: 1px solid rgba(217, 142, 60, 0.25);
+  border-radius: 14px;
+  padding: 1.6rem 1.8rem 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.75);
+}
+
+.mine-test-header {
+  text-align: center;
+}
+
+.mine-test-lab-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--amber);
+  opacity: 0.75;
+}
+
+.mine-test-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--stone);
+  margin-top: 0.2rem;
+}
+
+.mine-test-subtitle {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+.mine-test-beakers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.85rem;
+}
+
+.mine-beaker-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 1rem 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, transform 0.12s;
+  text-align: center;
+  min-height: 160px;
+}
+
+.mine-beaker-card:hover {
+  background: rgba(217, 142, 60, 0.09);
+  border-color: rgba(217, 142, 60, 0.35);
+  transform: translateY(-2px);
+}
+
+.mine-beaker-card.mine-beaker-tested {
+  border-color: rgba(217, 142, 60, 0.4);
+  background: rgba(217, 142, 60, 0.07);
+}
+
+.mine-beaker-card.mine-beaker-active {
+  border-color: rgba(217, 142, 60, 0.7);
+  box-shadow: 0 0 14px rgba(217, 142, 60, 0.2);
+}
+
+.mine-beaker-icon-wrap {
+  position: relative;
+  width: 52px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mine-beaker-emoji {
+  font-size: 2.2rem;
+  line-height: 1;
+  position: relative;
+  z-index: 2;
+}
+
+/* Reaction animation overlay */
+.mine-beaker-anim {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mine-anim-bubble {
+  background: var(--rc, #3fae74);
+  opacity: 0.28;
+  animation: beakerBubble 1.2s ease-out forwards;
+}
+
+.mine-anim-dissolve {
+  background: var(--rc, #d4af52);
+  opacity: 0;
+  animation: beakerDissolve 1.4s ease-in-out forwards;
+}
+
+.mine-anim-colorChange {
+  background: var(--rc, #00b4d8);
+  opacity: 0;
+  animation: beakerColorChange 1.0s ease-in-out forwards;
+}
+
+.mine-anim-fume {
+  background: var(--rc, #d4b060);
+  opacity: 0.22;
+  animation: beakerFume 1.3s ease-out forwards;
+  border-radius: 50% 50% 6px 6px;
+  top: -30px;
+  left: 8px;
+  right: 8px;
+  height: 28px;
+}
+
+.mine-anim-precipitate {
+  background: var(--rc, #f0f0f8);
+  opacity: 0;
+  animation: beakerPrecipitate 1.5s ease-in-out forwards;
+  top: auto;
+  bottom: 4px;
+  height: 35%;
+}
+
+@keyframes beakerBubble {
+  0%   { opacity: 0; transform: scaleY(0.1); transform-origin: bottom; }
+  30%  { opacity: 0.30; transform: scaleY(1); }
+  70%  { opacity: 0.28; }
+  100% { opacity: 0.18; }
+}
+
+@keyframes beakerDissolve {
+  0%   { opacity: 0; }
+  20%  { opacity: 0.38; }
+  100% { opacity: 0.32; }
+}
+
+@keyframes beakerColorChange {
+  0%   { opacity: 0; filter: hue-rotate(0deg); }
+  25%  { opacity: 0.42; }
+  60%  { filter: hue-rotate(30deg); }
+  100% { opacity: 0.35; filter: hue-rotate(0deg); }
+}
+
+@keyframes beakerFume {
+  0%   { opacity: 0; transform: translateY(0) scaleX(0.5); }
+  30%  { opacity: 0.50; transform: translateY(-6px) scaleX(1); }
+  100% { opacity: 0; transform: translateY(-22px) scaleX(1.4); }
+}
+
+@keyframes beakerPrecipitate {
+  0%   { opacity: 0; transform: scaleY(0.1); transform-origin: bottom; }
+  35%  { opacity: 0.5; transform: scaleY(1); }
+  100% { opacity: 0.38; }
+}
+
+.mine-beaker-reagent {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--amber);
+  letter-spacing: 0.04em;
+}
+
+.mine-beaker-tap-hint {
+  font-size: 0.62rem;
+  color: rgba(242, 232, 216, 0.3);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.06em;
+}
+
+.mine-beaker-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  animation: fadeIn 0.35s ease;
+}
+
+.mine-beaker-eq {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  color: rgba(217, 142, 60, 0.8);
+  word-break: break-all;
+  line-height: 1.35;
+}
+
+.mine-beaker-desc {
+  font-size: 0.68rem;
+  color: rgba(242, 232, 216, 0.75);
+  line-height: 1.45;
+}
+
+.mine-test-continue {
+  align-self: center;
+  background: var(--amber);
+  color: #0e0b06;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 0.88rem;
+  border: none;
+  border-radius: 8px;
+  padding: 0.65rem 1.6rem;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.12s;
+  animation: fadeIn 0.3s ease;
+}
+
+.mine-test-continue:hover { opacity: 0.88; transform: translateY(-1px); }
+
 /* --- Responsive ----------------------------------------------------------- */
 
 @media (max-width: 760px) {

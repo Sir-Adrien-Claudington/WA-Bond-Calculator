@@ -175,6 +175,147 @@ function getRarity(m: Mineral): { label: string; color: string } {
   return { label: 'Common', color: '#8ecae6' };
 }
 
+// ---- Chemical test data --------------------------------------------------
+
+interface ChemTest {
+  reagent: string;
+  equation: string;
+  result: string;
+  reaction: 'bubble' | 'dissolve' | 'colorChange' | 'fume' | 'precipitate' | 'none';
+  solutionColor: string;
+}
+
+const MINERAL_TESTS: Record<string, ChemTest[]> = {
+  gold: [
+    { reagent: 'HCl', equation: 'Au + HCl → no reaction', result: 'Gold resists hydrochloric acid completely.', reaction: 'none', solutionColor: 'transparent' },
+    { reagent: 'HNO₃', equation: 'Au + HNO₃ → no reaction', result: 'Even concentrated nitric acid cannot dissolve gold.', reaction: 'none', solutionColor: 'transparent' },
+    { reagent: 'Aqua Regia', equation: 'Au + 3HCl + HNO₃ → HAuCl₄ + NO + 2H₂O', result: 'Only "royal water" (1:3 HNO₃:HCl) dissolves gold — forming a deep gold chloride solution.', reaction: 'dissolve', solutionColor: '#d4af52' },
+  ],
+  pyrite: [
+    { reagent: 'HCl', equation: 'FeS₂ + 2HCl → FeCl₂ + H₂S↑ + S', result: 'Rotten-egg smell! Hydrogen sulfide gas bubbles off — the classic Fool\'s Gold test.', reaction: 'fume', solutionColor: '#d4b060' },
+    { reagent: 'HNO₃', equation: 'FeS₂ + 8HNO₃ → FeSO₄ + 8NO₂ + 4H₂O', result: 'Yellow sulfur precipitates and brown NO₂ fumes rise as pyrite dissolves.', reaction: 'precipitate', solutionColor: '#c8b840' },
+    { reagent: 'H₂SO₄', equation: 'FeS₂ + 2H₂SO₄ → FeSO₄ + 2H₂S↑', result: 'Decomposes slowly with heat, releasing sulfurous compounds.', reaction: 'bubble', solutionColor: '#c8c060' },
+  ],
+  galena: [
+    { reagent: 'HNO₃', equation: 'PbS + 4HNO₃ → PbSO₄↓ + 4NO₂ + 4H₂O', result: 'White lead sulfate precipitates immediately — confirms lead content.', reaction: 'precipitate', solutionColor: '#e8e8f0' },
+    { reagent: 'HCl', equation: 'PbS + 2HCl → PbCl₂ + H₂S↑', result: 'Slow reaction with faint sulfide odour. White PbCl₂ may precipitate.', reaction: 'fume', solutionColor: '#d8d8e8' },
+    { reagent: 'H₂SO₄', equation: 'PbS + H₂SO₄ → PbSO₄↓ + H₂S↑', result: 'Insoluble white PbSO₄ crust forms immediately on the surface.', reaction: 'precipitate', solutionColor: '#f0f0f8' },
+  ],
+  copper: [
+    { reagent: 'HNO₃', equation: 'Cu + 4HNO₃ → Cu(NO₃)₂ + 2NO₂ + 2H₂O', result: 'Dramatic blue-green solution with brown NO₂ fumes — a vivid copper test!', reaction: 'colorChange', solutionColor: '#00b4d8' },
+    { reagent: 'HCl', equation: 'Cu + 2HCl → CuCl₂ + H₂↑', result: 'Slow green-blue solution forms as hydrogen bubbles off.', reaction: 'bubble', solutionColor: '#3fae74' },
+    { reagent: 'H₂SO₄ (hot)', equation: 'Cu + 2H₂SO₄ → CuSO₄ + SO₂ + 2H₂O', result: 'Hot concentrated acid dissolves copper to vivid blue copper sulfate.', reaction: 'dissolve', solutionColor: '#1f4fb5' },
+  ],
+  hematite: [
+    { reagent: 'HCl', equation: 'Fe₂O₃ + 6HCl → 2FeCl₃ + 3H₂O', result: 'Dissolves to a brown-yellow ferric chloride solution.', reaction: 'dissolve', solutionColor: '#b8610a' },
+    { reagent: 'H₂SO₄', equation: 'Fe₂O₃ + 3H₂SO₄ → Fe₂(SO₄)₃ + 3H₂O', result: 'Dissolves in hot concentrated acid to rusty-red iron sulfate.', reaction: 'dissolve', solutionColor: '#c04820' },
+    { reagent: 'Streak test', equation: 'Fe₂O₃ — blood-red streak', result: 'The definitive hematite test — always leaves a blood-red streak even though the mineral looks silver!', reaction: 'colorChange', solutionColor: '#8b1a1a' },
+  ],
+  magnetite: [
+    { reagent: 'HCl', equation: 'Fe₃O₄ + 8HCl → FeCl₂ + 2FeCl₃ + 4H₂O', result: 'Dissolves to a dark greenish-brown mixed iron chloride solution.', reaction: 'dissolve', solutionColor: '#4a7050' },
+    { reagent: 'Magnet', equation: 'Fe₃O₄ — ferrimagnetic mineral', result: 'Strongly attracted to any magnet — the most magnetic natural mineral on Earth!', reaction: 'none', solutionColor: '#2b2e33' },
+    { reagent: 'H₂SO₄', equation: 'Fe₃O₄ + 4H₂SO₄ → FeSO₄ + Fe₂(SO₄)₃ + 4H₂O', result: 'Dissolves slowly in concentrated acid to a mixed iron sulfate solution.', reaction: 'dissolve', solutionColor: '#3a5040' },
+  ],
+  diamond: [
+    { reagent: 'HCl', equation: 'C + HCl → no reaction', result: 'Diamond is utterly inert to all acids — pure carbon, perfectly bonded.', reaction: 'none', solutionColor: 'transparent' },
+    { reagent: 'HNO₃', equation: 'C + HNO₃ → no reaction', result: 'Even concentrated nitric acid cannot touch diamond at room temperature.', reaction: 'none', solutionColor: 'transparent' },
+    { reagent: 'O₂ (heat)', equation: 'C + O₂ → CO₂ (at ~850 °C)', result: 'Diamond burns in oxygen above 850 °C — converting entirely to CO₂ gas!', reaction: 'fume', solutionColor: '#ffe0b0' },
+  ],
+  quartz: [
+    { reagent: 'HCl', equation: 'SiO₂ + HCl → no reaction', result: 'Quartz resists hydrochloric acid completely.', reaction: 'none', solutionColor: 'transparent' },
+    { reagent: 'HF', equation: 'SiO₂ + 4HF → SiF₄ + 2H₂O', result: 'Only hydrofluoric acid etches and dissolves quartz — uniquely reactive!', reaction: 'dissolve', solutionColor: '#c8e8f8' },
+    { reagent: 'NaOH (hot)', equation: 'SiO₂ + 2NaOH → Na₂SiO₃ + H₂O', result: 'Hot concentrated alkali slowly dissolves quartz, forming water glass.', reaction: 'dissolve', solutionColor: '#e8f0e0' },
+  ],
+  amethyst: [
+    { reagent: 'HCl', equation: 'SiO₂ + HCl → no reaction', result: 'Amethyst (quartz) resists all common acids.', reaction: 'none', solutionColor: 'transparent' },
+    { reagent: 'HF', equation: 'SiO₂ + 4HF → SiF₄ + 2H₂O', result: 'HF etches the surface, permanently dulling the violet lustre.', reaction: 'dissolve', solutionColor: '#9b5fc0' },
+    { reagent: 'Heat (470 °C)', equation: 'Fe³⁺ → Fe²⁺ colour centres oxidise', result: 'Heat converts amethyst to golden citrine — most commercial citrine is heat-treated amethyst!', reaction: 'colorChange', solutionColor: '#e3a83a' },
+  ],
+  citrine: [
+    { reagent: 'HCl', equation: 'SiO₂ + HCl → no reaction', result: 'Citrine (quartz) resists all common acids.', reaction: 'none', solutionColor: 'transparent' },
+    { reagent: 'HF', equation: 'SiO₂ + 4HF → SiF₄ + 2H₂O', result: 'Surface etched and dulled — the golden lustre is permanently lost.', reaction: 'dissolve', solutionColor: '#e3a83a' },
+    { reagent: 'Cool slowly', equation: 'Fe²⁺ → Fe³⁺ reversal possible', result: 'Some citrine can be reverted to amethyst by slow cooling from 400 °C.', reaction: 'colorChange', solutionColor: '#9b5fc0' },
+  ],
+  emerald: [
+    { reagent: 'HCl', equation: 'Be₃Al₂Si₆O₁₈ + HCl → very slow', result: 'Very slow attack only in hot concentrated acid — extremely resistant.', reaction: 'none', solutionColor: 'transparent' },
+    { reagent: 'HF', equation: 'Be₃Al₂Si₆O₁₈ + HF → BeF₂ + AlF₃ + SiF₄↑', result: 'HF decomposes beryl, releasing toxic fluoride fumes — dangerous!', reaction: 'fume', solutionColor: '#1f9e63' },
+    { reagent: 'H₂SO₄ (hot)', equation: 'Be₃Al₂Si₆O₁₈ + H₂SO₄ → BeSO₄ + Al₂(SO₄)₃ + …', result: 'Hot concentrated H₂SO₄ slowly decomposes the beryl structure.', reaction: 'dissolve', solutionColor: '#1f9e6380' },
+  ],
+  ruby: [
+    { reagent: 'HF', equation: 'Al₂O₃ + 6HF → 2AlF₃ + 3H₂O', result: 'Only HF attacks corundum — slowly etching the surface.', reaction: 'dissolve', solutionColor: '#c41f39' },
+    { reagent: 'HCl', equation: 'Al₂O₃ + HCl → no reaction (cold)', result: 'Cold HCl has no effect. Ruby is highly acid resistant.', reaction: 'none', solutionColor: 'transparent' },
+    { reagent: 'H₂SO₄ (hot)', equation: 'Al₂O₃ + 3H₂SO₄ → Al₂(SO₄)₃ + 3H₂O', result: 'Very hot H₂SO₄ slowly dissolves alumina — the basis of industrial Al₂O₃ processing.', reaction: 'dissolve', solutionColor: '#c41f3960' },
+  ],
+  sapphire: [
+    { reagent: 'HF', equation: 'Al₂O₃ + 6HF → 2AlF₃ + 3H₂O', result: 'Only HF attacks corundum — slowly etching the surface.', reaction: 'dissolve', solutionColor: '#1f4fb5' },
+    { reagent: 'HCl', equation: 'Al₂O₃ + HCl → no reaction (cold)', result: 'Cold HCl has no effect. Sapphire is highly acid resistant.', reaction: 'none', solutionColor: 'transparent' },
+    { reagent: 'H₂SO₄ (hot)', equation: 'Al₂O₃ + 3H₂SO₄ → Al₂(SO₄)₃ + 3H₂O', result: 'Very hot concentrated H₂SO₄ eventually dissolves sapphire.', reaction: 'dissolve', solutionColor: '#1f4fb560' },
+  ],
+  fluorite: [
+    { reagent: 'H₂SO₄', equation: 'CaF₂ + H₂SO₄ → CaSO₄ + 2HF↑', result: 'Generates hydrogen fluoride gas — the original industrial production route for HF!', reaction: 'fume', solutionColor: '#5fc0a8' },
+    { reagent: 'HCl', equation: 'CaF₂ + 2HCl → CaCl₂ + 2HF↑', result: 'Slow attack with HF fumes rising above the beaker — handle with care.', reaction: 'fume', solutionColor: '#5fc0a860' },
+    { reagent: 'UV light', equation: 'F⁻ defect centres → photon emission', result: 'Fluorite glows vivid blue-green under UV — giving "fluorescence" to science!', reaction: 'colorChange', solutionColor: '#5fc0a8' },
+  ],
+  malachite: [
+    { reagent: 'HCl', equation: 'Cu₂CO₃(OH)₂ + 4HCl → 2CuCl₂ + 3H₂O + CO₂↑', result: 'Vigorous fizz! CO₂ bubbles off as the green mineral dissolves to blue-green CuCl₂.', reaction: 'bubble', solutionColor: '#3fae74' },
+    { reagent: 'HNO₃', equation: 'Cu₂CO₃(OH)₂ + 4HNO₃ → 2Cu(NO₃)₂ + 3H₂O + CO₂↑', result: 'Brisk CO₂ effervescence, dissolving to a blue copper nitrate solution.', reaction: 'bubble', solutionColor: '#00b4d8' },
+    { reagent: 'H₂SO₄', equation: 'Cu₂CO₃(OH)₂ + 2H₂SO₄ → 2CuSO₄ + 3H₂O + CO₂↑', result: 'Fizzes with CO₂ — vivid blue copper sulfate solution forms.', reaction: 'bubble', solutionColor: '#1f4fb5' },
+  ],
+  azurite: [
+    { reagent: 'HCl', equation: 'Cu₃(CO₃)₂(OH)₂ + 6HCl → 3CuCl₂ + 4H₂O + 2CO₂↑', result: 'Brisk CO₂ effervescence — deep blue mineral dissolves to green solution.', reaction: 'bubble', solutionColor: '#3fae74' },
+    { reagent: 'HNO₃', equation: 'Cu₃(CO₃)₂(OH)₂ + 6HNO₃ → 3Cu(NO₃)₂ + 4H₂O + 2CO₂↑', result: 'Vigorous CO₂ release — deep blue copper nitrate solution forms.', reaction: 'bubble', solutionColor: '#1b4ea8' },
+    { reagent: 'Moisture', equation: 'Cu₃(CO₃)₂(OH)₂ + H₂O → Cu₂CO₃(OH)₂ + CO₂ (slow)', result: 'Azurite slowly weathers to green malachite over geological time — visible as green surface patches!', reaction: 'colorChange', solutionColor: '#1f7a52' },
+  ],
+  calcite: [
+    { reagent: 'HCl', equation: 'CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂↑', result: 'Vigorous fizzing! CO₂ bubbles strongly — the quickest field test for limestone and marble.', reaction: 'bubble', solutionColor: '#f3ecd9' },
+    { reagent: 'H₂SO₄', equation: 'CaCO₃ + H₂SO₄ → CaSO₄ + H₂O + CO₂↑', result: 'Initial fizz then stops — insoluble CaSO₄ coats the surface and blocks further reaction.', reaction: 'precipitate', solutionColor: '#f0f0e8' },
+    { reagent: 'HNO₃', equation: 'CaCO₃ + 2HNO₃ → Ca(NO₃)₂ + H₂O + CO₂↑', result: 'Steady CO₂ effervescence — calcite fully dissolves in nitric acid.', reaction: 'bubble', solutionColor: '#f3ecd960' },
+  ],
+  rhodochrosite: [
+    { reagent: 'HCl', equation: 'MnCO₃ + 2HCl → MnCl₂ + H₂O + CO₂↑', result: 'Fizzes with CO₂ — rose-pink mineral dissolves to a pale solution.', reaction: 'bubble', solutionColor: '#d24a6a' },
+    { reagent: 'HNO₃', equation: 'MnCO₃ + 2HNO₃ → Mn(NO₃)₂ + H₂O + CO₂↑', result: 'Effervescent dissolution to a pale manganese nitrate solution.', reaction: 'bubble', solutionColor: '#d24a6a80' },
+    { reagent: 'H₂O₂', equation: 'MnCO₃ + H₂O₂ → MnO₂ + H₂O + CO₂↑', result: 'Oxidises to dark manganese dioxide — the basis of Mn ore extraction!', reaction: 'colorChange', solutionColor: '#2b2b2b' },
+  ],
+  halite: [
+    { reagent: 'Water', equation: 'NaCl → Na⁺ + Cl⁻ (aq)', result: 'Dissolves completely in water — it is literally table salt!', reaction: 'dissolve', solutionColor: '#f0f0ff' },
+    { reagent: 'AgNO₃', equation: 'NaCl + AgNO₃ → AgCl↓ + NaNO₃', result: 'Immediate white precipitate of silver chloride — the classic chloride confirmation test!', reaction: 'precipitate', solutionColor: '#f0f0f8' },
+    { reagent: 'Flame test', equation: 'Na⁺ → 589 nm photon emission', result: 'Burns vivid yellow-orange — sodium\'s bright spectral doublet at 589 nm.', reaction: 'colorChange', solutionColor: '#ff9933' },
+  ],
+  topaz: [
+    { reagent: 'HCl', equation: 'Al₂SiO₄F₂ + HCl → no reaction', result: 'Topaz resists hydrochloric acid at room temperature.', reaction: 'none', solutionColor: 'transparent' },
+    { reagent: 'HF', equation: 'Al₂SiO₄F₂ + HF → AlF₃ + SiF₄ + H₂O', result: 'HF attacks the fluorosilicate structure — etching and dulling the surface.', reaction: 'dissolve', solutionColor: '#a9d6e8' },
+    { reagent: 'H₂SO₄ (hot)', equation: 'Al₂SiO₄F₂ + H₂SO₄ → Al₂(SO₄)₃ + SiO₂ + HF↑', result: 'Hot concentrated H₂SO₄ decomposes topaz, releasing HF fumes.', reaction: 'fume', solutionColor: '#a9d6e860' },
+  ],
+  tourmaline: [
+    { reagent: 'HCl', equation: 'borosilicate + HCl → no reaction (cold)', result: 'Highly resistant — only very strong acids at high temperature attack tourmaline.', reaction: 'none', solutionColor: 'transparent' },
+    { reagent: 'HF', equation: 'borosilicate + HF → fluoride salts + BF₃↑', result: 'HF attacks the complex borosilicate structure, releasing boron trifluoride gas.', reaction: 'fume', solutionColor: '#2f9158' },
+    { reagent: 'H₂SO₄ (hot)', equation: 'borosilicate + H₂SO₄ → metal sulfates + SiO₂', result: 'Hot concentrated H₂SO₄ slowly decomposes the mineral matrix.', reaction: 'dissolve', solutionColor: '#2f915860' },
+  ],
+  peridot: [
+    { reagent: 'HCl', equation: '(Mg,Fe)₂SiO₄ + 4HCl → 2MgCl₂ + SiO₂ + 2H₂O', result: 'Olivine decomposes — gelatinous silica forms as a distinctive slimy residue!', reaction: 'dissolve', solutionColor: '#9ac43a' },
+    { reagent: 'H₂SO₄', equation: '(Mg,Fe)₂SiO₄ + 2H₂SO₄ → 2MgSO₄ + SiO₂ + 2H₂O', result: 'Decomposes with silica separation in hot acid.', reaction: 'dissolve', solutionColor: '#9ac43a80' },
+    { reagent: 'HNO₃', equation: '(Mg,Fe)₂SiO₄ + 4HNO₃ → 2Mg(NO₃)₂ + SiO₂ + 2H₂O', result: 'Dissolves, leaving a gelatinous SiO₂ residue behind.', reaction: 'precipitate', solutionColor: '#9ac43a60' },
+  ],
+  sulfur: [
+    { reagent: 'CS₂', equation: 'S(s) → S(CS₂ solution)', result: 'Carbon disulfide dissolves sulfur completely — a bright canary-yellow solution!', reaction: 'dissolve', solutionColor: '#f2dd2e' },
+    { reagent: 'HNO₃ (hot)', equation: 'S + 2HNO₃ → H₂SO₄ + 2NO↑', result: 'Hot concentrated nitric acid oxidises sulfur directly to sulfuric acid.', reaction: 'fume', solutionColor: '#e8e060' },
+    { reagent: 'HCl', equation: 'S + HCl → no reaction', result: 'Sulfur is inert to hydrochloric acid — no dissolving, no reaction.', reaction: 'none', solutionColor: 'transparent' },
+  ],
+  gypsum: [
+    { reagent: 'HCl', equation: 'CaSO₄·2H₂O + 2HCl → CaCl₂ + H₂SO₄ + 2H₂O', result: 'Slowly dissolves — barely fizzes, as sulfate doesn\'t effervesce like carbonate.', reaction: 'dissolve', solutionColor: '#eef0ea' },
+    { reagent: 'BaCl₂', equation: 'CaSO₄ + BaCl₂ → BaSO₄↓ + CaCl₂', result: 'White barium sulfate precipitates instantly — the classic sulfate confirmation test!', reaction: 'precipitate', solutionColor: '#f0f0f8' },
+    { reagent: 'Flame test', equation: 'Ca²⁺ → 620 nm emission', result: 'Calcium burns brick-red in a flame — a quick and beautiful calcium test!', reaction: 'colorChange', solutionColor: '#c84820' },
+  ],
+};
+
+function getTests(mineralId: string): ChemTest[] {
+  return MINERAL_TESTS[mineralId] ?? [
+    { reagent: 'HCl', equation: 'mineral + HCl → test', result: 'Reaction depends on mineral composition.', reaction: 'none', solutionColor: 'transparent' },
+    { reagent: 'HNO₃', equation: 'mineral + HNO₃ → test', result: 'Nitric acid test helps identify metal content.', reaction: 'none', solutionColor: 'transparent' },
+    { reagent: 'H₂SO₄', equation: 'mineral + H₂SO₄ → test', result: 'Sulfuric acid provides reactivity information.', reaction: 'none', solutionColor: 'transparent' },
+  ];
+}
+
 // ---- Canvas helpers -------------------------------------------------------
 
 function traceBlobPath(
@@ -196,6 +337,434 @@ function traceBlobPath(
     );
   }
   ctx.closePath();
+}
+
+// ---- Geological ore renderers --------------------------------------------
+
+function oreStyle(m: Mineral): string {
+  if (m.habit === 'nativeMass') return 'vein';
+  if ((m.habit === 'cube' || m.habit === 'dodecahedron') && m.metalness > 0.5) return 'cubicMetal';
+  if (m.habit === 'octahedron') return 'octahedral';
+  if (m.habit === 'hexPrism' || m.habit === 'prismTrig' || m.habit === 'prismSquare') return 'prismatic';
+  if (m.habit === 'cluster') return 'botryoidal';
+  if (m.habit === 'bipyramid') return 'bipyramid';
+  return 'generic';
+}
+
+function drawVeinOre(
+  ctx: CanvasRenderingContext2D,
+  dep: CaveDeposit, cx: number, cy: number, rx: number, ry: number
+) {
+  const [cr, cg, cb] = hexToRgb(dep.mineral.color);
+  ctx.save();
+  traceBlobPath(ctx, cx + 2, cy + 4, rx * 1.14, ry * 1.14, dep.blob);
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 14;
+  ctx.fill(); ctx.shadowBlur = 0; ctx.restore();
+
+  // Dark granite/schist matrix
+  ctx.save();
+  traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+  const mGrd = ctx.createRadialGradient(cx - rx*0.2, cy - ry*0.2, 0, cx, cy, Math.max(rx, ry));
+  mGrd.addColorStop(0, '#2e2820'); mGrd.addColorStop(0.6, '#1e1810'); mGrd.addColorStop(1, '#110e08');
+  ctx.fillStyle = mGrd; ctx.fill(); ctx.restore();
+
+  // Quartz vein band
+  const rng = seededRng(Math.floor(dep.cx * 3317 + dep.cy * 4441));
+  ctx.save();
+  traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+  ctx.clip();
+  const vky = cy + (rng() - 0.5) * ry * 0.3;
+  const veinW = ry * (0.32 + rng() * 0.18);
+  ctx.lineWidth = veinW;
+  ctx.strokeStyle = dep.mineral.id === 'gold' ? '#e5dbbf' : '#c2b99a';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx - rx * 0.8, cy - ry * (0.1 + rng() * 0.1));
+  ctx.quadraticCurveTo(cx + (rng() - 0.5) * rx * 0.4, vky, cx + rx * 0.8, cy + ry * (0.05 + rng() * 0.1));
+  ctx.stroke();
+  ctx.restore();
+
+  // Metal blobs/stringers within the vein
+  ctx.save();
+  traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+  ctx.clip();
+  const mRng = seededRng(Math.floor(dep.cx * 7127 + dep.cy * 5381));
+  const nBlobs = 4 + (mRng() * 6 | 0);
+  for (let i = 0; i < nBlobs; i++) {
+    const bx = cx + (mRng() - 0.5) * rx * 1.0;
+    const by = cy + (mRng() - 0.5) * ry * 0.45 + (vky - cy) * 0.4;
+    const br = (0.04 + mRng() * 0.10) * rx;
+    const bg = ctx.createRadialGradient(bx - br*0.3, by - br*0.3, 0, bx, by, br * 1.5);
+    bg.addColorStop(0, `rgb(${Math.min(255, cr+110)},${Math.min(255, cg+85)},${Math.min(255, cb+30)})`);
+    bg.addColorStop(0.5, dep.mineral.color);
+    bg.addColorStop(1, `rgb(${Math.max(0,cr-60)},${Math.max(0,cg-45)},${Math.max(0,cb-30)})`);
+    ctx.beginPath();
+    ctx.ellipse(bx, by, br * (0.7 + mRng()*0.7), br * (0.5 + mRng()*0.5), mRng() * Math.PI, 0, Math.PI*2);
+    ctx.fillStyle = bg; ctx.fill();
+  }
+  // Bright specular flecks
+  const fRng = seededRng(Math.floor(dep.cx * 9001 + dep.cy * 6173));
+  for (let i = 0; i < 8; i++) {
+    const fx = cx + (fRng() - 0.5) * rx * 0.85;
+    const fy = cy + (fRng() - 0.5) * ry * 0.4 + (vky - cy) * 0.35;
+    ctx.beginPath();
+    ctx.arc(fx, fy, 1.2 + fRng() * 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,220,${0.5 + fRng() * 0.45})`; ctx.fill();
+  }
+  ctx.restore();
+
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+}
+
+function drawCubicMetalOre(
+  ctx: CanvasRenderingContext2D,
+  dep: CaveDeposit, cx: number, cy: number, rx: number, ry: number
+) {
+  const [cr, cg, cb] = hexToRgb(dep.mineral.color);
+  const isPyrite = dep.mineral.id === 'pyrite';
+
+  ctx.save();
+  traceBlobPath(ctx, cx + 2, cy + 4, rx * 1.14, ry * 1.14, dep.blob);
+  ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.shadowBlur = 12; ctx.fill(); ctx.shadowBlur = 0; ctx.restore();
+
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+  ctx.fillStyle = '#1a1510'; ctx.fill(); ctx.restore();
+
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob); ctx.clip();
+  const rng = seededRng(Math.floor(dep.cx * 3137 + dep.cy * 5623));
+  const cubes = [
+    { ox: -rx * 0.22, oy: ry * 0.04, sz: ry * 0.40 },
+    { ox:  rx * 0.26, oy: -ry * 0.06, sz: ry * 0.30 },
+    { ox:  rx * 0.02, oy:  ry * 0.28, sz: ry * 0.22 },
+  ];
+  cubes.forEach(({ ox, oy, sz }) => {
+    const bx = cx + ox + (rng() - 0.5) * rx * 0.10;
+    const by = cy + oy + (rng() - 0.5) * ry * 0.10;
+    const hiC = `rgb(${Math.min(255,cr+100)},${Math.min(255,cg+80)},${Math.min(255,cb+45)})`;
+    const mdC = dep.mineral.color;
+    const loC = `rgb(${Math.max(0,cr-75)},${Math.max(0,cg-60)},${Math.max(0,cb-40)})`;
+    // Top face
+    ctx.beginPath(); ctx.moveTo(bx, by - sz); ctx.lineTo(bx + sz*0.87, by - sz*0.5);
+    ctx.lineTo(bx, by); ctx.lineTo(bx - sz*0.87, by - sz*0.5); ctx.closePath();
+    ctx.fillStyle = hiC; ctx.fill();
+    // Right face
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + sz*0.87, by - sz*0.5);
+    ctx.lineTo(bx + sz*0.87, by + sz*0.5); ctx.lineTo(bx, by + sz); ctx.closePath();
+    ctx.fillStyle = mdC; ctx.fill();
+    // Left face
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - sz*0.87, by - sz*0.5);
+    ctx.lineTo(bx - sz*0.87, by + sz*0.5); ctx.lineTo(bx, by + sz); ctx.closePath();
+    ctx.fillStyle = loC; ctx.fill();
+    // Edges
+    ctx.strokeStyle = `rgba(${Math.min(255,cr+130)},${Math.min(255,cg+110)},${Math.min(255,cb+70)},0.55)`;
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(bx, by - sz); ctx.lineTo(bx + sz*0.87, by - sz*0.5);
+    ctx.lineTo(bx, by); ctx.lineTo(bx - sz*0.87, by - sz*0.5); ctx.closePath(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by + sz); ctx.stroke();
+    // Pyrite striations
+    if (isPyrite) {
+      ctx.save(); ctx.globalAlpha = 0.2; ctx.strokeStyle = '#fff8cc'; ctx.lineWidth = 0.4;
+      for (let s = -2; s <= 2; s++) {
+        ctx.beginPath(); ctx.moveTo(bx + sz*0.05, by + s*sz*0.22);
+        ctx.lineTo(bx + sz*0.82, by + s*sz*0.22 - sz*0.26); ctx.stroke();
+      }
+      ctx.restore();
+    }
+  });
+  ctx.restore();
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+  ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+}
+
+function drawOctahedralOre(
+  ctx: CanvasRenderingContext2D,
+  dep: CaveDeposit, cx: number, cy: number, rx: number, ry: number
+) {
+  const isDiamond = dep.mineral.id === 'diamond';
+  const [cr, cg, cb] = hexToRgb(dep.mineral.color);
+
+  ctx.save();
+  traceBlobPath(ctx, cx + 2, cy + 4, rx * 1.14, ry * 1.14, dep.blob);
+  ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 14; ctx.fill(); ctx.shadowBlur = 0; ctx.restore();
+
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+  const matGrd = ctx.createRadialGradient(cx, cy - ry*0.3, 0, cx, cy, Math.max(rx, ry));
+  if (isDiamond) { matGrd.addColorStop(0, '#2e2a38'); matGrd.addColorStop(1, '#161220'); }
+  else { matGrd.addColorStop(0, '#242424'); matGrd.addColorStop(1, '#111111'); }
+  ctx.fillStyle = matGrd; ctx.fill(); ctx.restore();
+
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob); ctx.clip();
+  const csz = Math.min(rx, ry) * 0.72;
+  const upFill = isDiamond
+    ? `rgba(${Math.min(255,cr+80)},${Math.min(255,cg+80)},${Math.min(255,cb+80)},0.88)`
+    : `rgb(${Math.min(255,cr+65)},${Math.min(255,cg+65)},${Math.min(255,cb+65)})`;
+  const dnFill = isDiamond
+    ? `rgba(${Math.max(0,cr-20)},${Math.max(0,cg-20)},${Math.max(0,cb-15)},0.75)`
+    : `rgb(${Math.max(0,cr-55)},${Math.max(0,cg-55)},${Math.max(0,cb-55)})`;
+  // Upper half
+  ctx.beginPath(); ctx.moveTo(cx, cy - csz); ctx.lineTo(cx + csz*0.78, cy);
+  ctx.lineTo(cx, cy); ctx.lineTo(cx - csz*0.78, cy); ctx.closePath();
+  ctx.fillStyle = upFill; ctx.fill();
+  // Lower half
+  ctx.beginPath(); ctx.moveTo(cx, cy + csz); ctx.lineTo(cx + csz*0.78, cy);
+  ctx.lineTo(cx, cy); ctx.lineTo(cx - csz*0.78, cy); ctx.closePath();
+  ctx.fillStyle = dnFill; ctx.fill();
+  // Middle ridge
+  ctx.beginPath(); ctx.moveTo(cx - csz*0.78, cy); ctx.lineTo(cx + csz*0.78, cy);
+  ctx.strokeStyle = isDiamond ? 'rgba(255,255,255,0.75)' : `rgba(${Math.min(255,cr+110)},${Math.min(255,cg+110)},${Math.min(255,cb+110)},0.5)`;
+  ctx.lineWidth = 1.3; ctx.stroke();
+  // Outer edges
+  ctx.strokeStyle = isDiamond ? 'rgba(200,220,255,0.45)' : `rgba(${Math.min(255,cr+80)},${Math.min(255,cg+80)},${Math.min(255,cb+80)},0.35)`;
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - csz); ctx.lineTo(cx + csz*0.78, cy); ctx.lineTo(cx, cy + csz);
+  ctx.moveTo(cx, cy - csz); ctx.lineTo(cx - csz*0.78, cy); ctx.lineTo(cx, cy + csz);
+  ctx.stroke();
+  // Diamond: spectral fire
+  if (isDiamond) {
+    const fireGrd = ctx.createLinearGradient(cx - csz*0.5, cy - csz*0.5, cx + csz*0.5, cy + csz*0.5);
+    fireGrd.addColorStop(0, 'rgba(255,50,50,0.2)'); fireGrd.addColorStop(0.25, 'rgba(255,200,50,0.16)');
+    fireGrd.addColorStop(0.5, 'rgba(50,200,255,0.16)'); fireGrd.addColorStop(0.75, 'rgba(180,50,255,0.16)');
+    fireGrd.addColorStop(1, 'rgba(255,50,50,0.14)');
+    ctx.fillStyle = fireGrd;
+    ctx.beginPath(); ctx.moveTo(cx, cy - csz); ctx.lineTo(cx + csz*0.78, cy);
+    ctx.lineTo(cx, cy + csz); ctx.lineTo(cx - csz*0.78, cy); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+}
+
+function drawPrismaticCluster(
+  ctx: CanvasRenderingContext2D,
+  dep: CaveDeposit, cx: number, cy: number, rx: number, ry: number
+) {
+  const [cr, cg, cb] = hexToRgb(dep.mineral.color);
+
+  ctx.save();
+  traceBlobPath(ctx, cx + 2, cy + 4, rx * 1.14, ry * 1.14, dep.blob);
+  ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.shadowBlur = 12; ctx.fill(); ctx.shadowBlur = 0; ctx.restore();
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob); ctx.fillStyle = '#1c1510'; ctx.fill(); ctx.restore();
+
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob); ctx.clip();
+  const rng = seededRng(Math.floor(dep.cx * 4937 + dep.cy * 3821));
+  const nPrisms = 3 + (rng() * 4 | 0);
+
+  // Build prism list sorted large→small (back to front)
+  const prisms: {bx:number;by:number;w:number;h:number;tilt:number}[] = [];
+  for (let i = 0; i < nPrisms; i++) {
+    const t = (i + 0.5) / nPrisms;
+    prisms.push({
+      bx: cx + (t - 0.5) * rx * 1.55 + (rng() - 0.5) * rx * 0.2,
+      by: cy + ry * (0.52 + rng() * 0.28),
+      w:  rx * (0.12 + rng() * 0.10),
+      h:  ry * (0.58 + rng() * 0.65),
+      tilt: (rng() - 0.5) * 0.22,
+    });
+  }
+  prisms.sort((a, b) => b.h - a.h);
+
+  prisms.forEach(({ bx, by, w, h, tilt }) => {
+    const tx = bx + Math.sin(tilt) * h;
+    const ty = by - h;
+    // Prism body gradient (left dark, centre bright, right medium)
+    const lFill = ctx.createLinearGradient(bx - w, ty, bx + w, ty);
+    lFill.addColorStop(0, `rgb(${Math.max(0,cr-65)},${Math.max(0,cg-55)},${Math.max(0,cb-40)})`);
+    lFill.addColorStop(0.38, dep.mineral.color);
+    lFill.addColorStop(0.62, `rgb(${Math.min(255,cr+90)},${Math.min(255,cg+80)},${Math.min(255,cb+65)})`);
+    lFill.addColorStop(1, `rgb(${Math.max(0,cr-38)},${Math.max(0,cg-28)},${Math.max(0,cb-18)})`);
+    ctx.beginPath(); ctx.moveTo(bx - w, by); ctx.lineTo(bx + w, by);
+    ctx.lineTo(tx + w*0.7, ty); ctx.lineTo(tx - w*0.7, ty); ctx.closePath();
+    ctx.fillStyle = lFill; ctx.fill();
+    // Pyramid tip
+    if (dep.mineral.habit !== 'hexPrism' || dep.mineral.termination !== 'flat') {
+      const tipH = h * 0.26;
+      ctx.beginPath(); ctx.moveTo(tx - w*0.7, ty); ctx.lineTo(tx + w*0.7, ty);
+      ctx.lineTo(tx, ty - tipH); ctx.closePath();
+      const tipGrd = ctx.createLinearGradient(tx - w*0.7, ty, tx, ty - tipH);
+      tipGrd.addColorStop(0, `rgb(${Math.min(255,cr+65)},${Math.min(255,cg+65)},${Math.min(255,cb+55)})`);
+      tipGrd.addColorStop(1, `rgb(${Math.min(255,cr+115)},${Math.min(255,cg+105)},${Math.min(255,cb+95)})`);
+      ctx.fillStyle = tipGrd; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 0.6; ctx.stroke();
+    }
+    // Internal refraction streak
+    const refX = tx + w * 0.22;
+    const refGrd = ctx.createLinearGradient(refX, ty, refX + w*0.1, by);
+    refGrd.addColorStop(0, 'rgba(255,255,255,0.38)');
+    refGrd.addColorStop(0.55, 'rgba(255,255,255,0.08)'); refGrd.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = refGrd;
+    ctx.beginPath(); ctx.moveTo(refX - w*0.05, ty); ctx.lineTo(refX + w*0.16, ty);
+    ctx.lineTo(refX + w*0.13, by); ctx.lineTo(refX - w*0.08, by); ctx.closePath(); ctx.fill();
+    // Edge lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(bx - w, by); ctx.lineTo(tx - w*0.7, ty);
+    ctx.moveTo(bx + w, by); ctx.lineTo(tx + w*0.7, ty); ctx.stroke();
+    // Striations
+    if (dep.mineral.surface === 'striated') {
+      ctx.save(); ctx.globalAlpha = 0.14; ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 0.4;
+      const nStr = Math.floor(h / (ry * 0.09));
+      for (let s = 1; s < nStr; s++) {
+        const sy = by - (s / nStr) * h;
+        const prog = s / nStr;
+        const wAt = w + w*0.3*(1 - prog);
+        ctx.beginPath(); ctx.moveTo(bx - wAt, sy); ctx.lineTo(bx + wAt, sy); ctx.stroke();
+      }
+      ctx.restore();
+    }
+  });
+  ctx.restore();
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+}
+
+function drawBotryoidalOre(
+  ctx: CanvasRenderingContext2D,
+  dep: CaveDeposit, cx: number, cy: number, rx: number, ry: number
+) {
+  const [cr, cg, cb] = hexToRgb(dep.mineral.color);
+  const isBanded = dep.mineral.surface === 'banded';
+  const bandColors = dep.mineral.bandColors ?? [dep.mineral.color, dep.mineral.color, dep.mineral.color];
+
+  ctx.save();
+  traceBlobPath(ctx, cx + 2, cy + 4, rx * 1.14, ry * 1.14, dep.blob);
+  ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.shadowBlur = 12; ctx.fill(); ctx.shadowBlur = 0; ctx.restore();
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob); ctx.fillStyle = '#18130e'; ctx.fill(); ctx.restore();
+
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob); ctx.clip();
+  const rng = seededRng(Math.floor(dep.cx * 5591 + dep.cy * 4703));
+  const nBumps = 6 + (rng() * 5 | 0);
+  for (let i = 0; i < nBumps; i++) {
+    const bx = cx + (rng() - 0.5) * rx * 1.25;
+    const by = cy + (rng() - 0.5) * ry * 1.1;
+    const br = (0.17 + rng() * 0.26) * Math.min(rx, ry);
+    const bGrd = ctx.createRadialGradient(bx - br*0.35, by - br*0.35, 0, bx, by, br * 1.2);
+    bGrd.addColorStop(0, `rgb(${Math.min(255,cr+95)},${Math.min(255,cg+75)},${Math.min(255,cb+60)})`);
+    bGrd.addColorStop(0.5, dep.mineral.color);
+    bGrd.addColorStop(1, `rgb(${Math.max(0,cr-75)},${Math.max(0,cg-60)},${Math.max(0,cb-48)})`);
+    ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2);
+    ctx.fillStyle = bGrd; ctx.fill();
+    if (isBanded) {
+      const nBands = 3 + (rng() * 3 | 0);
+      for (let b = nBands; b > 0; b--) {
+        ctx.beginPath();
+        ctx.arc(bx, by, br * (b / nBands) * 0.88, 0, Math.PI * 2);
+        ctx.strokeStyle = bandColors[b % bandColors.length];
+        ctx.lineWidth = br * 0.11; ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+}
+
+function drawBipyramidOre(
+  ctx: CanvasRenderingContext2D,
+  dep: CaveDeposit, cx: number, cy: number, rx: number, ry: number
+) {
+  const [cr, cg, cb] = hexToRgb(dep.mineral.color);
+  const isGem = dep.mineral.transmission > 0.3;
+
+  ctx.save();
+  traceBlobPath(ctx, cx + 2, cy + 4, rx * 1.14, ry * 1.14, dep.blob);
+  ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.shadowBlur = 12; ctx.fill(); ctx.shadowBlur = 0; ctx.restore();
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob); ctx.fillStyle = '#1a1310'; ctx.fill(); ctx.restore();
+
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob); ctx.clip();
+  const w = rx * 0.56, h = ry * 0.76;
+  // Upper half
+  const upGrd = ctx.createLinearGradient(cx - w, cy, cx + w, cy - h*0.7);
+  upGrd.addColorStop(0, `rgb(${Math.max(0,cr-55)},${Math.max(0,cg-45)},${Math.max(0,cb-32)})`);
+  upGrd.addColorStop(0.4, dep.mineral.color);
+  upGrd.addColorStop(1, `rgb(${Math.min(255,cr+95)},${Math.min(255,cg+80)},${Math.min(255,cb+65)})`);
+  ctx.beginPath(); ctx.moveTo(cx, cy - h); ctx.lineTo(cx + w, cy); ctx.lineTo(cx, cy); ctx.lineTo(cx - w, cy); ctx.closePath();
+  ctx.fillStyle = upGrd; ctx.fill();
+  // Lower half
+  const dnGrd = ctx.createLinearGradient(cx, cy, cx, cy + h*0.7);
+  dnGrd.addColorStop(0, dep.mineral.color);
+  dnGrd.addColorStop(1, `rgb(${Math.max(0,cr-85)},${Math.max(0,cg-68)},${Math.max(0,cb-52)})`);
+  ctx.beginPath(); ctx.moveTo(cx + w, cy); ctx.lineTo(cx, cy + h); ctx.lineTo(cx - w, cy); ctx.closePath();
+  ctx.fillStyle = dnGrd; ctx.fill();
+  // Middle highlight
+  ctx.beginPath(); ctx.moveTo(cx - w, cy); ctx.lineTo(cx + w, cy);
+  ctx.strokeStyle = isGem ? 'rgba(255,255,255,0.58)' : `rgba(${Math.min(255,cr+80)},${Math.min(255,cg+80)},${Math.min(255,cb+80)},0.42)`;
+  ctx.lineWidth = 1.5; ctx.stroke();
+  if (isGem) {
+    const glowGrd = ctx.createRadialGradient(cx - w*0.2, cy - h*0.3, 0, cx, cy, Math.max(w,h)*0.9);
+    glowGrd.addColorStop(0, `rgba(${Math.min(255,cr+125)},${Math.min(255,cg+125)},${Math.min(255,cb+125)},0.32)`);
+    glowGrd.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = glowGrd;
+    ctx.beginPath(); ctx.moveTo(cx, cy-h); ctx.lineTo(cx+w, cy); ctx.lineTo(cx, cy+h); ctx.lineTo(cx-w, cy); ctx.closePath(); ctx.fill();
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy-h); ctx.lineTo(cx+w, cy); ctx.moveTo(cx, cy-h); ctx.lineTo(cx-w, cy);
+  ctx.moveTo(cx, cy+h); ctx.lineTo(cx+w, cy); ctx.moveTo(cx, cy+h); ctx.lineTo(cx-w, cy);
+  ctx.stroke();
+  ctx.restore();
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+}
+
+function drawGenericOre(
+  ctx: CanvasRenderingContext2D,
+  dep: CaveDeposit, cx: number, cy: number, rx: number, ry: number, frame: number
+) {
+  const [cr, cg, cb] = hexToRgb(dep.mineral.color);
+  const hiCol = `rgb(${Math.min(255,cr+85)},${Math.min(255,cg+65)},${Math.min(255,cb+45)})`;
+  const loCol = `rgb(${Math.max(0,cr-65)},${Math.max(0,cg-45)},${Math.max(0,cb-35)})`;
+
+  ctx.save();
+  traceBlobPath(ctx, cx + 2, cy + 4, rx * 1.14, ry * 1.14, dep.blob);
+  ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.shadowColor = 'rgba(0,0,0,0.95)'; ctx.shadowBlur = 12;
+  ctx.fill(); ctx.shadowBlur = 0; ctx.restore();
+
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
+  const grd = ctx.createRadialGradient(cx - rx*0.28, cy - ry*0.32, 0, cx, cy, Math.max(rx, ry));
+  grd.addColorStop(0, hiCol); grd.addColorStop(0.48, dep.mineral.color); grd.addColorStop(1, loCol);
+  ctx.fillStyle = grd; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+
+  if (dep.mineral.metalness > 0.5) {
+    ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob); ctx.clip();
+    const sheen = ctx.createLinearGradient(cx - rx, cy - ry*0.18, cx + rx, cy + ry*0.18);
+    sheen.addColorStop(0, 'rgba(255,255,255,0)'); sheen.addColorStop(0.5, 'rgba(255,255,255,0.32)');
+    sheen.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = sheen; ctx.fillRect(cx - rx, cy - ry, rx * 2, ry * 2); ctx.restore();
+  }
+  if (dep.mineral.luster === 'Adamantine') {
+    const rc = ['#ff4444','#ff9933','#ffee22','#33dd55','#3399ff','#9944ff'];
+    ctx.save(); traceBlobPath(ctx, cx, cy, rx * 1.15, ry * 1.15, dep.blob); ctx.clip();
+    ctx.globalAlpha = 0.18; ctx.lineWidth = 3;
+    rc.forEach((col, i) => {
+      const ang = (i / rc.length) * Math.PI * 2 + frame * 0.012;
+      ctx.strokeStyle = col; ctx.beginPath(); ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(ang)*rx*1.1, cy + Math.sin(ang)*ry*1.1); ctx.stroke();
+    });
+    ctx.restore();
+  }
+  ctx.save(); traceBlobPath(ctx, cx, cy, rx, ry, dep.blob); ctx.clip();
+  const spec = ctx.createRadialGradient(cx - rx*0.32, cy - ry*0.38, 0, cx - rx*0.1, cy - ry*0.1, rx*0.7);
+  spec.addColorStop(0, 'rgba(255,255,255,0.55)'); spec.addColorStop(0.3, 'rgba(255,255,255,0.12)');
+  spec.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = spec;
+  ctx.fillRect(cx - rx, cy - ry, rx * 2, ry * 2); ctx.restore();
+}
+
+function drawOreBody(
+  ctx: CanvasRenderingContext2D,
+  dep: CaveDeposit, cx: number, cy: number, rx: number, ry: number, frame: number
+) {
+  switch (oreStyle(dep.mineral)) {
+    case 'vein':       return drawVeinOre(ctx, dep, cx, cy, rx, ry);
+    case 'cubicMetal': return drawCubicMetalOre(ctx, dep, cx, cy, rx, ry);
+    case 'octahedral': return drawOctahedralOre(ctx, dep, cx, cy, rx, ry);
+    case 'prismatic':  return drawPrismaticCluster(ctx, dep, cx, cy, rx, ry);
+    case 'botryoidal': return drawBotryoidalOre(ctx, dep, cx, cy, rx, ry);
+    case 'bipyramid':  return drawBipyramidOre(ctx, dep, cx, cy, rx, ry);
+    default:           return drawGenericOre(ctx, dep, cx, cy, rx, ry, frame);
+  }
 }
 
 // ---- Cave background ------------------------------------------------------
@@ -297,204 +866,63 @@ function drawDeposits(
       return;
     }
 
+    // Geological ore body rendering
+    drawOreBody(ctx, dep, cx, cy, rx, ry, frame);
+
+    // Vein tendrils into surrounding rock
     const [cr, cg, cb] = hexToRgb(dep.mineral.color);
-    const hiCol = `rgb(${Math.min(255, cr + 85)},${Math.min(255, cg + 65)},${Math.min(255, cb + 45)})`;
-    const loCol = `rgb(${Math.max(0, cr - 65)},${Math.max(0, cg - 45)},${Math.max(0, cb - 35)})`;
-
-    // 1. Rock matrix shadow (embedded-in-rock look)
-    ctx.save();
-    traceBlobPath(ctx, cx + 2, cy + 4, rx * 1.14, ry * 1.14, dep.blob);
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.shadowColor = 'rgba(0,0,0,0.95)';
-    ctx.shadowBlur = 12;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.restore();
-
-    // 2. Main ore blob with radial gradient
-    ctx.save();
-    traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
-    const grd = ctx.createRadialGradient(cx - rx * 0.28, cy - ry * 0.32, 0, cx, cy, Math.max(rx, ry));
-    grd.addColorStop(0, hiCol);
-    grd.addColorStop(0.48, dep.mineral.color);
-    grd.addColorStop(1,   loCol);
-    ctx.fillStyle = grd;
-    ctx.fill();
-
-    // 3. Ore rim highlight
-    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.restore();
-
-    // 4. Type-specific surface detail
-    const isMetallic   = dep.mineral.metalness > 0.5;
-    const isGem        = dep.mineral.transmission > 0.3;
-    const isAdamantine = dep.mineral.luster === 'Adamantine';
-
-    if (isMetallic) {
-      // Metallic sheen band + cubic/hexagonal facet lines
-      ctx.save();
-      traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
-      ctx.clip();
-
-      // Horizontal specular band
-      const sheen = ctx.createLinearGradient(cx - rx, cy - ry * 0.18, cx + rx, cy + ry * 0.18);
-      sheen.addColorStop(0,    'rgba(255,255,255,0)');
-      sheen.addColorStop(0.35, 'rgba(255,255,255,0.18)');
-      sheen.addColorStop(0.5,  'rgba(255,255,255,0.32)');
-      sheen.addColorStop(0.65, 'rgba(255,255,255,0.18)');
-      sheen.addColorStop(1,    'rgba(255,255,255,0)');
-      ctx.fillStyle = sheen;
-      ctx.fillRect(cx - rx, cy - ry, rx * 2, ry * 2);
-
-      // Crystal facet lines (cubic for cube habit, hexagonal otherwise)
-      const facetN = dep.mineral.habit === 'cube' ? 4 : 6;
-      ctx.globalAlpha = 0.28;
-      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-      ctx.lineWidth = 0.8;
-      for (let i = 0; i < facetN; i++) {
-        const ang = (i / facetN) * Math.PI;
-        const cos = Math.cos(ang), sin = Math.sin(ang);
-        ctx.beginPath();
-        ctx.moveTo(cx - cos * rx * 0.85, cy - sin * ry * 0.85);
-        ctx.lineTo(cx + cos * rx * 0.85, cy + sin * ry * 0.85);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-
-    if (isGem) {
-      // Gem facet star + inner glow
-      ctx.save();
-      traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
-      ctx.clip();
-
-      // Inner glow
-      const glow = ctx.createRadialGradient(cx - rx*0.25, cy - ry*0.3, 0, cx, cy, Math.max(rx, ry) * 0.9);
-      glow.addColorStop(0, `rgba(${Math.min(255, cr + 120)},${Math.min(255, cg + 120)},${Math.min(255, cb + 120)},0.35)`);
-      glow.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = glow;
-      ctx.fillRect(cx - rx, cy - ry, rx * 2, ry * 2);
-
-      // Facet lines (more for adamantine / diamond)
-      const fN = isAdamantine ? 8 : 6;
-      ctx.globalAlpha = 0.3;
-      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-      ctx.lineWidth = 0.7;
-      for (let i = 0; i < fN; i++) {
-        const ang = (i / fN) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(cx + Math.cos(ang) * rx * 0.82, cy + Math.sin(ang) * ry * 0.82);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-
-    if (isAdamantine) {
-      // Rainbow prismatic rays radiating from center
-      const rainbowColors = ['#ff4444', '#ff9933', '#ffee22', '#33dd55', '#3399ff', '#9944ff'];
-      ctx.save();
-      traceBlobPath(ctx, cx, cy, rx * 1.15, ry * 1.15, dep.blob);
-      ctx.clip();
-      ctx.globalAlpha = 0.18;
-      ctx.lineWidth = 3;
-      rainbowColors.forEach((col, i) => {
-        const ang = (i / rainbowColors.length) * Math.PI * 2 + frame * 0.012;
-        ctx.strokeStyle = col;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(cx + Math.cos(ang) * rx * 1.1, cy + Math.sin(ang) * ry * 1.1);
-        ctx.stroke();
-      });
-      ctx.restore();
-    }
-
-    // 5. Bright specular highlight spot (top-left)
-    ctx.save();
-    traceBlobPath(ctx, cx, cy, rx, ry, dep.blob);
-    ctx.clip();
-    const spec = ctx.createRadialGradient(cx - rx * 0.32, cy - ry * 0.38, 0, cx - rx * 0.1, cy - ry * 0.1, rx * 0.7);
-    spec.addColorStop(0, 'rgba(255,255,255,0.55)');
-    spec.addColorStop(0.3, 'rgba(255,255,255,0.12)');
-    spec.addColorStop(1,   'rgba(255,255,255,0)');
-    ctx.fillStyle = spec;
-    ctx.fillRect(cx - rx, cy - ry, rx * 2, ry * 2);
-    ctx.restore();
-
-    // 6. Vein tendrils into surrounding rock
     const rng2 = seededRng(Math.floor(dep.cx * 9337 + dep.cy * 8191));
     ctx.save();
-    ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.22)`;
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.20)`;
     ctx.lineWidth = 1;
     for (let v = 0; v < 4; v++) {
-      const ang  = rng2() * Math.PI * 2;
-      const len  = 0.25 + rng2() * 0.3;
-      const bx   = cx + Math.cos(ang) * rx;
-      const by   = cy + Math.sin(ang) * ry;
-      const ex   = bx + Math.cos(ang) * rx * len;
-      const ey   = by + Math.sin(ang) * ry * len;
-      const kx   = (bx + ex) / 2 + (rng2() - 0.5) * rx * 0.5;
-      const ky   = (by + ey) / 2 + (rng2() - 0.5) * ry * 0.5;
-      ctx.beginPath();
-      ctx.moveTo(bx, by);
-      ctx.quadraticCurveTo(kx, ky, ex, ey);
-      ctx.stroke();
+      const ang = rng2() * Math.PI * 2;
+      const len = 0.25 + rng2() * 0.3;
+      const bx  = cx + Math.cos(ang) * rx;
+      const by  = cy + Math.sin(ang) * ry;
+      const ex  = bx + Math.cos(ang) * rx * len;
+      const ey  = by + Math.sin(ang) * ry * len;
+      const kx  = (bx + ex) / 2 + (rng2() - 0.5) * rx * 0.5;
+      const ky  = (by + ey) / 2 + (rng2() - 0.5) * ry * 0.5;
+      ctx.beginPath(); ctx.moveTo(bx, by); ctx.quadraticCurveTo(kx, ky, ex, ey); ctx.stroke();
     }
     ctx.restore();
 
-    // 7. Twinkling sparkles
+    // Twinkling sparkles
+    const isAdamantine = dep.mineral.luster === 'Adamantine';
     dep.sparkles.forEach(([spx, spy], si) => {
       if ((frame + si * 7) % 14 > 6) return;
       const sx = cx + spx * rx, sy = cy + spy * ry;
-      ctx.beginPath();
-      ctx.arc(sx, sy, isAdamantine ? 2.5 : 1.8, 0, Math.PI * 2);
+      ctx.beginPath(); ctx.arc(sx, sy, isAdamantine ? 2.5 : 1.8, 0, Math.PI * 2);
       ctx.fillStyle = isAdamantine ? `hsl(${(frame * 3 + si * 60) % 360},90%,90%)` : 'rgba(255,255,255,0.88)';
       ctx.fill();
     });
 
-    // 8. Progressive cracks
-    const damage    = 1 - dep.hp / dep.maxHp;
+    // Progressive cracks
+    const damage = 1 - dep.hp / dep.maxHp;
     const crackCount = Math.ceil(damage * dep.cracks.length);
     dep.cracks.slice(0, crackCount).forEach(segs => {
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
+      ctx.beginPath(); ctx.moveTo(cx, cy);
       let ccx = cx, ccy = cy;
-      segs.forEach(([ddx, ddy]) => {
-        ccx += ddx * rx;
-        ccy += ddy * ry;
-        ctx.lineTo(ccx, ccy);
-      });
-      ctx.strokeStyle = 'rgba(0,0,0,0.80)';
-      ctx.lineWidth = 1.8;
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,240,200,0.18)';
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
+      segs.forEach(([ddx, ddy]) => { ccx += ddx * rx; ccy += ddy * ry; ctx.lineTo(ccx, ccy); });
+      ctx.strokeStyle = 'rgba(0,0,0,0.80)'; ctx.lineWidth = 1.8; ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,240,200,0.18)'; ctx.lineWidth = 0.5; ctx.stroke();
     });
 
-    // 9. Mineral name label
+    // Name label
     const fontSize = Math.max(11, Math.min(rx * 0.38, 16));
     ctx.font = `bold ${fontSize}px Inter, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(255,255,255,0.92)';
-    ctx.shadowColor = 'rgba(0,0,0,0.9)';
-    ctx.shadowBlur = 7;
-    ctx.fillText(dep.mineral.name, cx, cy + ry * 0.08);
-    ctx.shadowBlur = 0;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 7;
+    ctx.fillText(dep.mineral.name, cx, cy + ry * 0.08); ctx.shadowBlur = 0;
 
     if (dep.hp === dep.maxHp) {
       ctx.font = `${Math.max(9, (fontSize * 0.62) | 0)}px JetBrains Mono, monospace`;
       ctx.fillStyle = 'rgba(255,255,255,0.42)';
       ctx.fillText('tap to mine', cx, cy + ry * 0.48);
     } else {
-      // HP bar
-      const barW = rx * 1.6, barH = 5;
-      const barX = cx - barW / 2, barY = cy - ry - 13;
-      ctx.fillStyle = 'rgba(0,0,0,0.55)';
-      ctx.fillRect(barX, barY, barW, barH);
+      const barW = rx * 1.6, barH = 5, barX = cx - barW / 2, barY = cy - ry - 13;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(barX, barY, barW, barH);
       ctx.fillStyle = `rgba(${cr},${cg},${cb},0.88)`;
       ctx.fillRect(barX, barY, barW * (dep.hp / dep.maxHp), barH);
     }
@@ -514,7 +942,7 @@ function drawParticles(ctx: CanvasRenderingContext2D, particles: Particle[]) {
 
 // ---- Phase types ----------------------------------------------------------
 
-type GamePhase = 'map' | 'zoom' | 'cave' | 'popup';
+type GamePhase = 'map' | 'zoom' | 'cave' | 'test' | 'popup';
 interface DotPos { id: string; x: number; y: number }
 interface ExtractFlash { text: string; x: number; y: number; key: number }
 
@@ -549,6 +977,8 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
   const [comboAnim,       setComboAnim]        = useState(false);
   const [extractFlash,    setExtractFlash]     = useState<ExtractFlash | null>(null);
   const [lastPts,         setLastPts]          = useState(0);
+  const [testedSet,       setTestedSet]        = useState<Set<number>>(new Set());
+  const [activeTest,      setActiveTest]       = useState<number | null>(null);
 
   // ---- Map drawing -------------------------------------------------------
   const drawMap = useCallback(() => {
@@ -764,8 +1194,10 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
         setTimeout(() => {
           cancelAnimationFrame(rafRef.current);
           setSelectedMineral(mineral);
-          setPhase('popup');
-          phaseRef.current = 'popup';
+          setTestedSet(new Set());
+          setActiveTest(null);
+          setPhase('test');
+          phaseRef.current = 'test';
         }, 800);
       }
       break;
@@ -778,6 +1210,13 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
     setSelectedMineral(null);
     setPhase('map');
     phaseRef.current = 'map';
+  };
+
+  const goToPopup = () => {
+    setTestedSet(new Set());
+    setActiveTest(null);
+    setPhase('popup');
+    phaseRef.current = 'popup';
   };
 
   const goToCave = () => {
@@ -797,7 +1236,7 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
       {/* MAP + ZOOM phases */}
       <div
         className="mine-map-wrap"
-        style={{ visibility: phase === 'cave' || phase === 'popup' ? 'hidden' : 'visible' }}
+        style={{ visibility: phase === 'cave' || phase === 'popup' || phase === 'test' ? 'hidden' : 'visible' }}
       >
         <canvas ref={mapCanvasRef} className="mine-map-canvas" />
 
@@ -838,7 +1277,7 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
       </div>
 
       {/* CAVE phase — first-person canvas */}
-      {(phase === 'cave' || phase === 'popup') && activeSite && (
+      {(phase === 'cave' || phase === 'popup' || phase === 'test') && activeSite && (
         <div className="mine-cave-root">
           {/* HUD — site info */}
           <div className="mine-cave-hud">
@@ -889,6 +1328,61 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
           <button className="mine-back-btn" onClick={goToMap}>← Back to Map</button>
         </div>
       )}
+
+      {/* TEST phase — chemical analysis lab */}
+      {phase === 'test' && selectedMineral && (() => {
+        const tests = getTests(selectedMineral.id);
+        return (
+          <div className="mine-test-overlay" role="dialog" aria-label="Chemical analysis lab">
+            <div className="mine-test-panel">
+              <div className="mine-test-header">
+                <span className="mine-test-lab-label">⚗ Chemical Analysis</span>
+                <div className="mine-test-title">{selectedMineral.name}</div>
+                <div className="mine-test-subtitle">Select a reagent to test your specimen</div>
+              </div>
+              <div className="mine-test-beakers">
+                {tests.map((test, i) => {
+                  const tested  = testedSet.has(i);
+                  const isActive = activeTest === i;
+                  return (
+                    <button
+                      key={i}
+                      className={`mine-beaker-card${tested ? ' mine-beaker-tested' : ''}${isActive ? ' mine-beaker-active' : ''}`}
+                      onClick={() => {
+                        setActiveTest(i);
+                        setTestedSet(prev => new Set([...prev, i]));
+                      }}
+                    >
+                      <div className={`mine-beaker-icon-wrap mine-react-${test.reaction}${isActive ? ' mine-reacting' : ''}`}>
+                        <span className="mine-beaker-emoji">🧪</span>
+                        {isActive && test.reaction !== 'none' && (
+                          <div
+                            className={`mine-beaker-anim mine-anim-${test.reaction}`}
+                            style={{ '--rc': test.solutionColor } as CSSProperties}
+                          />
+                        )}
+                      </div>
+                      <div className="mine-beaker-reagent">{test.reagent}</div>
+                      {tested && (
+                        <div className="mine-beaker-result">
+                          <div className="mine-beaker-eq">{test.equation}</div>
+                          <div className="mine-beaker-desc">{test.result}</div>
+                        </div>
+                      )}
+                      {!tested && <div className="mine-beaker-tap-hint">tap to test</div>}
+                    </button>
+                  );
+                })}
+              </div>
+              {testedSet.size > 0 && (
+                <button className="mine-test-continue" onClick={goToPopup}>
+                  View Specimen Info →
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* POPUP phase */}
       {phase === 'popup' && selectedMineral && (() => {
