@@ -769,7 +769,7 @@ function drawOreBody(
 
 // ---- Cave background ------------------------------------------------------
 
-function drawCaveBackground(ctx: CanvasRenderingContext2D, w: number, h: number) {
+function drawCaveBackground(ctx: CanvasRenderingContext2D, w: number, h: number, frame: number) {
   const bg = ctx.createLinearGradient(0, 0, 0, h);
   bg.addColorStop(0,    '#0d0a06');
   bg.addColorStop(0.12, '#1d1610');
@@ -843,6 +843,40 @@ function drawCaveBackground(ctx: CanvasRenderingContext2D, w: number, h: number)
   vR.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = vR;
   ctx.fillRect(0, 0, w, h);
+
+  // Flickering torch glow — drifts slowly and pulses, so the cave is
+  // visibly alive every frame instead of a static painted scene.
+  const t       = frame * 0.02;
+  const flicker = 0.78 + 0.22 * Math.sin(frame * 0.27) * Math.sin(frame * 0.11);
+  const torchX  = w * (0.5 + 0.18 * Math.sin(t * 0.6));
+  const torchY  = h * (0.34 + 0.05 * Math.sin(t * 0.9));
+  const torchR  = Math.max(w, h) * (0.55 + 0.05 * Math.sin(frame * 0.05));
+  const torch   = ctx.createRadialGradient(torchX, torchY, 0, torchX, torchY, torchR);
+  torch.addColorStop(0,   `rgba(255,176,84,${(0.16 * flicker).toFixed(3)})`);
+  torch.addColorStop(0.5, `rgba(217,142,60,${(0.06 * flicker).toFixed(3)})`);
+  torch.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = torch;
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+
+  // Drifting dust motes catching the torchlight.
+  ctx.save();
+  for (let i = 0; i < 22; i++) {
+    const seed = i * 12.9898;
+    const baseX = ((Math.sin(seed) * 43758.5453) % 1 + 1) % 1;
+    const baseY = ((Math.sin(seed * 1.7) * 24634.6345) % 1 + 1) % 1;
+    const speed = 0.15 + (i % 5) * 0.06;
+    const mx = (baseX + Math.sin(frame * 0.004 * speed + i) * 0.04) * w;
+    const my = ((baseY + frame * 0.0006 * speed) % 1) * h;
+    const tw = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(frame * 0.06 + i * 2.1));
+    ctx.beginPath();
+    ctx.arc(mx, my, 0.7 + (i % 3) * 0.5, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,224,170,${(0.12 * tw).toFixed(3)})`;
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 // ---- Deposit rendering ----------------------------------------------------
@@ -870,11 +904,16 @@ function drawDeposits(
     const [cr, cg, cb] = hexToRgb(dep.mineral.color);
     drawOreBody(ctx, dep, cx, cy, rx, ry, frame);
 
-    // Breathing pulse glow — animates under cave lighting
-    const pulse = 0.08 + 0.06 * Math.sin(frame * 0.055 + dep.cx * 13.7);
+    // Breathing pulse glow — a halo that swells and brightens around the ore
+    // so each deposit visibly throbs under the cave lighting.
+    const beat   = 0.5 + 0.5 * Math.sin(frame * 0.06 + dep.cx * 13.7);
+    const haloR  = 1.08 + 0.10 * beat;
+    const glow   = ctx.createRadialGradient(cx, cy, Math.min(rx, ry) * 0.4, cx, cy, Math.max(rx, ry) * haloR);
+    glow.addColorStop(0, `rgba(${cr},${cg},${cb},${(0.10 + 0.22 * beat).toFixed(3)})`);
+    glow.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
     ctx.save();
-    traceBlobPath(ctx, cx, cy, rx * 1.03, ry * 1.03, dep.blob);
-    ctx.fillStyle = `rgba(${cr},${cg},${cb},${pulse.toFixed(3)})`;
+    traceBlobPath(ctx, cx, cy, rx * haloR, ry * haloR, dep.blob);
+    ctx.fillStyle = glow;
     ctx.fill();
     ctx.restore();
 
@@ -1067,7 +1106,7 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
         .filter(p => p.alpha > 0.03);
 
       try {
-        drawCaveBackground(ctx, w, h);
+        drawCaveBackground(ctx, w, h, frameRef.current);
         drawDeposits(ctx, w, h, depositsRef.current, frameRef.current);
         drawParticles(ctx, particlesRef.current);
       } catch (err) {
