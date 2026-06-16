@@ -8,7 +8,7 @@
 // system, particle feedback, and a rarity-tagged geological popup.
 // ---------------------------------------------------------------------------
 
-import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo, type CSSProperties } from 'react';
 import { MINERALS, type Mineral } from '@data/geology';
 import { AU_COAST, TAS_COAST } from '@data/australiaCoast';
 import { GeoNav } from './GeoNav';
@@ -314,6 +314,318 @@ function getTests(mineralId: string): ChemTest[] {
     { reagent: 'HNO₃', equation: 'mineral + HNO₃ → test', result: 'Nitric acid test helps identify metal content.', reaction: 'none', solutionColor: 'transparent' },
     { reagent: 'H₂SO₄', equation: 'mineral + H₂SO₄ → test', result: 'Sulfuric acid provides reactivity information.', reaction: 'none', solutionColor: 'transparent' },
   ];
+}
+
+// ---- Composition (parse chemical formula → element mass %) -----------------
+
+interface ElementInfo { name: string; mass: number; color: string; }
+
+const ELEMENTS: Record<string, ElementInfo> = {
+  H:  { name: 'Hydrogen',   mass: 1.008,   color: '#e6edf3' },
+  Li: { name: 'Lithium',    mass: 6.94,    color: '#c9a0ff' },
+  Be: { name: 'Beryllium',  mass: 9.012,   color: '#6fd49c' },
+  B:  { name: 'Boron',      mass: 10.81,   color: '#d6a06f' },
+  C:  { name: 'Carbon',     mass: 12.011,  color: '#7a828c' },
+  N:  { name: 'Nitrogen',   mass: 14.007,  color: '#5a8ad6' },
+  O:  { name: 'Oxygen',     mass: 15.999,  color: '#4cc9f0' },
+  F:  { name: 'Fluorine',   mass: 18.998,  color: '#7fd6c0' },
+  Na: { name: 'Sodium',     mass: 22.990,  color: '#b07cf0' },
+  Mg: { name: 'Magnesium',  mass: 24.305,  color: '#9ad24a' },
+  Al: { name: 'Aluminium',  mass: 26.982,  color: '#b8c4cc' },
+  Si: { name: 'Silicon',    mass: 28.085,  color: '#c89b6a' },
+  P:  { name: 'Phosphorus', mass: 30.974,  color: '#e08a4a' },
+  S:  { name: 'Sulfur',     mass: 32.06,   color: '#f2dd2e' },
+  Cl: { name: 'Chlorine',   mass: 35.45,   color: '#5fc08a' },
+  K:  { name: 'Potassium',  mass: 39.098,  color: '#a06fd0' },
+  Ca: { name: 'Calcium',    mass: 40.078,  color: '#e8e3d3' },
+  Mn: { name: 'Manganese',  mass: 54.938,  color: '#d24a6a' },
+  Fe: { name: 'Iron',       mass: 55.845,  color: '#d9763c' },
+  Cu: { name: 'Copper',     mass: 63.546,  color: '#c97a4a' },
+  Zn: { name: 'Zinc',       mass: 65.38,   color: '#7f8fa0' },
+  As: { name: 'Arsenic',    mass: 74.922,  color: '#9b8fd0' },
+  Ag: { name: 'Silver',     mass: 107.868, color: '#c7ccd1' },
+  Pb: { name: 'Lead',       mass: 207.2,   color: '#8a8f98' },
+  Au: { name: 'Gold',       mass: 196.967, color: '#d4af52' },
+};
+
+const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉';
+
+// Tokenise a clean (no commas, no hydrate dot) formula segment into element
+// counts. Handles nested parentheses with multipliers, e.g. Cu₃(CO₃)₂(OH)₂.
+function tokeniseFormula(str: string): Record<string, number> {
+  let i = 0;
+  const parseSeq = (): Record<string, number> => {
+    const counts: Record<string, number> = {};
+    while (i < str.length) {
+      const c = str[i];
+      if (c === ')') break;
+      if (c === '(') {
+        i++;
+        const inner = parseSeq();
+        if (str[i] === ')') i++;
+        let num = '';
+        while (i < str.length && /[0-9]/.test(str[i])) num += str[i++];
+        const m = num ? parseInt(num, 10) : 1;
+        for (const k in inner) counts[k] = (counts[k] ?? 0) + inner[k] * m;
+      } else if (/[A-Z]/.test(c)) {
+        let sym = c; i++;
+        while (i < str.length && /[a-z]/.test(str[i])) sym += str[i++];
+        let num = '';
+        while (i < str.length && /[0-9]/.test(str[i])) num += str[i++];
+        const m = num ? parseInt(num, 10) : 1;
+        counts[sym] = (counts[sym] ?? 0) + m;
+      } else {
+        i++; // skip stray character
+      }
+    }
+    return counts;
+  };
+  return parseSeq();
+}
+
+export interface CompositionItem { symbol: string; name: string; color: string; pct: number; }
+export interface Composition { items: CompositionItem[]; approximate: boolean; }
+
+// Parse a mineral formula into element mass percentages. Returns null when the
+// formula is truncated/complex (e.g. tourmaline's "…") rather than guessing.
+function getComposition(formula: string): Composition | null {
+  if (!formula) return null;
+  if (formula.includes('…') || formula.includes('...')) return null;
+
+  // Unicode subscripts → ASCII digits.
+  let s = formula.replace(/[₀-₉]/g, ch => String(SUBSCRIPTS.indexOf(ch)));
+
+  // Solid solutions like (Mg,Fe)₂ are a range, not a fixed value — keep the
+  // first (dominant) endmember and flag the whole result as approximate.
+  let approximate = false;
+  if (s.includes(',')) {
+    approximate = true;
+    s = s.replace(/\(([^)]*)\)/g, (m, inner: string) =>
+      inner.includes(',') ? `(${inner.split(',')[0]})` : m);
+  }
+
+  // Hydrate / dot-joined parts, each with an optional leading coefficient
+  // (e.g. CaSO₄·2H₂O → "CaSO4" + "2H2O").
+  const counts: Record<string, number> = {};
+  for (const part of s.split('·')) {
+    if (!part) continue;
+    const lead = part.match(/^(\d+)(.*)$/);
+    const coeff = lead ? parseInt(lead[1], 10) : 1;
+    const body = lead ? lead[2] : part;
+    const c = tokeniseFormula(body);
+    for (const k in c) counts[k] = (counts[k] ?? 0) + c[k] * coeff;
+  }
+
+  const symbols = Object.keys(counts);
+  if (symbols.length === 0) return null;
+  if (symbols.some(sym => !ELEMENTS[sym])) return null; // unknown element → bail
+
+  let total = 0;
+  const masses = symbols.map(sym => {
+    const m = counts[sym] * ELEMENTS[sym].mass;
+    total += m;
+    return { sym, m };
+  });
+  if (total <= 0) return null;
+
+  const items: CompositionItem[] = masses
+    .map(({ sym, m }) => ({
+      symbol: sym,
+      name: ELEMENTS[sym].name,
+      color: ELEMENTS[sym].color,
+      pct: (m / total) * 100,
+    }))
+    .sort((a, b) => b.pct - a.pct);
+
+  return { items, approximate };
+}
+
+// Ease-out count-up for assay numbers. Self-contained rAF with cleanup — does
+// not touch the cave/map animation loops.
+function useCountUp(target: number, active: boolean, durationMs = 900): number {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (!active) { setVal(0); return; }
+    let raf = 0;
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / durationMs);
+      setVal(target * (1 - Math.pow(1 - t, 3)));
+      if (t < 1) raf = requestAnimationFrame(step);
+      else setVal(target);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target, active, durationMs]);
+  return val;
+}
+
+// ---- Chemical Analysis Lab (test phase) -----------------------------------
+
+interface ChemLabProps {
+  mineral: Mineral;
+  tests: ChemTest[];
+  testedSet: Set<number>;
+  activeTest: number | null;
+  selectedReagent: number | null;
+  pourReagent: number | null;
+  assayRevealed: boolean;
+  purity: number;
+  onSelectReagent: (i: number) => void;
+  onPour: () => void;
+  onContinue: () => void;
+}
+
+const PURITY_TIER = (p: number) =>
+  p >= 90 ? '#f4e8b3' : p >= 75 ? '#d4af52' : p >= 50 ? '#d98e3c' : '#c0563c';
+
+function ChemLab({
+  mineral, tests, testedSet, activeTest, selectedReagent, pourReagent,
+  assayRevealed, purity, onSelectReagent, onPour, onContinue,
+}: ChemLabProps) {
+  const comp   = useMemo(() => getComposition(mineral.formula), [mineral.formula]);
+  const reveal = useCountUp(1, assayRevealed, 1000);          // 0 → 1 ramp
+  const pouring   = pourReagent !== null;
+  const pourTest  = pourReagent !== null ? tests[pourReagent] : null;
+  const resultTest = activeTest !== null ? tests[activeTest] : null;
+
+  const ARC = Math.PI * 50; // semicircle circumference for r=50
+
+  return (
+    <div className="lab-overlay" role="dialog" aria-label="Chemical analysis lab">
+      <div className="lab-panel">
+        <header className="lab-head">
+          <span className="lab-eyebrow">⚗ Field Assay</span>
+          <h2 className="lab-title">{mineral.name}</h2>
+          <span className="lab-formula">{mineral.formula}</span>
+        </header>
+
+        <div className="lab-body">
+          {/* --- Stage: specimen + reagents -------------------------------- */}
+          <section className="lab-stage">
+            <button
+              type="button"
+              className={`lab-specimen-btn${selectedReagent !== null && !pouring ? ' lab-armed' : ''}`}
+              onClick={onPour}
+              aria-label={selectedReagent !== null ? 'Pour reagent on specimen' : 'Specimen'}
+            >
+              {pouring && pourTest && (
+                <span
+                  className="lab-pour-stream"
+                  style={{ '--rc': pourTest.solutionColor } as CSSProperties}
+                />
+              )}
+              <span
+                className={`lab-specimen${pouring && pourTest ? ` lab-react-${pourTest.reaction}` : ''}`}
+                style={{ '--mc': mineral.color } as CSSProperties}
+              >
+                {pouring && pourTest && (pourTest.reaction === 'bubble' || pourTest.reaction === 'fume') && (
+                  <span className="lab-bubbles" style={{ '--rc': pourTest.solutionColor } as CSSProperties}>
+                    {[0, 1, 2, 3, 4, 5].map(b => (
+                      <span key={b} className="lab-bubble" style={{ '--i': b } as CSSProperties} />
+                    ))}
+                  </span>
+                )}
+              </span>
+              <span className="lab-stage-hint">
+                {pouring ? 'Reacting…'
+                  : selectedReagent !== null ? 'Tap specimen to pour'
+                  : 'Select a reagent below'}
+              </span>
+            </button>
+
+            <div className="lab-shelf">
+              {tests.map((t, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={`lab-bottle${selectedReagent === i ? ' lab-bottle-armed' : ''}${testedSet.has(i) ? ' lab-bottle-done' : ''}`}
+                  style={{ '--rc': t.solutionColor === 'transparent' ? '#9bb0c4' : t.solutionColor } as CSSProperties}
+                  onClick={() => onSelectReagent(i)}
+                  disabled={pouring}
+                >
+                  <span className="lab-bottle-icon" aria-hidden="true" />
+                  <span className="lab-bottle-name">{t.reagent}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="lab-progress" aria-hidden="true">
+              {tests.map((_, i) => (
+                <span key={i} className={`lab-dot${testedSet.has(i) ? ' lab-dot-done' : ''}`} />
+              ))}
+            </div>
+          </section>
+
+          {/* --- Assay report --------------------------------------------- */}
+          <section className={`lab-report${assayRevealed ? ' lab-report-live' : ''}`}>
+            <span className="lab-report-label">Assay Report</span>
+
+            {!assayRevealed ? (
+              <div className="lab-report-pending">Run a test to reveal analysis</div>
+            ) : (
+              <>
+                <div className="lab-gauge">
+                  <svg viewBox="0 0 120 72" className="lab-gauge-svg">
+                    <path d="M10,62 A50,50 0 0 1 110,62" className="lab-gauge-track" />
+                    <path
+                      d="M10,62 A50,50 0 0 1 110,62"
+                      className="lab-gauge-fill"
+                      style={{
+                        stroke: PURITY_TIER(purity),
+                        strokeDasharray: ARC,
+                        strokeDashoffset: ARC * (1 - reveal * (purity / 100)),
+                      }}
+                    />
+                  </svg>
+                  <div className="lab-gauge-num" style={{ color: PURITY_TIER(purity) }}>
+                    {Math.round(purity * reveal)}<span className="lab-gauge-pct">%</span>
+                  </div>
+                  <div className="lab-gauge-cap">Specimen Purity</div>
+                </div>
+
+                <div className="lab-comp">
+                  <div className="lab-comp-head">
+                    Composition{comp?.approximate ? ' (approx.)' : ''}
+                  </div>
+                  {comp ? comp.items.map(item => (
+                    <div key={item.symbol} className="lab-comp-row">
+                      <span className="lab-comp-chip" style={{ background: item.color }}>{item.symbol}</span>
+                      <span className="lab-comp-name">{item.name}</span>
+                      <span className="lab-comp-bar">
+                        <span
+                          className="lab-comp-fill"
+                          style={{ width: `${item.pct * reveal}%`, background: item.color }}
+                        />
+                      </span>
+                      <span className="lab-comp-pct">{(item.pct * reveal).toFixed(1)}%</span>
+                    </div>
+                  )) : (
+                    <div className="lab-comp-na">Complex composition — field analysis only.</div>
+                  )}
+                </div>
+              </>
+            )}
+          </section>
+        </div>
+
+        {/* --- Reaction result card ---------------------------------------- */}
+        {resultTest && (
+          <div className="lab-result" key={activeTest ?? -1}>
+            <span className="lab-result-reagent" style={{ color: PURITY_TIER(70) }}>{resultTest.reagent}</span>
+            <code className="lab-result-eq">{resultTest.equation}</code>
+            <p className="lab-result-desc">{resultTest.result}</p>
+          </div>
+        )}
+
+        {testedSet.size > 0 && (
+          <button type="button" className="lab-continue" onClick={onContinue}>
+            View Specimen Info →
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ---- Canvas helpers -------------------------------------------------------
@@ -1027,6 +1339,11 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
   const [lastPts,         setLastPts]          = useState(0);
   const [testedSet,       setTestedSet]        = useState<Set<number>>(new Set());
   const [activeTest,      setActiveTest]       = useState<number | null>(null);
+  const [selectedReagent, setSelectedReagent]  = useState<number | null>(null);
+  const [pourReagent,     setPourReagent]      = useState<number | null>(null);
+  const [assayRevealed,   setAssayRevealed]    = useState(false);
+  const [specimenPurity,  setSpecimenPurity]   = useState(0);
+  const pourTimerRef      = useRef(0);
 
   // ---- Map drawing -------------------------------------------------------
   const drawMap = useCallback(() => {
@@ -1265,11 +1582,19 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
         setTimeout(() => setExtractFlash(null), 1100);
 
         const mineral = dep.mineral;
+        // Specimen purity is earned: a clean high-combo extraction yields a
+        // purer sample. Floor 55%, cap 99%.
+        const purity = Math.max(55, Math.min(99,
+          Math.round(58 + (comboRef.current - 1) * 4 + Math.random() * 16)));
         setTimeout(() => {
           cancelAnimationFrame(rafRef.current);
           setSelectedMineral(mineral);
           setTestedSet(new Set());
           setActiveTest(null);
+          setSelectedReagent(null);
+          setPourReagent(null);
+          setAssayRevealed(false);
+          setSpecimenPurity(purity);
           setPhase('test');
           phaseRef.current = 'test';
         }, 800);
@@ -1277,6 +1602,30 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
       break;
     }
   }, []);
+
+  // Pour the armed reagent onto the specimen. The reaction plays for ~1.6s,
+  // then the result + assay report are revealed. Redefined each render so it
+  // reads the current selection (no stale closure).
+  const handlePour = () => {
+    if (selectedReagent === null || pourReagent !== null) return;
+    const i = selectedReagent;
+    setPourReagent(i);
+    window.clearTimeout(pourTimerRef.current);
+    pourTimerRef.current = window.setTimeout(() => {
+      setTestedSet(p => new Set([...p, i]));
+      setActiveTest(i);
+      setAssayRevealed(true);
+      setPourReagent(null);
+      setSelectedReagent(null);
+    }, 1600);
+  };
+
+  // Cancel any in-flight pour timer when leaving the lab or unmounting, so it
+  // can't setState into the wrong phase.
+  useEffect(() => {
+    if (phase !== 'test') window.clearTimeout(pourTimerRef.current);
+    return () => window.clearTimeout(pourTimerRef.current);
+  }, [phase]);
 
   const goToMap = () => {
     cancelAnimationFrame(rafRef.current);
@@ -1404,59 +1753,21 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
       )}
 
       {/* TEST phase — chemical analysis lab */}
-      {phase === 'test' && selectedMineral && (() => {
-        const tests = getTests(selectedMineral.id);
-        return (
-          <div className="mine-test-overlay" role="dialog" aria-label="Chemical analysis lab">
-            <div className="mine-test-panel">
-              <div className="mine-test-header">
-                <span className="mine-test-lab-label">⚗ Chemical Analysis</span>
-                <div className="mine-test-title">{selectedMineral.name}</div>
-                <div className="mine-test-subtitle">Select a reagent to test your specimen</div>
-              </div>
-              <div className="mine-test-beakers">
-                {tests.map((test, i) => {
-                  const tested  = testedSet.has(i);
-                  const isActive = activeTest === i;
-                  return (
-                    <button
-                      key={i}
-                      className={`mine-beaker-card${tested ? ' mine-beaker-tested' : ''}${isActive ? ' mine-beaker-active' : ''}`}
-                      onClick={() => {
-                        setActiveTest(i);
-                        setTestedSet(prev => new Set([...prev, i]));
-                      }}
-                    >
-                      <div className={`mine-beaker-icon-wrap mine-react-${test.reaction}${isActive ? ' mine-reacting' : ''}`}>
-                        <span className="mine-beaker-emoji">🧪</span>
-                        {isActive && test.reaction !== 'none' && (
-                          <div
-                            className={`mine-beaker-anim mine-anim-${test.reaction}`}
-                            style={{ '--rc': test.solutionColor } as CSSProperties}
-                          />
-                        )}
-                      </div>
-                      <div className="mine-beaker-reagent">{test.reagent}</div>
-                      {tested && (
-                        <div className="mine-beaker-result">
-                          <div className="mine-beaker-eq">{test.equation}</div>
-                          <div className="mine-beaker-desc">{test.result}</div>
-                        </div>
-                      )}
-                      {!tested && <div className="mine-beaker-tap-hint">tap to test</div>}
-                    </button>
-                  );
-                })}
-              </div>
-              {testedSet.size > 0 && (
-                <button className="mine-test-continue" onClick={goToPopup}>
-                  View Specimen Info →
-                </button>
-              )}
-            </div>
-          </div>
-        );
-      })()}
+      {phase === 'test' && selectedMineral && (
+        <ChemLab
+          mineral={selectedMineral}
+          tests={getTests(selectedMineral.id)}
+          testedSet={testedSet}
+          activeTest={activeTest}
+          selectedReagent={selectedReagent}
+          pourReagent={pourReagent}
+          assayRevealed={assayRevealed}
+          purity={specimenPurity}
+          onSelectReagent={setSelectedReagent}
+          onPour={handlePour}
+          onContinue={goToPopup}
+        />
+      )}
 
       {/* POPUP phase */}
       {phase === 'popup' && selectedMineral && (() => {
