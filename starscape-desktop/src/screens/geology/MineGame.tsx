@@ -1005,6 +1005,7 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
   const particlesRef  = useRef<Particle[]>([]);
   const frameRef      = useRef(0);
   const phaseRef      = useRef<GamePhase>('map');
+  const zoomGuardRef  = useRef(false);
 
   // Game state
   const scoreRef    = useRef(0);
@@ -1033,7 +1034,14 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const w = canvas.width, h = canvas.height;
+    // Retina-aware sizing: back the canvas with device pixels but draw in CSS
+    // pixels (ctx.scale). Without this the map is blurry on iPhone screens.
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (w === 0 || h === 0) return;
+    canvas.width  = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
     const drawPoly = (coords: [number, number][], fill: string, stroke: string) => {
@@ -1076,11 +1084,7 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
   useEffect(() => {
     const canvas = mapCanvasRef.current;
     if (!canvas) return;
-    const resize = () => {
-      canvas.width  = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
-      drawMap();
-    };
+    const resize = () => drawMap();
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
@@ -1097,9 +1101,15 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       const w = canvas.clientWidth, h = canvas.clientHeight;
-      if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w; canvas.height = h;
+      if (w === 0 || h === 0) { rafRef.current = requestAnimationFrame(tick); return; }
+      // DPR capped at 2 on the cave — sharp on retina without doubling the
+      // per-frame gradient cost on phones. Draw in CSS px via setTransform.
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
+      if (canvas.width !== bw || canvas.height !== bh) {
+        canvas.width = bw; canvas.height = bh;
       }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       particlesRef.current = particlesRef.current
         .map(p => ({ ...p, x: p.x + p.vx, y: p.y + p.vy, vy: p.vy + 0.15, alpha: p.alpha * 0.94 }))
@@ -1124,12 +1134,16 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
     setActiveSite(site);
     setZoomPos({ x, y });
     setZoomColor(primary?.color ?? '#d4af52');
+    zoomGuardRef.current = false;
     setPhase('zoom');
     phaseRef.current = 'zoom';
   }, []);
 
   const onZoomEnd = useCallback(() => {
-    if (!activeSite) return;
+    // Idempotent: fires from either the CSS animationend OR the iOS fallback
+    // timer below — whichever lands first wins, the other is a no-op.
+    if (zoomGuardRef.current || !activeSite) return;
+    zoomGuardRef.current = true;
     const minerals = activeSite.minerals
       .slice(0, 3)
       .map(id => MINERALS.find(m => m.id === id))
@@ -1149,6 +1163,15 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
     setPhase('cave');
     phaseRef.current = 'cave';
   }, [activeSite]);
+
+  // iOS Safari sometimes never fires `animationend` on the zoom circle, which
+  // would strand the player on the map (the "pressing sites is unresponsive"
+  // bug). This timer guarantees the cave opens even if the event is dropped.
+  useEffect(() => {
+    if (phase !== 'zoom') return;
+    const t = window.setTimeout(onZoomEnd, 560);
+    return () => window.clearTimeout(t);
+  }, [phase, onZoomEnd]);
 
   useEffect(() => {
     if (phase === 'cave') {

@@ -555,7 +555,11 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0;
+  /* Generous padding gives a ≥44px touch target around the small ring so the
+     site is easy to tap on a phone. touch-action removes the 300ms iOS delay. */
+  padding: 14px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -571,7 +575,8 @@
   animation: dotPulse 2s ease-in-out infinite;
   transition: transform 0.15s;
 }
-.mine-dot:hover .mine-dot-ring { transform: scale(1.5); }
+.mine-dot:hover .mine-dot-ring,
+.mine-dot:active .mine-dot-ring { transform: scale(1.5); }
 .mine-dot-label {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.6rem;
