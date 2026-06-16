@@ -548,6 +548,11 @@
   position: absolute;
   inset: 48px 0 0 0;
   overflow: hidden;
+  /* Soft amber spotlight grounds the map so the portrait letterbox margins
+     read as intentional framing rather than dead space. Sits behind the
+     transparent canvas; aligned with the map's slightly-raised centre. */
+  background: radial-gradient(ellipse 72% 52% at 50% 44%,
+              rgba(217, 142, 60, 0.08), rgba(14, 12, 7, 0) 72%);
 }
 .mine-map-canvas {
   position: absolute;
@@ -640,6 +645,40 @@
   text-transform: uppercase;
   color: var(--amber);
   font-weight: 400;
+}
+
+/* Portrait-only legend — fills the lower band on tall phones where the
+   (correctly) letterboxed map leaves vertical space. Hidden on desktop, where
+   the map is height-bound and there is no lower band. */
+.mine-map-legend { display: none; }
+@media (max-width: 640px) {
+  .mine-map-legend {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    position: absolute;
+    left: 50%;
+    bottom: 5%;
+    transform: translateX(-50%);
+    text-align: center;
+    pointer-events: none;
+    animation: fadeIn 0.4s ease;
+  }
+  .mine-legend-count {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--amber);
+    letter-spacing: 0.03em;
+    text-shadow: 0 0 14px rgba(217, 142, 60, 0.4);
+  }
+  .mine-legend-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    color: rgba(242, 232, 216, 0.5);
+  }
 }
 
 /* ---- Cave tap-game interior ---- */

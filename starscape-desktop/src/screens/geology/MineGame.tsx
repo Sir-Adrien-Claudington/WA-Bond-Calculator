@@ -50,14 +50,19 @@ const AU_N = -9.5, AU_S = -43.8, AU_W = 113.0, AU_E = 153.8;
 const COS_CORR = Math.cos(26 * Math.PI / 180);
 
 function projectCoord(lat: number, lon: number, w: number, h: number): [number, number] {
-  const pad    = Math.min(w, h) * 0.05;
+  const pad    = Math.min(w, h) * 0.04;
   const lonExt = (AU_E - AU_W) * COS_CORR;
   const latExt = Math.abs(AU_N - AU_S);
   const avW    = w - 2 * pad;
   const avH    = h - 2 * pad;
   const sc     = Math.min(avW / lonExt, avH / latExt);
   const ox     = pad + (avW - lonExt * sc) / 2;
-  const oy     = pad + (avH - latExt * sc) / 2;
+  // Bias the map upward (40% of vertical slack above, 60% below). On a tall
+  // portrait phone this trades a dead, perfectly-centred void for a clean lower
+  // band that holds the legend; on a wide desktop the map is height-bound so
+  // the slack is ~0 and this has no visible effect. Coastline and site markers
+  // both go through here, so they stay perfectly aligned.
+  const oy     = pad + (avH - latExt * sc) * 0.4;
   return [ox + (lon - AU_W) * COS_CORR * sc, oy + (AU_N - lat) * sc];
 }
 
@@ -1687,6 +1692,14 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
         {/* Persistent score display on map */}
         {score > 0 && (
           <div className="mine-map-score">{score} pts</div>
+        )}
+
+        {/* Portrait-only legend strip — fills the lower band on tall phones */}
+        {phase === 'map' && (
+          <div className="mine-map-legend" aria-hidden="true">
+            <span className="mine-legend-count">{MINE_SITES.length} active sites</span>
+            <span className="mine-legend-hint">Tap a glowing marker to descend</span>
+          </div>
         )}
       </div>
 
