@@ -527,6 +527,15 @@
 .mine-root {
   position: fixed;
   inset: 0;
+  /* iOS Safari note: `position: fixed; inset: 0` resolves to the LAYOUT
+     viewport, which is taller than the visible screen while the dynamic
+     toolbar is shown — that pushed the southern mine sites (Tasmania) below
+     the fold, so the markers read as "a list under the map" and it overflowed.
+     `dvh` tracks the VISIBLE viewport, fixing both. Inside the EduTrack iframe
+     there is no toolbar, so dvh equals the iframe height and embed still works.
+     `100vh` is the fallback for browsers without dvh support. */
+  height: 100vh;
+  height: 100dvh;
   background: #0e0c07;
   color: var(--stone, #f2e8d8);
   font-family: 'Inter', system-ui, sans-serif;
