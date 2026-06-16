@@ -12,6 +12,9 @@ import { useEffect, useRef, useState, useCallback, useMemo, type CSSProperties }
 import { MINERALS, type Mineral } from '@data/geology';
 import { AU_COAST, TAS_COAST } from '@data/australiaCoast';
 import { GeoNav } from './GeoNav';
+import { rollPurity, classifyBand, type BandInfo } from '../../utils/purity';
+import { rollInclusions, INCLUSION_LABELS, type InclusionType } from '../../utils/inclusions';
+import { drawInclusions } from '../../canvas/inclusionRenderer';
 
 // ---- Mine site data -------------------------------------------------------
 
@@ -76,6 +79,8 @@ interface CaveDeposit {
   cracks:   [number, number][][];
   sparkles: [number, number][];
   extracted: boolean;
+  inclusions:  InclusionType[]; // intrinsic flaws, rendered on the ore
+  depthFactor: number;          // 0–1 richness; feeds the purity roll
 }
 
 interface Particle {
@@ -126,6 +131,11 @@ function createDeposit(
   mineral: Mineral, cx: number, cy: number, rx: number, ry: number, hp: number
 ): CaveDeposit {
   const rng = seededRng(Math.floor(cx * 7919 + cy * 6271));
+  // Intrinsic richness (0–1). Stands in for Phase-4 cave depth: it drives both
+  // the visible inclusions and the extraction purity roll, so cloudy ore
+  // reliably assays lower.
+  const depthFactor = rng();
+  const inclusions  = rollInclusions(depthFactor * 100, rng);
   return {
     id: `${mineral.id}-${(cx * 1000) | 0}`,
     mineral, cx, cy, rx, ry, hp, maxHp: hp,
@@ -133,6 +143,7 @@ function createDeposit(
     cracks:   makeCracks(8, rng),
     sparkles: makeSparkles(7, rng),
     extracted: false,
+    inclusions, depthFactor,
   };
 }
 
@@ -476,6 +487,8 @@ interface ChemLabProps {
   pourReagent: number | null;
   assayRevealed: boolean;
   purity: number;
+  band: BandInfo | null;
+  inclusions: InclusionType[];
   onSelectReagent: (i: number) => void;
   onPour: () => void;
   onContinue: () => void;
@@ -486,7 +499,7 @@ const PURITY_TIER = (p: number) =>
 
 function ChemLab({
   mineral, tests, testedSet, activeTest, selectedReagent, pourReagent,
-  assayRevealed, purity, onSelectReagent, onPour, onContinue,
+  assayRevealed, purity, band, inclusions, onSelectReagent, onPour, onContinue,
 }: ChemLabProps) {
   const comp   = useMemo(() => getComposition(mineral.formula), [mineral.formula]);
   const reveal = useCountUp(1, assayRevealed, 1000);          // 0 → 1 ramp
@@ -495,6 +508,9 @@ function ChemLab({
   const resultTest = activeTest !== null ? tests[activeTest] : null;
 
   const ARC = Math.PI * 50; // semicircle circumference for r=50
+  // Acid-test variance is driven by the purity band (blueprint 1.3).
+  const bandColor = band?.color ?? PURITY_TIER(purity);
+  const bubbleN   = band ? Math.min(18, Math.max(3, Math.round(band.bubbleCount * 0.5))) : 6;
 
   return (
     <div className="lab-overlay" role="dialog" aria-label="Chemical analysis lab">
@@ -517,17 +533,31 @@ function ChemLab({
               {pouring && pourTest && (
                 <span
                   className="lab-pour-stream"
-                  style={{ '--rc': pourTest.solutionColor } as CSSProperties}
+                  style={{ '--rc': pourTest.solutionColor, '--ms': `${band?.reactionMs ?? 1600}ms` } as CSSProperties}
                 />
               )}
               <span
                 className={`lab-specimen${pouring && pourTest ? ` lab-react-${pourTest.reaction}` : ''}`}
                 style={{ '--mc': mineral.color } as CSSProperties}
               >
-                {pouring && pourTest && (pourTest.reaction === 'bubble' || pourTest.reaction === 'fume') && (
-                  <span className="lab-bubbles" style={{ '--rc': pourTest.solutionColor } as CSSProperties}>
-                    {[0, 1, 2, 3, 4, 5].map(b => (
-                      <span key={b} className="lab-bubble" style={{ '--i': b } as CSSProperties} />
+                {/* Purity solution: lower grades cloud the specimen during the reaction */}
+                {pouring && band && (
+                  <span
+                    className="lab-solution"
+                    style={{ background: band.solutionColor, opacity: band.cloudiness }}
+                  />
+                )}
+                {pouring && pourTest && pourTest.reaction !== 'none' && (
+                  <span className="lab-bubbles" style={{ '--rc': band?.solutionColor ?? pourTest.solutionColor } as CSSProperties}>
+                    {Array.from({ length: bubbleN }, (_, b) => (
+                      <span
+                        key={b}
+                        className="lab-bubble"
+                        style={{
+                          left: `${10 + (b * 80 / Math.max(1, bubbleN - 1))}%`,
+                          animationDelay: `${(b % 6) * 0.13}s`,
+                        }}
+                      />
                     ))}
                   </span>
                 )}
@@ -577,16 +607,17 @@ function ChemLab({
                       d="M10,62 A50,50 0 0 1 110,62"
                       className="lab-gauge-fill"
                       style={{
-                        stroke: PURITY_TIER(purity),
+                        stroke: bandColor,
                         strokeDasharray: ARC,
                         strokeDashoffset: ARC * (1 - reveal * (purity / 100)),
                       }}
                     />
                   </svg>
-                  <div className="lab-gauge-num" style={{ color: PURITY_TIER(purity) }}>
+                  <div className="lab-gauge-num" style={{ color: bandColor }}>
                     {Math.round(purity * reveal)}<span className="lab-gauge-pct">%</span>
                   </div>
                   <div className="lab-gauge-cap">Specimen Purity</div>
+                  {band && <div className="lab-band" style={{ color: band.color }}>{band.label}</div>}
                 </div>
 
                 <div className="lab-comp">
@@ -607,6 +638,19 @@ function ChemLab({
                     </div>
                   )) : (
                     <div className="lab-comp-na">Complex composition — field analysis only.</div>
+                  )}
+                </div>
+
+                <div className="lab-inclusions">
+                  <div className="lab-comp-head">Inclusions</div>
+                  {inclusions.length > 0 ? (
+                    <div className="lab-incl-tags">
+                      {inclusions.map((inc, i) => (
+                        <span key={i} className="lab-incl-tag">{INCLUSION_LABELS[inc]}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="lab-incl-none">None detected — flawless</div>
                   )}
                 </div>
               </>
@@ -1221,6 +1265,10 @@ function drawDeposits(
     const [cr, cg, cb] = hexToRgb(dep.mineral.color);
     drawOreBody(ctx, dep, cx, cy, rx, ry, frame);
 
+    // Intrinsic inclusions over the ore face (stable per deposit).
+    drawInclusions(ctx, dep.inclusions, cx, cy, rx, ry,
+      Math.floor(dep.cx * 9973 + dep.cy * 7561));
+
     // Breathing pulse glow — a halo that swells and brightens around the ore
     // so each deposit visibly throbs under the cave lighting.
     const beat   = 0.5 + 0.5 * Math.sin(frame * 0.06 + dep.cx * 13.7);
@@ -1348,6 +1396,8 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
   const [pourReagent,     setPourReagent]      = useState<number | null>(null);
   const [assayRevealed,   setAssayRevealed]    = useState(false);
   const [specimenPurity,  setSpecimenPurity]   = useState(0);
+  const [specimenBand,       setSpecimenBand]       = useState<BandInfo | null>(null);
+  const [specimenInclusions, setSpecimenInclusions] = useState<InclusionType[]>([]);
   const pourTimerRef      = useRef(0);
 
   // ---- Map drawing -------------------------------------------------------
@@ -1578,10 +1628,15 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
         setTimeout(() => setExtractFlash(null), 1100);
 
         const mineral = dep.mineral;
-        // Specimen purity is earned: a clean high-combo extraction yields a
-        // purer sample. Floor 55%, cap 99%.
-        const purity = Math.max(55, Math.min(99,
-          Math.round(58 + (comboRef.current - 1) * 4 + Math.random() * 16)));
+        // Purity roll (Phase 1): driven by combo + the deposit's intrinsic
+        // richness. Tool tier is 0 until Phase 4, so gem grade is gated behind
+        // future tool upgrades.
+        const purity     = rollPurity({
+          comboMultiplier: comboRef.current,
+          depthFactor: dep.depthFactor,
+        });
+        const band       = classifyBand(purity);
+        const inclusions = dep.inclusions;
         setTimeout(() => {
           cancelAnimationFrame(rafRef.current);
           setSelectedMineral(mineral);
@@ -1591,6 +1646,8 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
           setPourReagent(null);
           setAssayRevealed(false);
           setSpecimenPurity(purity);
+          setSpecimenBand(band);
+          setSpecimenInclusions(inclusions);
           setPhase('test');
           phaseRef.current = 'test';
         }, 800);
@@ -1767,6 +1824,8 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
           pourReagent={pourReagent}
           assayRevealed={assayRevealed}
           purity={specimenPurity}
+          band={specimenBand}
+          inclusions={specimenInclusions}
           onSelectReagent={setSelectedReagent}
           onPour={handlePour}
           onContinue={goToPopup}
