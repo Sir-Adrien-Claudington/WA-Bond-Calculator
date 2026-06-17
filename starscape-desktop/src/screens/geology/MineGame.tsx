@@ -15,6 +15,8 @@ import { GeoNav } from './GeoNav';
 import { rollPurity, classifyBand, type BandInfo } from '../../utils/purity';
 import { rollInclusions, INCLUSION_LABELS, type InclusionType } from '../../utils/inclusions';
 import { drawInclusions } from '../../canvas/inclusionRenderer';
+import { makeSpecimen, type Specimen } from '@data/specimen';
+import { useMineGameStore } from '../../store/mineGameStore';
 
 // ---- Mine site data -------------------------------------------------------
 
@@ -1400,6 +1402,12 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
   const [specimenInclusions, setSpecimenInclusions] = useState<InclusionType[]>([]);
   const pourTimerRef      = useRef(0);
 
+  // Phase 2: persistent collection. The mined specimen is built at extraction
+  // and committed to the collection at the popup "acquired" moment.
+  const addSpecimen = useMineGameStore(s => s.addSpecimen);
+  const pendingSpecimenRef = useRef<Specimen | null>(null);
+  const collectedRef       = useRef(false);
+
   // ---- Map drawing -------------------------------------------------------
   const drawMap = useCallback(() => {
     const canvas = mapCanvasRef.current;
@@ -1637,6 +1645,16 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
         });
         const band       = classifyBand(purity);
         const inclusions = dep.inclusions;
+        if (activeSite) {
+          pendingSpecimenRef.current = makeSpecimen(mineral, {
+            siteId: activeSite.id,
+            depthFactor: dep.depthFactor,
+            purityScore: purity,
+            purityBand: band.band,
+            inclusions,
+          });
+          collectedRef.current = false;
+        }
         setTimeout(() => {
           cancelAnimationFrame(rafRef.current);
           setSelectedMineral(mineral);
@@ -1689,6 +1707,11 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
   };
 
   const goToPopup = () => {
+    // Commit the mined specimen to the persistent collection (once).
+    if (!collectedRef.current && pendingSpecimenRef.current) {
+      collectedRef.current = true;
+      addSpecimen(pendingSpecimenRef.current);
+    }
     setTestedSet(new Set());
     setActiveTest(null);
     setPhase('popup');
