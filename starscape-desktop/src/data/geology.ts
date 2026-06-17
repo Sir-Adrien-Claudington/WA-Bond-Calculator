@@ -336,6 +336,63 @@ export const MINERALS: Mineral[] = [
     color: '#eef0ea', metalness: 0, roughness: 0.12, transmission: 0.72, ior: 1.52,
     photo: 'https://upload.wikimedia.org/wikipedia/commons/b/bb/Gypse_Caresse.jpg',
   },
+  // --- Phase 2 combine inputs (added 2026-06-17) ------------------------------
+  {
+    id: 'tin', name: 'Cassiterite (Tin)', formula: 'SnO₂', system: 'Tetragonal', mohs: '6 – 7',
+    luster: 'Adamantine / metallic', group: 'Oxide', uses: 'The primary ore of tin — bronze, solder, tin-plating.',
+    blurb: 'Heavy dark-brown tin oxide in brilliant adamantine prisms and knee-twins. Tasmania’s west coast was built on it.',
+    habit: 'bipyramid', surface: 'smooth',
+    color: '#4a3a30', metalness: 0.25, roughness: 0.35, transmission: 0, ior: 2.0,
+  },
+  {
+    id: 'iron', name: 'Native Iron', formula: 'Fe', system: 'Cubic', mohs: '4',
+    luster: 'Metallic', group: 'Native element', uses: 'Smelted with carbon to make steel.',
+    blurb: 'Rarely found pure on Earth outside meteorites and basalt-trapped masses — a grey, magnetic, malleable metal.',
+    habit: 'nativeMass', surface: 'metallic',
+    color: '#9098a0', metalness: 1, roughness: 0.42, transmission: 0, anisotropy: 0.3,
+  },
+  {
+    id: 'graphite', name: 'Graphite', formula: 'C', system: 'Hexagonal', mohs: '1.5',
+    luster: 'Metallic / dull', group: 'Native element', uses: 'Pencils, lubricant, electrodes, the carbon in steel.',
+    blurb: 'Pure carbon in soft greasy sheets — so soft it leaves a mark on paper. Diamond’s humble cousin.',
+    habit: 'tabular', surface: 'metallic',
+    color: '#2e2e33', metalness: 0.35, roughness: 0.55, transmission: 0,
+  },
+  {
+    id: 'zinc', name: 'Sphalerite (Zinc)', formula: 'ZnS', system: 'Cubic', mohs: '3.5 – 4',
+    luster: 'Resinous / adamantine', group: 'Sulfide', uses: 'The chief ore of zinc — galvanising, brass, batteries.',
+    blurb: 'Zinc-blende — resinous brown crystals that flash with adamantine fire. Co-mined with galena at Broken Hill.',
+    habit: 'dodecahedron', surface: 'smooth',
+    color: '#6b4a33', metalness: 0.1, roughness: 0.22, transmission: 0.28, ior: 2.37, dispersion: 0.156,
+  },
+  {
+    id: 'corundum', name: 'Corundum', formula: 'Al₂O₃', system: 'Trigonal', mohs: '9',
+    luster: 'Vitreous / adamantine', group: 'Oxide', uses: 'Abrasive (emery); its gem varieties are ruby and sapphire.',
+    blurb: 'Aluminium oxide, second only to diamond in hardness. Trace chromium makes ruby; iron and titanium make sapphire.',
+    habit: 'bipyramid', surface: 'smooth',
+    color: '#b9c6cf', metalness: 0, roughness: 0.1, transmission: 0.42, ior: 1.77,
+  },
+  {
+    id: 'crocoite', name: 'Crocoite', formula: 'PbCrO₄', system: 'Monoclinic', mohs: '2.5 – 3',
+    luster: 'Adamantine / vitreous', group: 'Oxide', uses: 'A natural chromium source; Tasmania’s mineral emblem.',
+    blurb: 'Brilliant orange-red lead chromate in slender prisms — the world’s finest come from Dundas, Tasmania.',
+    habit: 'prismSquare', surface: 'striated', termination: 'flat',
+    color: '#e8631c', metalness: 0, roughness: 0.18, transmission: 0.3, ior: 2.3,
+  },
+  {
+    id: 'ilmenite', name: 'Ilmenite', formula: 'FeTiO₃', system: 'Trigonal', mohs: '5 – 6',
+    luster: 'Metallic / submetallic', group: 'Oxide', uses: 'The main ore of titanium and titanium-dioxide pigment.',
+    blurb: 'Iron-titanium oxide — a heavy black, weakly magnetic grain concentrated in beach mineral sands.',
+    habit: 'tabular', surface: 'metallic',
+    color: '#23262b', metalness: 0.45, roughness: 0.4, transmission: 0,
+  },
+  {
+    id: 'beryl', name: 'Beryl', formula: 'Be₃Al₂Si₆O₁₈', system: 'Hexagonal', mohs: '7.5 – 8',
+    luster: 'Vitreous', group: 'Silicate', uses: 'Ore of beryllium; gem varieties include emerald and aquamarine.',
+    blurb: 'A beryllium aluminium silicate in long hexagonal prisms. Pure beryl is colourless; chromium turns it into emerald.',
+    habit: 'hexPrism', surface: 'striated', termination: 'flat',
+    color: '#a8d8c8', metalness: 0, roughness: 0.1, transmission: 0.6, ior: 1.58,
+  },
 ];
 
 export const MINERAL_GROUPS = [

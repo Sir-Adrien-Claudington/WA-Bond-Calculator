@@ -1483,6 +1483,170 @@
   letter-spacing: 0.03em; color: #9fe7ff;
 }
 
+/* ======================================================================== */
+/* Combine Lab (Phase 2)                                                    */
+/* ======================================================================== */
+.cl-root {
+  --amber: #d98e3c;
+  --stone: #f2e8d8;
+  min-height: 100dvh;
+  padding: 64px 0 4rem;
+  background: radial-gradient(120% 80% at 50% 0%, #1a140d, #0c0a06);
+  color: var(--stone);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.cl-wrap { width: min(92vw, 760px); margin: 0 auto; }
+
+.cl-head { text-align: center; margin-bottom: 1.6rem; }
+.cl-eyebrow {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.66rem;
+  letter-spacing: 0.24em; text-transform: uppercase; color: var(--amber); opacity: 0.8;
+}
+.cl-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; font-weight: 700; margin: 0.3rem 0 0.2rem; }
+.cl-sub { font-size: 0.82rem; color: rgba(242,232,216,0.6); max-width: 30rem; margin: 0 auto; line-height: 1.5; }
+
+/* Bench */
+.cl-bench {
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  flex-wrap: wrap; margin-bottom: 1rem;
+}
+.cl-op { font-size: 1.4rem; color: var(--amber); font-weight: 700; }
+.cl-slot, .cl-result-preview {
+  width: 92px; min-height: 104px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem;
+  border-radius: 12px; padding: 0.6rem 0.4rem; text-align: center;
+}
+.cl-slot-empty {
+  border: 1.5px dashed rgba(217,142,60,0.35); color: rgba(242,232,216,0.4);
+  font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; letter-spacing: 0.05em;
+}
+.cl-slot-filled {
+  border: 1.5px solid rgba(217,142,60,0.6); background: rgba(217,142,60,0.08);
+  cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.cl-slot-gem { width: 34px; height: 34px; border-radius: 50%; box-shadow: 0 0 14px -2px currentColor, inset 0 0 8px rgba(0,0,0,0.4); }
+.cl-slot-name { font-size: 0.62rem; line-height: 1.2; color: var(--stone); }
+.cl-slot-purity { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; font-weight: 700; }
+.cl-result-preview { border: 1.5px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
+.cl-result-live { border-color: rgba(159,231,255,0.5); box-shadow: 0 0 18px -6px #9fe7ff; }
+.cl-result-q { font-size: 2rem; color: rgba(242,232,216,0.3); font-weight: 700; }
+.cl-preview-type {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.54rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(242,232,216,0.5);
+}
+
+.cl-smelt-btn {
+  display: block; margin: 0 auto 0.5rem; padding: 0.7rem 1.8rem;
+  background: var(--amber); color: #0e0b06;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.9rem;
+  border: none; border-radius: 9px; cursor: pointer;
+  transition: opacity 0.15s, transform 0.12s;
+}
+.cl-smelt-btn:hover:not(:disabled) { transform: translateY(-1px); }
+.cl-smelt-btn:disabled { opacity: 0.4; cursor: default; }
+.cl-msg { text-align: center; font-size: 0.72rem; color: #e0a05a; margin: 0.3rem 0 0; }
+
+.cl-section { margin-top: 2rem; }
+.cl-section-head {
+  font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 700;
+  border-bottom: 1px solid rgba(217,142,60,0.2); padding-bottom: 0.4rem; margin-bottom: 0.9rem;
+}
+.cl-section-head span { color: rgba(242,232,216,0.45); font-weight: 400; font-size: 0.8rem; }
+.cl-empty { font-size: 0.82rem; color: rgba(242,232,216,0.6); line-height: 1.6; }
+.cl-empty a { color: var(--amber); }
+
+.cl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 0.6rem; }
+.cl-card {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+  padding: 0.7rem 0.4rem; border-radius: 10px; cursor: pointer;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s, border-color 0.15s, background 0.15s;
+}
+.cl-card:hover { transform: translateY(-2px); border-color: rgba(217,142,60,0.35); }
+.cl-card-active { border-color: var(--amber); background: rgba(217,142,60,0.14); box-shadow: 0 0 14px -4px var(--amber); }
+.cl-card-gem {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--mc) 70%, #fff), var(--mc));
+  box-shadow: 0 0 10px -2px var(--mc);
+}
+.cl-card-name { font-size: 0.58rem; line-height: 1.15; text-align: center; color: var(--stone); }
+.cl-card-purity { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 700; }
+.cl-card-tag {
+  position: absolute; top: 4px; right: 4px; font-family: 'JetBrains Mono', monospace;
+  font-size: 0.48rem; letter-spacing: 0.04em; text-transform: uppercase;
+  background: rgba(159,231,255,0.18); color: #9fe7ff; border-radius: 3px; padding: 1px 3px;
+}
+
+.cl-recipes { display: flex; flex-direction: column; gap: 0.5rem; }
+.cl-recipe {
+  display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
+  padding: 0.6rem 0.8rem; border-radius: 8px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+  opacity: 0.6;
+}
+.cl-recipe-found { opacity: 1; border-color: rgba(217,142,60,0.3); }
+.cl-recipe-io { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: rgba(242,232,216,0.85); }
+.cl-recipe-arrow { color: var(--amber); }
+.cl-recipe-unlocks { font-size: 0.6rem; color: rgba(242,232,216,0.45); text-align: right; }
+
+/* Smelt animation overlay */
+.cl-smelt-overlay {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(8,6,3,0.93);
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.25s ease;
+}
+.cl-crucible { position: relative; text-align: center; }
+.cl-molten {
+  width: 160px; height: 160px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%, #fff2c0, #ff8a1e 35%, #b23a0a 70%, #3a1404);
+  box-shadow: 0 0 60px 10px rgba(255,138,30,0.6);
+  animation: clMolten 0.9s ease-in-out infinite;
+  margin: 0 auto;
+}
+.cl-smelt-label {
+  margin-top: 1rem; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.2em;
+  text-transform: uppercase; font-size: 0.7rem; color: #ffb86a;
+}
+.cl-skip {
+  margin-top: 1.2rem; background: none; border: 1px solid rgba(242,232,216,0.3);
+  color: rgba(242,232,216,0.7); border-radius: 6px; padding: 0.35rem 1rem;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; cursor: pointer;
+  animation: fadeIn 0.3s ease 0.8s both;
+}
+.cl-reveal-card {
+  width: min(86vw, 320px); text-align: center; padding: 1.8rem 1.4rem;
+  background: linear-gradient(160deg, #1e1810, #120e08);
+  border: 1px solid rgba(217,142,60,0.3); border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+  animation: clReveal 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.cl-reveal-gem {
+  width: 88px; height: 88px; border-radius: 50%; margin: 0 auto 1rem;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--mc) 72%, #fff), var(--mc), color-mix(in srgb, var(--mc) 70%, #000));
+  box-shadow: 0 0 36px -4px var(--mc), inset 0 0 18px rgba(0,0,0,0.35);
+}
+.cl-reveal-name { font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem; font-weight: 700; }
+.cl-reveal-formula { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #8ec7e8; margin-top: 0.1rem; }
+.cl-reveal-purity { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; margin-top: 0.6rem; }
+.cl-reveal-flaw { font-size: 0.68rem; color: #e0a05a; margin-top: 0.3rem; }
+.cl-reveal-btn {
+  margin-top: 1.3rem; background: var(--amber); color: #0e0b06; border: none; border-radius: 8px;
+  padding: 0.6rem 1.4rem; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.84rem;
+  cursor: pointer; transition: transform 0.12s, opacity 0.15s;
+}
+.cl-reveal-btn:hover { transform: translateY(-1px); }
+
+@keyframes clMolten {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.06); filter: brightness(1.2); }
+}
+@keyframes clReveal {
+  from { opacity: 0; transform: scale(0.7) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 .lab-comp-head {
   font-family: 'JetBrains Mono', monospace; font-size: 0.6rem;
   letter-spacing: 0.14em; text-transform: uppercase;

@@ -39,6 +39,9 @@ const MineralLab = lazy(() =>
 const MineGame = lazy(() =>
   import('@screens/geology/MineGame').then((m) => ({ default: m.MineGame }))
 );
+const CombineLab = lazy(() =>
+  import('@screens/geology/CombineLab').then((m) => ({ default: m.CombineLab }))
+);
 const SkyCompass = lazy(() =>
   import('@screens/SkyCompass').then((m) => ({ default: m.SkyCompass }))
 );
@@ -165,6 +168,12 @@ export function App() {
         <MineGame pathname={pathname} onNavigate={navigate} />
       </Suspense>
     );
+  } else if (pathname === '/combine') {
+    view = (
+      <Suspense fallback={viewFallback}>
+        <CombineLab pathname={pathname} onNavigate={navigate} />
+      </Suspense>
+    );
   } else {
     view = (
       <main
@@ -204,7 +213,7 @@ export function App() {
   }
 
   // GeoScape routes carry their own (GeoNav) chrome — don't stack the space nav.
-  const isGeo = pathname === '/geology' || pathname === '/minerals' || pathname === '/mine-game';
+  const isGeo = pathname === '/geology' || pathname === '/minerals' || pathname === '/mine-game' || pathname === '/combine';
 
   return (
     <>
