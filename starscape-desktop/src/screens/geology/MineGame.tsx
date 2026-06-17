@@ -19,6 +19,7 @@ import { makeSpecimen, type Specimen } from '@data/specimen';
 import { useMineGameStore } from '../../store/mineGameStore';
 import { elementsInFormula } from '@data/periodicElements';
 import { MiniPeriodicTable } from './MiniPeriodicTable';
+import { UsesChain } from './UsesChain';
 
 // ---- Mine site data -------------------------------------------------------
 
@@ -1917,7 +1918,7 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
                 <div><span>Luster</span><b>{selectedMineral.luster}</b></div>
                 <div><span>Class</span><b>{selectedMineral.group}</b></div>
               </div>
-              <p className="mine-popup-uses">{selectedMineral.uses}</p>
+              <UsesChain mineralId={selectedMineral.id} fallbackUses={selectedMineral.uses} />
               <div className="mine-popup-score-total">
                 <span>Total Score</span>
                 <strong>{score} pts</strong>
