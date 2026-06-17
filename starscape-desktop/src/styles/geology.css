@@ -531,8 +531,9 @@
      set top/left/right explicitly with bottom:auto. */
   position: fixed;
   top: 0; left: 0; right: 0; bottom: auto;
-  height: 100vh;   /* fallback */
-  height: 100dvh;
+  height: 100vh;                    /* fallback before JS runs */
+  height: 100dvh;                   /* fallback for the first paint */
+  height: var(--mine-vh, 100dvh);   /* JS-measured visible height (iOS-reliable) */
   background: #0e0c07;
   color: var(--stone, #f2e8d8);
   font-family: 'Inter', system-ui, sans-serif;

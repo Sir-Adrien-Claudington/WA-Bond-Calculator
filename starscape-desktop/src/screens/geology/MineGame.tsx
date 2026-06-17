@@ -1481,6 +1481,24 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
     return () => ro.disconnect();
   }, [drawMap]);
 
+  // Drive the root height from the real VISIBLE viewport. iOS Safari's `100dvh`
+  // can resolve to the larger (toolbar-retracted) viewport, making the fixed
+  // root taller than the screen — which pushed the map down and made the cave
+  // overflow. window.innerHeight is the reliable visible height.
+  useEffect(() => {
+    const setVH = () =>
+      document.documentElement.style.setProperty('--mine-vh', `${window.innerHeight}px`);
+    setVH();
+    const t = window.setTimeout(setVH, 300); // iOS can report stale height on first paint
+    window.addEventListener('resize', setVH);
+    window.addEventListener('orientationchange', setVH);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener('resize', setVH);
+      window.removeEventListener('orientationchange', setVH);
+    };
+  }, []);
+
   useEffect(() => { if (phase === 'map') drawMap(); }, [phase, drawMap]);
 
   // ---- Cave rAF loop -----------------------------------------------------
