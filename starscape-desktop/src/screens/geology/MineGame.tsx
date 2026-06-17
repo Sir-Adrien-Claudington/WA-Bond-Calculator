@@ -17,6 +17,8 @@ import { rollInclusions, INCLUSION_LABELS, type InclusionType } from '../../util
 import { drawInclusions } from '../../canvas/inclusionRenderer';
 import { makeSpecimen, type Specimen } from '@data/specimen';
 import { useMineGameStore } from '../../store/mineGameStore';
+import { elementsInFormula } from '@data/periodicElements';
+import { MiniPeriodicTable } from './MiniPeriodicTable';
 
 // ---- Mine site data -------------------------------------------------------
 
@@ -513,6 +515,7 @@ function ChemLab({
   assayRevealed, purity, band, inclusions, onSelectReagent, onPour, onContinue,
 }: ChemLabProps) {
   const comp   = useMemo(() => getComposition(mineral.formula), [mineral.formula]);
+  const elementSymbols = useMemo(() => elementsInFormula(mineral.formula), [mineral.formula]);
   const reveal = useCountUp(1, assayRevealed, 1000);          // 0 → 1 ramp
   const pouring   = pourReagent !== null;
   const pourTest  = pourReagent !== null ? tests[pourReagent] : null;
@@ -668,6 +671,14 @@ function ChemLab({
             )}
           </section>
         </div>
+
+        {/* --- Periodic table (elements in this mineral) -------------------- */}
+        {assayRevealed && (
+          <section className="lab-periodic">
+            <div className="lab-comp-head">Periodic table — elements in {mineral.name}</div>
+            <MiniPeriodicTable activeSymbols={elementSymbols} />
+          </section>
+        )}
 
         {/* --- Reaction result card ---------------------------------------- */}
         {resultTest && (
