@@ -3,7 +3,7 @@
 // Tap-to-place (no HTML5 drag — broken on iOS Safari): pick two specimens from
 // your collection, smelt them into an alloy or doped gem. Purity-gated yield.
 // ---------------------------------------------------------------------------
-import { useState, type CSSProperties } from 'react';
+import { useState, useRef, useEffect, type CSSProperties } from 'react';
 import '../../styles/geology.css';
 import { GeoNav } from './GeoNav';
 import { MINERALS } from '@data/geology';
@@ -50,6 +50,8 @@ export function CombineLab({ pathname, onNavigate }: CombineLabProps) {
   const [reveal, setReveal] = useState<Specimen | null>(null); // smelt result overlay
   const [shown,  setShown]  = useState(false);                 // result revealed vs molten
   const [noRecipe, setNoRecipe] = useState(false);
+  const revealTimerRef = useRef(0);
+  useEffect(() => () => window.clearTimeout(revealTimerRef.current), []);
 
   const preview = slotA && slotB ? matchRecipe([slotA.mineralId, slotB.mineralId]) : null;
 
@@ -68,10 +70,15 @@ export function CombineLab({ pathname, onNavigate }: CombineLabProps) {
     if (!result) { setNoRecipe(true); return; }
     setReveal(result);
     setShown(false);
-    window.setTimeout(() => setShown(true), 1500);
+    window.clearTimeout(revealTimerRef.current);
+    revealTimerRef.current = window.setTimeout(() => setShown(true), 1500);
   };
 
-  const closeReveal = () => { setReveal(null); setShown(false); };
+  const closeReveal = () => {
+    window.clearTimeout(revealTimerRef.current);
+    setReveal(null);
+    setShown(false);
+  };
 
   const inSlot = (id: string) => slotA?.id === id || slotB?.id === id;
 
