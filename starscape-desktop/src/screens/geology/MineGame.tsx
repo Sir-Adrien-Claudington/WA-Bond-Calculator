@@ -1426,7 +1426,12 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const w = canvas.width, h = canvas.height;
+    // Size the backing store to the CURRENT displayed size on every draw, so the
+    // coastline and the site markers (positioned from these same w/h) can never
+    // desync — which on iOS stranded the markers below the map as a list.
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (w === 0 || h === 0) return;
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
     ctx.clearRect(0, 0, w, h);
 
     const drawPoly = (coords: [number, number][], fill: string, stroke: string) => {
@@ -1469,11 +1474,7 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
   useEffect(() => {
     const canvas = mapCanvasRef.current;
     if (!canvas) return;
-    const resize = () => {
-      canvas.width  = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
-      drawMap();
-    };
+    const resize = () => drawMap();
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
