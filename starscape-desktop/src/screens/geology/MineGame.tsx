@@ -1417,6 +1417,9 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
   const pendingSpecimenRef = useRef<Specimen | null>(null);
   const collectedRef       = useRef(false);
 
+  // TEMP DEBUG (remove once the iOS tap issue is localised): counts marker taps.
+  const [dbgTaps, setDbgTaps] = useState(0);
+
   // ---- Map drawing -------------------------------------------------------
   const drawMap = useCallback(() => {
     const canvas = mapCanvasRef.current;
@@ -1510,6 +1513,7 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
 
   // ---- Site click → zoom → cave -----------------------------------------
   const handleSiteClick = useCallback((site: MineSite, x: number, y: number) => {
+    setDbgTaps(n => n + 1); // TEMP DEBUG
     const primary = MINERALS.find(m => m.id === site.minerals[0]);
     setActiveSite(site);
     setZoomPos({ x, y });
@@ -1740,6 +1744,18 @@ export function MineGame({ pathname, onNavigate }: MineGameProps) {
   return (
     <div className="mine-root">
       <GeoNav pathname={pathname} onNavigate={onNavigate} />
+
+      {/* TEMP DEBUG readout — remove once the iOS tap issue is localised */}
+      <div
+        style={{
+          position: 'fixed', top: 52, left: 8, zIndex: 100,
+          background: 'rgba(0,0,0,0.78)', color: '#9fe7ff',
+          font: '11px monospace', padding: '4px 8px', borderRadius: 6,
+          pointerEvents: 'none',
+        }}
+      >
+        phase:{phase} · taps:{dbgTaps} · dots:{dotPositions.length}
+      </div>
 
       {/* MAP + ZOOM phases */}
       <div

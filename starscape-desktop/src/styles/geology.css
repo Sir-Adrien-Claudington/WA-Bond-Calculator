@@ -525,16 +525,13 @@
 /* --- Mine Game ------------------------------------------------------------ */
 
 .mine-root {
+  /* Anchor to the top and size by the VISIBLE viewport (dvh) so iOS Safari's
+     dynamic toolbar can't make the box taller than the screen. Avoid the
+     over-constrained `inset:0 + height` combo (top+bottom+height is ambiguous);
+     set top/left/right explicitly with bottom:auto. */
   position: fixed;
-  inset: 0;
-  /* iOS Safari note: `position: fixed; inset: 0` resolves to the LAYOUT
-     viewport, which is taller than the visible screen while the dynamic
-     toolbar is shown — that pushed the southern mine sites (Tasmania) below
-     the fold, so the markers read as "a list under the map" and it overflowed.
-     `dvh` tracks the VISIBLE viewport, fixing both. Inside the EduTrack iframe
-     there is no toolbar, so dvh equals the iframe height and embed still works.
-     `100vh` is the fallback for browsers without dvh support. */
-  height: 100vh;
+  top: 0; left: 0; right: 0; bottom: auto;
+  height: 100vh;   /* fallback */
   height: 100dvh;
   background: #0e0c07;
   color: var(--stone, #f2e8d8);
