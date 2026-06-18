@@ -77,6 +77,11 @@ export function ScratchTest({ pathname, onNavigate }: ScratchTestProps) {
     .filter((m): m is ScratchMineral => !!m)
     .sort((a, b) => a.mohs - b.mohs);
 
+  // Completion is *derived*, not stored: the ladder is done the moment it holds
+  // every reference mineral. `ladder` is deduped + filtered to valid minerals,
+  // so its length can never exceed the reference count — equality is safe.
+  const isComplete = ladder.length === SCRATCH_MINERALS.length;
+
   let resultText = '';
   if (outcome) {
     if (outcome.tie) {
@@ -144,6 +149,17 @@ export function ScratchTest({ pathname, onNavigate }: ScratchTestProps) {
 
         {/* Hardness ladder — what you've empirically placed on the scale */}
         <section className="cl-section">
+          {/* Completion badge — derived from isComplete, announced to screen
+              readers via role="status" the moment the last mineral lands. */}
+          {isComplete && (
+            <div className="st-badge" role="status">
+              <span className="st-badge-icon">★</span>
+              <span className="st-badge-text">
+                <strong>Ladder complete!</strong>
+                You ranked every mineral on the Mohs scale.
+              </span>
+            </div>
+          )}
           <h2 className="cl-section-head st-ladder-head">
             <span className="st-ladder-title">
               Your Hardness Ladder <span>({ladder.length}/{SCRATCH_MINERALS.length} tested)</span>
