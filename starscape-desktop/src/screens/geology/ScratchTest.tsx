@@ -45,6 +45,7 @@ interface Outcome {
 export function ScratchTest({ pathname, onNavigate }: ScratchTestProps) {
   const testedMinerals = useMineGameStore(s => s.testedMinerals);
   const recordScratch  = useMineGameStore(s => s.recordScratch);
+  const clearTested    = useMineGameStore(s => s.clearTested);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [outcome,    setOutcome]    = useState<Outcome | null>(null);
@@ -143,8 +144,20 @@ export function ScratchTest({ pathname, onNavigate }: ScratchTestProps) {
 
         {/* Hardness ladder — what you've empirically placed on the scale */}
         <section className="cl-section">
-          <h2 className="cl-section-head">
-            Your Hardness Ladder <span>({ladder.length}/{SCRATCH_MINERALS.length} tested)</span>
+          <h2 className="cl-section-head st-ladder-head">
+            <span className="st-ladder-title">
+              Your Hardness Ladder <span>({ladder.length}/{SCRATCH_MINERALS.length} tested)</span>
+            </span>
+            {ladder.length > 0 && (
+              <button
+                type="button"
+                className="st-reset-btn"
+                onClick={() => { clearTested(); setOutcome(null); setSelectedId(null); }}
+                aria-label="Reset the hardness ladder and clear all tested minerals"
+              >
+                Reset ladder
+              </button>
+            )}
           </h2>
           {ladder.length === 0 ? (
             <p className="cl-empty">Nothing tested yet. Scratch a few minerals together and they’ll line up here, softest at the bottom.</p>

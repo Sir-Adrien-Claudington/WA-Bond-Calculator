@@ -1954,3 +1954,29 @@
   font-weight: 700;
   color: var(--amber);
 }
+
+/* Ladder heading row: title on the left, secondary "Reset ladder" on the right. */
+.st-ladder-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.st-ladder-title { font: inherit; }
+.st-reset-btn {
+  flex-shrink: 0;
+  padding: 0.32rem 0.7rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--amber);
+  background: transparent;
+  border: 1px solid rgba(217, 142, 60, 0.4);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.st-reset-btn:hover {
+  background: rgba(217, 142, 60, 0.14);
+  border-color: var(--amber);
+}

@@ -25,6 +25,7 @@ interface MineGameState {
   // --- Mohs scratch ladder (persisted) ---
   testedMinerals: string[];                       // mineralIds empirically ranked
   recordScratch: (idA: string, idB: string) => void;
+  clearTested: () => void;
 }
 
 export const useMineGameStore = create<MineGameState>()(
@@ -56,6 +57,9 @@ export const useMineGameStore = create<MineGameState>()(
         next.add(idB);
         return { testedMinerals: [...next] };
       }),
+      // Wipe the ladder. Setting testedMinerals back to [] also rewrites the
+      // persisted copy in localStorage, because testedMinerals is in partialize.
+      clearTested: () => set({ testedMinerals: [] }),
 
       smelt: () => {
         const { slotA, slotB } = get();
