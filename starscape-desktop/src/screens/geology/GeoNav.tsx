@@ -12,6 +12,7 @@ const ITEMS: Array<[string, string]> = [
   ['/minerals', 'Mineral Lab'],
   ['/mine-game', 'Mine Game'],
   ['/combine', 'Combine Lab'],
+  ['/scratch', 'Scratch Test'],
 ];
 
 export function GeoNav({ pathname, onNavigate }: GeoNavProps) {

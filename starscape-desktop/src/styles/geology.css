@@ -1872,3 +1872,85 @@
   .time-card { width: 100%; margin-left: 2rem; }
   .time-left, .time-right { justify-content: flex-start; }
 }
+
+/* --- Scratch Test (Phase 3.2) --------------------------------------------- */
+/* Reuses the CombineLab .cl-* shell (root/wrap/head/section/grid/card). Only
+   the scratch-specific pieces below are new: the result banner, the chip
+   win/lose accents, and the hardness ladder. Palette/fonts match the rest of
+   the geology section (amber + stone + jade, JetBrains Mono for labels). */
+
+/* Result banner — neutral by default, jade tint on a decisive scratch, muted
+   amber on a draw. */
+.st-result {
+  text-align: center;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: rgba(242, 232, 216, 0.72);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin: 0 auto 0.4rem;
+  max-width: 34rem;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+.st-result-win {
+  color: var(--stone);
+  border-color: rgba(79, 168, 139, 0.45);
+  background: rgba(79, 168, 139, 0.1);
+}
+.st-result-tie {
+  color: var(--stone);
+  border-color: rgba(217, 142, 60, 0.4);
+  background: rgba(217, 142, 60, 0.1);
+}
+
+/* Chip = a .cl-card with extra outcome accents. The harder mineral glows jade
+   (it "won" the scratch); the softer one dims (it got scratched). */
+.st-chip-harder {
+  border-color: rgba(79, 168, 139, 0.65);
+  background: rgba(79, 168, 139, 0.14);
+  box-shadow: 0 0 14px -4px var(--jade, #4fa88b);
+}
+.st-chip-harder .cl-card-purity { color: var(--jade, #4fa88b); }
+.st-chip-softer { opacity: 0.5; }
+
+/* Hardness ladder — minerals you've empirically placed, softest at the bottom.
+   Reversed column so the visual stack matches "harder sits higher". */
+.st-ladder {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.4rem;
+}
+.st-rung {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid var(--mc, #d98e3c);
+}
+.st-rung-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--mc) 70%, #fff), var(--mc));
+  box-shadow: 0 0 10px -2px var(--mc);
+}
+.st-rung-name {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--stone);
+}
+.st-rung-mohs {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--amber);
+}

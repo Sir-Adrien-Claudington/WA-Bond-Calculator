@@ -21,6 +21,10 @@ interface MineGameState {
   setSlot: (slot: 'A' | 'B', specimen: Specimen | null) => void;
   smelt: () => Specimen | null;  // null when no valid recipe
   clearSlots: () => void;
+
+  // --- Mohs scratch ladder (persisted) ---
+  testedMinerals: string[];                       // mineralIds empirically ranked
+  recordScratch: (idA: string, idB: string) => void;
 }
 
 export const useMineGameStore = create<MineGameState>()(
@@ -44,6 +48,14 @@ export const useMineGameStore = create<MineGameState>()(
         set(slot === 'A' ? { slotA: specimen } : { slotB: specimen }),
 
       clearSlots: () => set({ slotA: null, slotB: null }),
+
+      testedMinerals: [],
+      recordScratch: (idA, idB) => set(st => {
+        const next = new Set(st.testedMinerals);
+        next.add(idA);
+        next.add(idB);
+        return { testedMinerals: [...next] };
+      }),
 
       smelt: () => {
         const { slotA, slotB } = get();
@@ -78,6 +90,7 @@ export const useMineGameStore = create<MineGameState>()(
         collection: s.collection,
         discoveredRecipes: s.discoveredRecipes,
         unlockedBadges: s.unlockedBadges,
+        testedMinerals: s.testedMinerals,
       }),
       // No-op for v1; bump `version` and migrate here on any Specimen-shape
       // change so old saved data can't deserialise into undefined fields.
