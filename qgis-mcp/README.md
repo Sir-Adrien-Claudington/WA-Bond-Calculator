@@ -132,6 +132,7 @@ QGIS isn't running or the plugin isn't enabled. Re-check Part 2.
 | `load_vector_layer` | Loads a vector file (shapefile, GeoJSON, GeoPackage…).   |
 | `run_buffer`        | Buffers a loaded layer and loads the result.             |
 | `export_map_image`  | Renders the current map view to a PNG.                   |
+| `zoom_to_layer`     | Zooms the map view to a layer's full extent.             |
 
 ---
 

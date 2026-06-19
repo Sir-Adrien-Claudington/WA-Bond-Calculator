@@ -139,6 +139,18 @@ def export_map_image(output_path: str, width: int = 800, height: int = 600) -> d
     )
 
 
+@mcp.tool()
+def zoom_to_layer(layer_name: str) -> dict:
+    """
+    Zoom the QGIS map view to the full extent of a layer.
+
+    Args:
+        layer_name: Name of the layer (already loaded in QGIS) to zoom to.
+            Returns the layer's bounding box (xmin, ymin, xmax, ymax).
+    """
+    return _send_command("zoom_to_layer", layer_name=layer_name)
+
+
 if __name__ == "__main__":
     # Run the server using stdio transport, which is how Claude Desktop and
     # Claude Code launch and talk to local MCP servers.

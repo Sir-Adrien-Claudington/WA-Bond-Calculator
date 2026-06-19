@@ -107,6 +107,8 @@ class _CommandRunner(QObject):
             return self._run_buffer(params)
         if cmd == "export_map_image":
             return self._export_map_image(params)
+        if cmd == "zoom_to_layer":
+            return self._zoom_to_layer(params)
         return {"ok": False, "error": "Unknown command: {}".format(cmd)}
 
     def _list_layers(self):
@@ -166,6 +168,36 @@ class _CommandRunner(QObject):
             QgsProject.instance().addMapLayer(out_layer)
 
         return {"ok": True, "output": result["OUTPUT"]}
+
+    def _zoom_to_layer(self, params):
+        layer_name = params.get("layer_name")
+        if not layer_name:
+            return {"ok": False, "error": "Missing 'layer_name' parameter."}
+
+        # Find the layer by name in the current project.
+        matches = QgsProject.instance().mapLayersByName(layer_name)
+        if not matches:
+            return {"ok": False, "error": "No layer named '{}'.".format(layer_name)}
+        layer = matches[0]
+
+        # layer.extent() returns a QgsRectangle: the bounding box that contains
+        # every feature in the layer. We point the map canvas at that box and
+        # refresh() to redraw, which "zooms to" the layer.
+        extent = layer.extent()
+        canvas = self.iface.mapCanvas()
+        canvas.setExtent(extent)
+        canvas.refresh()
+
+        return {
+            "ok": True,
+            "layer": layer_name,
+            "extent": {
+                "xmin": extent.xMinimum(),
+                "ymin": extent.yMinimum(),
+                "xmax": extent.xMaximum(),
+                "ymax": extent.yMaximum(),
+            },
+        }
 
     def _export_map_image(self, params):
         output_path = params.get("output_path")
