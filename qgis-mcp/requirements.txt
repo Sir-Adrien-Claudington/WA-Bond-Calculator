@@ -1,0 +1,3 @@
+# The official MCP (Model Context Protocol) Python SDK.
+# The [cli] extra adds helpful command-line tools for developing MCP servers.
+mcp[cli]

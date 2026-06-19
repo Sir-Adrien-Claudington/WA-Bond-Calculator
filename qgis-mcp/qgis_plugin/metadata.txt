@@ -1,0 +1,15 @@
+[general]
+name=MCP Bridge
+qgisMinimumVersion=3.0
+description=A small TCP socket bridge that lets an external MCP server send PyQGIS commands to a running QGIS instance.
+about=Starts a local TCP server on 127.0.0.1:9876 when enabled. Receives newline-delimited JSON commands and runs them against the current QGIS project using PyQGIS. Intended to be paired with the qgis-mcp MCP server so Claude can control QGIS.
+version=0.1.0
+author=Adrien
+email=you@example.com
+tracker=https://example.com/issues
+repository=https://example.com/repo
+experimental=True
+deprecated=False
+tags=mcp,automation,socket,bridge
+category=Plugins
+icon=
